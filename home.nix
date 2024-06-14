@@ -42,6 +42,7 @@
     nodejs_20
     xclip
     rclone
+    krita
   ]) ++
   (with pkgs.kdePackages; [
     akonadi
@@ -51,7 +52,6 @@
     plasma-thunderbolt
     kubrick
     ksvg
-    krita
     kate
   ]);
 
@@ -61,7 +61,7 @@
     lfs.enable = true;
     userName = "Bernd Donner";
     userEmail = "bernd.donner@sabel.com";
-    package = pkgs.Full;
+    package = pkgs.gitFull;
     extraConfig = {
       credential = {
         helper = "libsecret";
