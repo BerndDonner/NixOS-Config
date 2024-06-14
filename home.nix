@@ -51,6 +51,8 @@
     plasma-thunderbolt
     kubrick
     ksvg
+    krita
+    kate
   ]);
 
   # basic configuration of git, please change to your own
@@ -59,7 +61,11 @@
     lfs.enable = true;
     userName = "Bernd Donner";
     userEmail = "bernd.donner@sabel.com";
+    package = pkgs.Full;
     extraConfig = {
+      credential = {
+        helper = "libsecret";
+      };
       init = {
         defaultBranch = "master";
       };
