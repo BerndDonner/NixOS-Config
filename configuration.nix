@@ -70,7 +70,11 @@
       "wheel"   # Enable ‘sudo’ for the user.
       "dialout" # Enable access to ttyACM0 for arduino programming
       "audio"   # Enable audio changes
-     ];
+    ];
+
+    openssh.authorizedKeys.keys = [
+      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCuzORt+Ta4fGIHAQajtUesaYnq0YhsAFAhsWTrKs3RmuB1q4/rmZh3p9nZQGJjxB7bC7TxSWA0tl7BTAt916hhwhzGtiBSHecC4VyfMKg/322LPAtmZycaF9WW3F+lSfbLiLWgmtvBMy6xX2Avm7zmS7cdH11U0TkxshVgijqjLFBIeC9M5dzdo9qouScsn/EdcSvj1ZgZ5Ah5+RP8Dcd6onQieA017FJSfxaj7Oxb/Wc1EkfHbY6K1GN0Jh+hq6wU2bzmvq9AHqas88l24Suzmb4Psc/lVANB+TrH2PaM7CG1TX4pPAC1mrf7xUUCEOWWRkft/hBDx9ja5H9FSFkE6TNNOd7aXVqsjGtGu/oFVf7nX1ey6oTR72DHbGEwtDO5ky6eME092dpjQnd9HmrSkSeIJhzGt9pmQHisQcJpNYKXHazN3LOfd3lTl5m5XnsHUbC06RfqtifuIe2ifgdCtuwSR1oEPCJpfjVTzEcJTZ2IcinjfAdYL2Xnv5judt0= Bernds-Desktop"
+    ];
     
     packages = with pkgs; [];
   };
