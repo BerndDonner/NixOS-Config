@@ -72,8 +72,6 @@
       "audio"   # Enable audio changes
     ];
 
-  ];
-    
     packages = with pkgs; [];
   };
 
