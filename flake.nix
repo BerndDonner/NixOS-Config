@@ -17,6 +17,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
+            # home-manager.backupFileExtension = "hm-backup"; #Debugging
             home-manager.users.bernd = import ./home.nix;
 
             # Optionally, use home-manager.extraSpecialArgs to pass
