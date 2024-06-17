@@ -53,6 +53,12 @@
     kubrick
     ksvg
     kate
+  ]) ++
+  ([
+    # This is a simple way to install personal packages.
+    # The downside is, you cannot depend on these packages.
+    # Use overlays when you want to depend on the packages.
+    (pkgs.callPackage ./Packages/Context/luametatex.nix {})
   ]);
 
   # basic configuration of git, please change to your own
