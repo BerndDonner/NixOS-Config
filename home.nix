@@ -30,6 +30,9 @@
     stm32cubemx
     kicad
     blender
+    obs-studio
+    rnote
+    inkscape
     rustc
     kmplayer
     gimp
@@ -40,7 +43,7 @@
     gdu
     bottom
     nodejs_20
-    xclip
+    xsel
     rclone
     krita
     xinput_calibrator
