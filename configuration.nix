@@ -50,6 +50,16 @@
     layout = "de";
     variant = "nodeadkeys";
   };
+
+  services.xserver.inputClassSections = [ ''
+    Identifier "XP-Pen 24 Pro Tablet"
+    MatchIsTablet "on"
+    Driver "libinput"
+    MatchUSBID "28bd:092d"
+    MatchDevicePath "/dev/input/event*"
+    Option "TransformationMatrix" "0.57148 0 0 0 1 0 0 0 1"
+  '' ];
+
   # services.xserver.xkb.options = "eurosign:e,caps:escape";
 
   # Enable CUPS to print documents.
@@ -87,7 +97,8 @@
     git
     zip
     python3
-    steam-run
+    usbutils
+    pciutils
   ];
 
   # Some programs need SUID wrappers, can be configured further or are

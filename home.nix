@@ -43,6 +43,7 @@
     xclip
     rclone
     krita
+    xinput_calibrator
   ]) ++
   (with pkgs.kdePackages; [
     akonadi
