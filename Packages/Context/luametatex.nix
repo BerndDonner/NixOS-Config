@@ -1,3 +1,5 @@
+# based on the work of Marco Feltmann: https://github.com/marcofeltmann/luametatex.nix/blob/master/context.nix
+
 {
   lib,
   stdenv,
