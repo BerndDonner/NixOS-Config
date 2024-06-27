@@ -29,7 +29,9 @@
     arduino-ide
     stm32cubemx
     kicad
-    blender
+    (blender.override {
+        cudaSupport = true;
+    })
     obs-studio
     rnote
     inkscape
