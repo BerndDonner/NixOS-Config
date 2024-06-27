@@ -15,7 +15,7 @@
 
 stdenv.mkDerivation {
   pname = "LuaMetaTeX";
-  version = "2.11.03";
+  version = "2.11.04"; #TODO can we automatically set the version from github?
 
   meta = with lib; {
     description = "The LuaMetaTeX project, related to ConTeXt development, closely integrates TeX and MetaPost with Lua.";
@@ -55,47 +55,61 @@ stdenv.mkDerivation {
     make all
   '';
 
-  #TODO write a function to create the 3 shell script wrappers
-  postUnpack = ''
-    echo "prepare file structure"
+  # The let .. in .. construct seems perfect for this function definition,
+  # since I do not want the function definition to be visible to the outside
+  # the function createWrapper is only an internal helper to prevent repetitive
+  # code.
+  #
+  # all the wrapper does is calling context, mtxrun and luametatex with the
+  # absolute path. Changing the filenames of theese binaries would break the code
+  # by the way. The impementation of the only real binary luametatex does find
+  # the fonts and other neccessary data when called via absolute path.
 
-    mkdir -p "$out/bin"
-    mkdir -p "$out/tex/texmf-context"
-    mkdir -p "$out/tex/texmf-linux-64/bin"
+  postUnpack =
+    let
 
-    echo "***** DEBUG *****"
-    pwd
-    echo $src
-    echo $out
-    echo $texmf
-    echo $context
-    echo ${runtimeShell}
-    echo "****** END ******"
+      createWrapper=filename : ''
+        echo '#!${runtimeShell}'                                  >  "$out/bin/${filename}"
+        echo exec "$out/tex/texmf-linux-64/bin/${filename}" "\$@" >> "$out/bin/${filename}"
+        chmod a+x "$out/bin/${filename}"
+      '';
+
+    in
+
+      ''
+      echo "prepare file structure"
+
+      mkdir -p "$out/bin"
+      mkdir -p "$out/tex/texmf-context"
+      mkdir -p "$out/tex/texmf-linux-64/bin"
+
+      echo "***** DEBUG *****"
+      pwd
+      echo $src
+      echo $out
+      echo $texmf
+      echo $context
+      echo ${runtimeShell}
+      echo "****** END ******"
     
-    echo '#!${runtimeShell}'                              >  "$out/bin/context"
-    echo exec "$out/tex/texmf-linux-64/bin/context" "\$@" >> "$out/bin/context"
-    chmod a+x "$out/bin/context"
-
-    echo '#!${runtimeShell}'                              >  "$out/bin/mtxrun"
-    echo exec "$out/tex/texmf-linux-64/bin/mtxrun" "\$@"  >> "$out/bin/mtxrun"
-    chmod a+x "$out/bin/mtxrun"
+      ${createWrapper "context"}
     
-    echo '#!${runtimeShell}'                                 >  "$out/bin/luametatex"
-    echo exec "$out/tex/texmf-linux-64/bin/luametatex" "\$@" >> "$out/bin/luametatex"
-    chmod a+x "$out/bin/luametatex"
+      ${createWrapper "mtxrun"}
 
-    cp -r "$texmf/texmf"  "$out/tex/"
+      ${createWrapper "luametatex"}
+
+      cp -r "$texmf/texmf"  "$out/tex/"
  
-    cp -r "$src/colors"   "$out/tex/texmf-context/"
-    cp -r "$src/context"  "$out/tex/texmf-context/"
-    cp -r "$src/doc"      "$out/tex/texmf-context/"
-    cp -r "$src/fonts"    "$out/tex/texmf-context/"
-    cp -r "$src/metapost" "$out/tex/texmf-context/"
-    cp -r "$src/scripts"  "$out/tex/texmf-context/"
-    cp -r "$src/tex"      "$out/tex/texmf-context/"
-    cp -r "$src/web2c"    "$out/tex/texmf-context/"
+      cp -r "$src/colors"   "$out/tex/texmf-context/"
+      cp -r "$src/context"  "$out/tex/texmf-context/"
+      cp -r "$src/doc"      "$out/tex/texmf-context/"
+      cp -r "$src/fonts"    "$out/tex/texmf-context/"
+      cp -r "$src/metapost" "$out/tex/texmf-context/"
+      cp -r "$src/scripts"  "$out/tex/texmf-context/"
+      cp -r "$src/tex"      "$out/tex/texmf-context/"
+      cp -r "$src/web2c"    "$out/tex/texmf-context/"
 
-  '';
+    '';
 
 # The following buildsteps where missing:
 # 1.) copy texmf (source http://www.pragma-ade.nl/install.htm -> texmf.zip)
