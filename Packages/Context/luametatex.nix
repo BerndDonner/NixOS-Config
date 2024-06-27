@@ -28,21 +28,16 @@ stdenv.mkDerivation {
   src = fetchFromGitHub {
     owner = "contextgarden";
     repo = "context";
-    rev = "dcdbc5826ebf1faab9fec7c6d32eb42f82cdd918";
-    hash = "sha256-UrU++sTQ9N25yhLkAc4O/UOu29V0SbASRnPtrbcDp9A=";
+    rev = "1b2969ec0070260690fc2d1e27ee37435ed49ce0";
+    hash = "sha256-cGv/0RfPEAS3Bk1tH+JOxs1vsNXyv2n2JsDexjZ+nBY=";
   };
 
 
-
+  # Documentation: http://www.pragma-ade.nl/install.htm
   texmf = fetchzip {
     url = "http://lmtx.pragma-ade.nl/install-lmtx/texmf.zip";
     sha256 = "sha256-J7iYpmjTMdv8rngzJ58vtC+K2VmP3pfgQDLLxFxYSbA=";
   };
-
-#  context = writeShellScriptBin "context" ''
-#      # Start context with absolute path
-#      exec "$out/tex/texmf-linux-64/bin/context" "$@"
-#    '';
 
   nativeBuildInputs = [
     cmake
@@ -60,6 +55,7 @@ stdenv.mkDerivation {
     make all
   '';
 
+  #TODO write a function to create the 3 shell script wrappers
   postUnpack = ''
     echo "prepare file structure"
 
@@ -125,3 +121,4 @@ stdenv.mkDerivation {
     "$out/tex/texmf-linux-64/bin/context" --make
   '';
 }
+
