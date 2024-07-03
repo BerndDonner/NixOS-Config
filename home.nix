@@ -27,6 +27,7 @@
     firefox
     github-desktop
     arduino-ide
+    processing
     stm32cubemx
     kicad
     (blender.override {
