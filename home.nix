@@ -30,6 +30,7 @@
     processing
     stm32cubemx
     kicad
+    ngspice
     (blender.override {
         cudaSupport = true;
     })
@@ -60,6 +61,7 @@
     kubrick
     ksvg
     kate
+    wayland
   ]) ++
   ([
     # This is a simple way to install personal packages.

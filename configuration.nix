@@ -14,7 +14,7 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # networking.hostName = "nixos"; # Define your hostname.
+  networking.hostName = "tracy"; # Define your hostname.
   # Pick only one of the below networking options.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
   # networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
@@ -24,7 +24,7 @@
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
-  # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
+  networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
   # Select internationalisation properties.
   i18n.defaultLocale = "en_US.UTF-8";
@@ -101,6 +101,7 @@
     usbutils
     pciutils
     cudatoolkit
+    glxinfo
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -122,6 +123,28 @@
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
 
+  # Disable suspend and hibernate. It crashes nvidia 555 driver.
+#  systemd = {
+#    targets = {
+#      sleep = {
+#        enable = false;
+#        unitConfig.DefaultDependencies = "no";
+#      };
+#      suspend = {
+#        enable = false;
+#        unitConfig.DefaultDependencies = "no";
+#      };
+#      hibernate = {
+#        enable = false;
+#        unitConfig.DefaultDependencies = "no";
+#      };
+#      "hybrid-sleep" = {
+#        enable = false;
+#        unitConfig.DefaultDependencies = "no";
+#      };
+#    };
+#  };
+
   # Enable OpenGL
   hardware.opengl = {
     enable = true;
@@ -132,7 +155,12 @@
   # Load nvidia driver for Xorg and Wayland
   services.xserver.videoDrivers = ["nvidia"];
 
+  # all this crap does not help with suspend!
+  boot.kernelParams = [ "nvidia_drm.fbdev=1" "nvidia-drm.modeset=1" "nvidia.NVreg_PreserveVideoMemoryAllocations=1" ];
+
   hardware.nvidia = {
+    # does not help with suspend!
+    forceFullCompositionPipeline = true;
 
     # Modesetting is required.
     modesetting.enable = true;
@@ -161,15 +189,17 @@
     nvidiaSettings = true;
 
     # Optionally, you may need to select the appropriate driver version for your specific GPU.
+
     package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
-      version = "555.58";
-      sha256_64bit = "sha256-bXvcXkg2kQZuCNKRZM5QoTaTjF4l2TtrsKUvyicj5ew=";
-      sha256_aarch64 = "sha256-7XswQwW1iFP4ji5mbRQ6PVEhD4SGWpjUJe1o8zoXYRE=";
-      openSha256 = "sha256-hEAmFISMuXm8tbsrB+WiUcEFuSGRNZ37aKWvf0WJ2/c=";
-      settingsSha256 = "sha256-vWnrXlBCb3K5uVkDFmJDVq51wrCoqgPF03lSjZOuU8M="; #"sha256-m2rNASJp0i0Ez2OuqL+JpgEF0Yd8sYVCyrOoo/ln2a4=";
-      persistencedSha256 = lib.fakeHash; #"sha256-XaPN8jVTjdag9frLPgBtqvO/goB5zxeGzaTU0CdL6C4=";
+      version = "555.58.02";
+      sha256_64bit = "sha256-xctt4TPRlOJ6r5S54h5W6PT6/3Zy2R4ASNFPu8TSHKM=";
+      sha256_aarch64 = "sha256-wb20isMrRg8PeQBU96lWJzBMkjfySAUaqt4EgZnhyF8=";
+      openSha256 = "sha256-8hyRiGB+m2hL3c9MDA/Pon+Xl6E788MZ50WrrAGUVuY=";
+      settingsSha256 = "sha256-ZpuVZybW6CFN/gz9rx+UJvQ715FZnAOYfHn5jt5Z2C8=";
+      persistencedSha256 = "sha256-a1D7ZZmcKFWfPjjH1REqPM5j/YLWKnbkP9qfRyIyxAw=";
     };
-    # package = config.boot.kernelPackages.nvidiaPackages.stable;
+
+    #package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
   # Copy the NixOS configuration file and link it from the resulting system
