@@ -39,6 +39,7 @@
     inkscape
     rustc
     kmplayer
+    vlc
     gimp
     nerdfonts
     ripgrep
