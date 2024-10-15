@@ -30,7 +30,7 @@
   i18n.defaultLocale = "en_US.UTF-8";
   console = {
     font = "Lat2-Terminus16";
-    keyMap = "de";
+    keyMap = "eu";
     # useXkbConfig = true; # use xkb.options in tty.
   };
 
@@ -47,7 +47,7 @@
 
   # Configure keymap in X11
   services.xserver.xkb = {
-    layout = "de";
+    layout = "eu";
     variant = "nodeadkeys";
   };
 
