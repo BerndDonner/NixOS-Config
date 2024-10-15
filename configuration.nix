@@ -30,8 +30,8 @@
   i18n.defaultLocale = "en_US.UTF-8";
   console = {
     font = "Lat2-Terminus16";
-    keyMap = "us";
-    # useXkbConfig = true; # use xkb.options in tty.
+    # keyMap = "us";
+    useXkbConfig = true; # use xkb.options in tty.
   };
 
   services.gpm.enable = true;
@@ -48,7 +48,6 @@
   # Configure keymap in X11
   services.xserver.xkb = {
     layout = "eu";
-#   variant = "nodeadkeys";
   };
 
   services.xserver.inputClassSections = [ ''
