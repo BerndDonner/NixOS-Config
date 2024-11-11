@@ -36,9 +36,9 @@ in
       // lib.optionalAttrs (cfg.maxInstances != null) { NVD_MAX_INSTANCES = toString cfg.maxInstances; }
       // lib.optionalAttrs cfg.firefox.enable { MOZ_DISABLE_RDD_SANDBOX = "1"; };
 
-    # TODO(tlater): Find a way to properly integrate this so we can
+    # TODO(bernd): Find a way to properly integrate this so we can
     # upstream it.
-    home-manager.users.tlater.programs.firefox.profiles.tlater.settings = lib.mkIf cfg.firefox.enable {
+    home-manager.users.bernd.programs.firefox.profiles.bernd.settings = lib.mkIf cfg.firefox.enable {
       "media.ffmpeg.vaapi.enabled" = true;
       "media.rdd-ffmpeg.enabled" = true;
       "media.av1.enabled" = cfg.firefox.av1Support;
