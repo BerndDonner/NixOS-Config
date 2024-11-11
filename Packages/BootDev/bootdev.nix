@@ -8,17 +8,17 @@
 } :
 
 buildGoModule {
-  pname = "figurine";
-  version = "v1.11.0";
+  pname = "BootDev";
+  version = "1.11.0";
 
   src = fetchFromGitHub {
     owner = "bootdotdev";
     repo = "bootdev";
-    rev = "v${version}";
-    hash = "";
+    rev = "v1.11.0";
+    hash = "sha256-ZQW8UBm1oeo04dvBKB2MLrwbkV1hlxNVNiispuKJLMc=";
   };
 
-  vendorSha256 = "";
+  vendorHash = "sha256-jhRoPXgfntDauInD+F7koCaJlX4XDj+jQSe/uEEYIMM=";
 
   meta = with lib; {
     homepage = "https://github.com/bootdotdev/bootdev";
