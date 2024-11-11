@@ -8,6 +8,7 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ./nvidia/vaapi.nix
     ];
 
   # Use the systemd-boot EFI boot loader.
@@ -160,8 +161,6 @@
     # Hardware cursors are currently broken on nvidia
     WLR_NO_HARDWARE_CURSORS = "1";
   };
-
-  imports = [ ./vaapi.nix ];
 
   hardware.nvidia = {
     # does not help with suspend!
