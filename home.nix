@@ -59,6 +59,8 @@
     pulseaudio-qt
     poppler
     plasma-thunderbolt
+    plasma-browser-integration
+    kdeconnect-kde
     kubrick
     ksvg
     kate
