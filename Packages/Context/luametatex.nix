@@ -15,7 +15,7 @@
 
 stdenv.mkDerivation {
   pname = "LuaMetaTeX";
-  version = "2.11.04"; #TODO can we automatically set the version from github?
+  version = "2.11.06"; #TODO can we automatically set the version from github?
 
   meta = with lib; {
     description = "The LuaMetaTeX project, related to ConTeXt development, closely integrates TeX and MetaPost with Lua.";
@@ -28,10 +28,16 @@ stdenv.mkDerivation {
   src = fetchFromGitHub {
     owner = "contextgarden";
     repo = "context";
-    rev = "1b2969ec0070260690fc2d1e27ee37435ed49ce0";
-    hash = "sha256-cGv/0RfPEAS3Bk1tH+JOxs1vsNXyv2n2JsDexjZ+nBY=";
+    rev = "0d2ec448a05c3cf7e83d79ad62eb485f48464872";
+    hash = "sha256-T+v0mX1aY+G8hoAgM4OvYvvPUq+uW/p2I0SUzN9J1aQ=";
   };
 
+  moduleFilter = fetchFromGitHub {
+    owner = "adityam";
+    repo = "filter";
+    rev = "6e4cc8206d2f70e1228f2ca52e0738979873a885";
+    hash = "sha256-/9uvk3+RC0PGyWNfaZP0mss8UXMs+GBlXhGmHr7dQp4=";
+  };
 
   # Documentation: http://www.pragma-ade.nl/install.htm
   texmf = fetchzip {
@@ -88,6 +94,7 @@ stdenv.mkDerivation {
       echo $src
       echo $out
       echo $texmf
+      echo $moduleFilter
       echo $context
       echo ${runtimeShell}
       echo "****** END ******"
@@ -108,6 +115,27 @@ stdenv.mkDerivation {
       cp -r "$src/scripts"  "$out/tex/texmf-context/"
       cp -r "$src/tex"      "$out/tex/texmf-context/"
       cp -r "$src/web2c"    "$out/tex/texmf-context/"
+
+      chmod -R u+w $out/
+
+      mkdir -p $out/tex/texmf-context/tex/context/third/filter/
+      mkdir -p $out/tex/texmf-context/doc/context/third/filter/
+
+      cp    $moduleFilter/README.md             $out/tex/texmf-context/doc/context/third/filter/
+
+      cp    $moduleFilter/t-filter*             $out/tex/texmf-context/tex/context/third/filter/
+      cp    $moduleFilter/t-module*             $out/tex/texmf-context/tex/context/third/filter/
+
+      mkdir -p $out/tex/texmf-context/tex/context/third/vim/
+      mkdir -p $out/tex/texmf-context/doc/context/third/vim/
+
+      cp    $moduleFilter/vim-README.md         $out/tex/texmf-context/doc/context/third/vim/
+
+      cp    $moduleFilter/t-syntax-*            $out/tex/texmf-context/tex/context/third/vim/
+      cp    $moduleFilter/2context.vim          $out/tex/texmf-context/tex/context/third/vim/
+      cp    $moduleFilter/t-vim.tex             $out/tex/texmf-context/tex/context/third/vim/
+      cp    $moduleFilter/vimtyping-default.css $out/tex/texmf-context/tex/context/third/vim/
+
 
     '';
 
