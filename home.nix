@@ -44,6 +44,9 @@
     nerdfonts
     ripgrep
     lazygit
+    libstdcxx5
+    gcc14
+    wezterm
     tree
     gdu
     bottom

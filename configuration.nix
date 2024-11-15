@@ -95,6 +95,7 @@
     w3m
     gpm
     git
+    fd
     zip
     unzip
     python3
