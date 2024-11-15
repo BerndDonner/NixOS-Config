@@ -3,11 +3,12 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     home-manager.url = "github:nix-community/home-manager/release-24.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, ... }: {
+  outputs = inputs@{nixpkgs, nixpkgs-unstable, home-manager, ...}: {
     nixosConfigurations = {
       tracy = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -18,6 +19,16 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             # home-manager.backupFileExtension = "hm-backup"; #Debugging
+
+            # Access packages from both stable and unstable nixpkgs
+            nixpkgs.overlays = [
+              (final: prev: {
+                unstable = import nixpkgs-unstable {
+                  system = "x86_64-linux";
+                };
+              })
+            ];
+
             home-manager.users.bernd = import ./home.nix;
 
             # Optionally, use home-manager.extraSpecialArgs to pass

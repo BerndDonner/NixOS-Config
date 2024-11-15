@@ -74,6 +74,7 @@
     # The downside is, you cannot depend on these packages.
     # Use overlays when you want to depend on the packages.
     (pkgs.callPackage ./Packages/Context/luametatex.nix {})
+    (pkgs.callPackage ./Packages/vimPlugin.snacks-nvim/snacks-nvim.nix {})
   ]);
 
   # basic configuration of git, please change to your own
@@ -105,11 +106,12 @@
 
   programs.neovim = {
     enable = true;
+    package = pkgs.unstable.neovim-unwrapped;
     viAlias = true;
     vimAlias = true;
     vimdiffAlias = true;
 
-    plugins = with pkgs.vimPlugins; [
+    plugins = with pkgs.unstable.vimPlugins; [
       aerial-nvim
       alpha-nvim
       nvim-autopairs
