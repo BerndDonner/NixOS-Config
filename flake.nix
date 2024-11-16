@@ -8,7 +8,7 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs@{nixpkgs, nixpkgs-unstable, home-manager, ...}: {
+  outputs = {nixpkgs, nixpkgs-unstable, home-manager, ...}@inputs : {
     nixosConfigurations = {
       tracy = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";

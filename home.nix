@@ -42,6 +42,7 @@
     vlc
     gimp
     nerdfonts
+    lua54Packages.luarocks
     ripgrep
     lazygit
     libstdcxx5
@@ -51,7 +52,7 @@
     gdu
     bottom
     nodejs_20
-    xsel
+    wl-clipboard
     rclone
     krita
     xinput_calibrator
@@ -74,7 +75,7 @@
     # The downside is, you cannot depend on these packages.
     # Use overlays when you want to depend on the packages.
     (pkgs.callPackage ./Packages/Context/luametatex.nix {})
-    (pkgs.callPackage ./Packages/vimPlugin.snacks-nvim/snacks-nvim.nix {})
+    # (pkgs.callPackage ./Packages/vimPlugin.snacks-nvim/snacks-nvim.nix {})
   ]);
 
   # basic configuration of git, please change to your own
@@ -104,53 +105,53 @@
     ];
   };
 
-  programs.neovim = {
-    enable = true;
-    package = pkgs.unstable.neovim-unwrapped;
-    viAlias = true;
-    vimAlias = true;
-    vimdiffAlias = true;
-
-    plugins = with pkgs.unstable.vimPlugins; [
-      aerial-nvim
-      alpha-nvim
-      nvim-autopairs
-      better-escape-nvim
-      cmp_luasnip
-      nvim-cmp
-      nvim-colorizer-lua
-      nvim-comment
-      nvim-dap
-      dressing-nvim
-      gitsigns-nvim
-      guess-indent-nvim
-      heirline-nvim
-      indent-blankline-nvim
-      nvim-lspconfig
-      lspkind-nvim
-      mason-nvim
-      # mini-bufremove
-      neo-tree-nvim
-      neodev-nvim
-      none-ls-nvim
-      nvim-notify
-      nvim-ufo
-      # resession
-      smart-splits-nvim
-      telescope-nvim
-      todo-comments-nvim
-      toggleterm-nvim
-      nvim-treesitter
-      nvim-ts-autotag
-      nvim-ts-context-commentstring
-      # vim-illuminate BUGGY
-      nvim-web-devicons
-      which-key-nvim
-      nvim-window-picker
-      LazyVim
-    ];
-  };
-
+  # programs.neovim = {
+  #   enable = true;
+  #   package = pkgs.unstable.neovim-unwrapped;
+  #   viAlias = true;
+  #   vimAlias = true;
+  #   vimdiffAlias = true;
+  #
+  #   plugins = with pkgs.unstable.vimPlugins; [
+  #     aerial-nvim
+  #     alpha-nvim
+  #     nvim-autopairs
+  #     better-escape-nvim
+  #     cmp_luasnip
+  #     nvim-cmp
+  #     nvim-colorizer-lua
+  #     nvim-comment
+  #     nvim-dap
+  #     dressing-nvim
+  #     gitsigns-nvim
+  #     guess-indent-nvim
+  #     heirline-nvim
+  #     indent-blankline-nvim
+  #     nvim-lspconfig
+  #     lspkind-nvim
+  #     mason-nvim
+  #     # mini-bufremove
+  #     neo-tree-nvim
+  #     neodev-nvim
+  #     none-ls-nvim
+  #     nvim-notify
+  #     nvim-ufo
+  #     # resession
+  #     smart-splits-nvim
+  #     telescope-nvim
+  #     todo-comments-nvim
+  #     toggleterm-nvim
+  #     nvim-treesitter
+  #     nvim-ts-autotag
+  #     nvim-ts-context-commentstring
+  #     # vim-illuminate BUGGY
+  #     nvim-web-devicons
+  #     which-key-nvim
+  #     nvim-window-picker
+  #     LazyVim
+  #   ];
+  # };
+  #
   # This value determines the home Manager release that your
   # configuration is compatible with. This helps avoid breakage
   # when a new home Manager release introduces backwards
