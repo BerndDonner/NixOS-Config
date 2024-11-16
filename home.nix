@@ -105,13 +105,13 @@
     ];
   };
 
-  # programs.neovim = {
-  #   enable = true;
-  #   package = pkgs.unstable.neovim-unwrapped;
-  #   viAlias = true;
-  #   vimAlias = true;
-  #   vimdiffAlias = true;
-  #
+  programs.neovim = {
+    enable = true;
+    package = pkgs.unstable.neovim;
+    viAlias = true;
+    vimAlias = true;
+    vimdiffAlias = true;
+ 
   #   plugins = with pkgs.unstable.vimPlugins; [
   #     aerial-nvim
   #     alpha-nvim
@@ -150,8 +150,8 @@
   #     nvim-window-picker
   #     LazyVim
   #   ];
-  # };
-  #
+  };
+
   # This value determines the home Manager release that your
   # configuration is compatible with. This helps avoid breakage
   # when a new home Manager release introduces backwards
