@@ -95,21 +95,28 @@
     };
   };
 
-  programs.vscode = {
+  # programs.vscode = {
+  #   enable = true;
+  #   extensions = with pkgs.vscode-extensions; [
+  #     vscodevim.vim
+  #     ms-vscode.cpptools
+  #     ms-vscode.cpptools-extension-pack
+  #     ms-vscode.cmake-tools
+  #   ];
+  # };
+
+  
+  programs.vim = {
     enable = true;
-    extensions = with pkgs.vscode-extensions; [
-      vscodevim.vim
-      ms-vscode.cpptools
-      ms-vscode.cpptools-extension-pack
-      ms-vscode.cmake-tools
-    ];
+    package = pkgs.vim;
+    plugins = [ pkgs.vimPlugins.vim-sensible ];
   };
 
   programs.neovim = {
     enable = true;
-    package = pkgs.unstable.neovim;
-    viAlias = true;
-    vimAlias = true;
+    package = pkgs.unstable.neovim-unwrapped;
+    # viAlias = true;
+    # vimAlias = true;
     vimdiffAlias = true;
  
   #   plugins = with pkgs.unstable.vimPlugins; [
