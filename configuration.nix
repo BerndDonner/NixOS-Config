@@ -216,17 +216,17 @@
     };
   };
 
-  programs.nix-ld.enable = true;
-
-  programs.nix-ld.libraries = with pkgs; [
-    # Add any missing dynamic libraries for unpackaged programs
-    # here, NOT in environment.systemPackages
-    # ./electron/dist/libvulkan.so.1
-    # ./electron/dist/libffmpeg.so
-    # ./electron/dist/libvk_swiftshader.so
-    # ./electron/dist/libGLESv2.so
-    # ./electron/dist/libEGL.so
-  ];
+  # programs.nix-ld.enable = true;
+  #
+  # programs.nix-ld.libraries = with pkgs; [
+  #   # Add any missing dynamic libraries for unpackaged programs
+  #   # here, NOT in environment.systemPackages
+  #   # ./electron/dist/libvulkan.so.1
+  #   # ./electron/dist/libffmpeg.so
+  #   # ./electron/dist/libvk_swiftshader.so
+  #   # ./electron/dist/libGLESv2.so
+  #   # ./electron/dist/libEGL.so
+  # ];
 
   # Copy the NixOS configuration file and link it from the resulting system
   # (/run/current-system/configuration.nix). This is useful in case you

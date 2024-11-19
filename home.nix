@@ -27,6 +27,7 @@
     firefox
     github-desktop
     arduino-ide
+    qtcreator
     processing
     stm32cubemx
     kicad
