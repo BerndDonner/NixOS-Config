@@ -95,6 +95,7 @@
     gpm
     git
     fd
+    bc
     zip
     unzip
     python3

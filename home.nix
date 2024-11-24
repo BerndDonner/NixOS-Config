@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   # TODO please change the username & home directory to your own
@@ -281,45 +281,138 @@
     # viAlias = true;
     # vimAlias = true;
     vimdiffAlias = true;
- 
-  #   plugins = with pkgs.unstable.vimPlugins; [
-  #     aerial-nvim
-  #     alpha-nvim
-  #     nvim-autopairs
-  #     better-escape-nvim
-  #     cmp_luasnip
-  #     nvim-cmp
-  #     nvim-colorizer-lua
-  #     nvim-comment
-  #     nvim-dap
-  #     dressing-nvim
-  #     gitsigns-nvim
-  #     guess-indent-nvim
-  #     heirline-nvim
-  #     indent-blankline-nvim
-  #     nvim-lspconfig
-  #     lspkind-nvim
-  #     mason-nvim
-  #     # mini-bufremove
-  #     neo-tree-nvim
-  #     neodev-nvim
-  #     none-ls-nvim
-  #     nvim-notify
-  #     nvim-ufo
-  #     # resession
-  #     smart-splits-nvim
-  #     telescope-nvim
-  #     todo-comments-nvim
-  #     toggleterm-nvim
-  #     nvim-treesitter
-  #     nvim-ts-autotag
-  #     nvim-ts-context-commentstring
-  #     # vim-illuminate BUGGY
-  #     nvim-web-devicons
-  #     which-key-nvim
-  #     nvim-window-picker
-  #     LazyVim
-  #   ];
+
+
+    # these packages will only be available to neovim
+    # see ./lua/myconfig/formatters.lua and ./lua/myconfig/lspservers.lua
+    # for making them known to neovim
+    extraPackages = with pkgs.unstable; [
+      tree-sitter
+      gcc # treesitter needs gcc
+
+      # Lua LSP
+      lua5_1
+      lua-language-server # LSP
+      luarocks
+      stylua # formatter
+
+      # Nix
+      alejandra #formatter
+      nixd # LSP
+
+      # Python
+      nodejs # required by pyright and prettier
+      pyright
+      ruff
+
+      nodePackages.prettier
+    ];
+
+    # the only plugin that I need is lazy, because lazy will load the rest of the plugins
+    # that is made reproducable by committing the lazy-lock.json file
+    plugins = [pkgs.vimPlugins.lazy-nvim];
+  };
+
+  # this is a hack to enable mason on neovim
+
+  home.sessionPath = [
+    "$HOME/.local/bin"
+  ];
+
+  programs.helix = {
+    enable = true;
+    package = pkgs.unstable.helix;
+    settings = {
+      theme = "gruvbox_dark_hard";
+
+      editor.color-modes = true;
+      editor.line-number = "relative";
+      editor.rulers = [ 80 ];
+      editor.auto-save = true;
+      editor.auto-format = true;
+
+      editor.lsp.enable = true;
+      editor.lsp.display-messages = true;
+      editor.lsp.display-inlay-hints = false;
+
+      editor.cursor-shape = {
+        normal = "block";
+        insert = "bar";
+        select = "underline";
+      };
+
+      editor.statusline = {
+        left = [ "mode" "spinner" "version-control" ];
+        center = [ "file-name" "file-modification-indicator" ];
+        right = [
+          "diagnostics"
+          "selections"
+          "position"
+          "file-encoding"
+          "file-line-ending"
+          "file-type"
+        ];
+        separator = "│";
+        mode.normal = "NORMAL";
+        mode.insert = "INSERT";
+        mode.select = "SELECT";
+      };
+
+      keys.normal.H = [ "goto_line_start" ];
+      keys.normal.L = [ "goto_line_end" ];
+      keys.normal.G = [ "goto_last_line" ];
+      keys.normal.y = [ "yank" ":clipboard-yank" ];
+    };
+
+    languages.language-server.nixd = {
+      command = "${lib.getExe pkgs.nixd}";
+    };
+
+    languages.language = [
+      {
+        name = "typescript";
+        language-servers = [ "typescript-language-server" ];
+        formatter.command = "prettier";
+        formatter.args = [ "--parser" "typescript" ];
+        formatter.binary = "${lib.getExe pkgs.nodePackages.prettier}";
+      }
+      {
+        name = "nix";
+        language-servers = [ "nixd" ];
+        formatter.binary = "${lib.getExe pkgs.nixfmt-classic}";
+        formatter.command = "nixfmt";
+      }
+    ];
+
+    # LSPs and formatters installed globally for convenience
+    extraPackages = with pkgs.unstable; [
+      llvmPackages_18.clang-tools # C/C++
+      rust-analyzer # Rust
+      gopls # Golang
+      nodePackages.bash-language-server # Bash
+      dockerfile-language-server-nodejs # Dockerfile
+      vscode-langservers-extracted # HTML/CSS/JSON
+      texlab # LaTEX
+
+      # Markdown
+      markdown-oxide
+      marksman
+
+      # TS/JS
+      nodePackages.typescript-language-server
+      nodePackages.prettier
+
+      # Nix
+      nixfmt-classic
+      nixd
+
+      cmake-language-server
+      taplo
+      python312Packages.python-lsp-server
+      lua-language-server
+
+    ];
+
   };
 
   # This value determines the home Manager release that your
