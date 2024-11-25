@@ -101,6 +101,8 @@
     python3
     usbutils
     pciutils
+    imagemagick
+    ghostscript
     cudatoolkit
     glxinfo
     vaapiVdpau
