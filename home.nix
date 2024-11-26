@@ -46,6 +46,7 @@
     lua54Packages.luarocks
     ripgrep
     lazygit
+    jre_minimal 
     libstdcxx5
     gcc14
     wezterm
@@ -325,20 +326,32 @@
     settings = {
       theme = "gruvbox_dark_hard";
 
-      editor.color-modes = true;
-      editor.line-number = "relative";
-      editor.rulers = [ 80 ];
-      editor.auto-save = true;
       editor.auto-format = true;
+      editor.auto-save = true;
+      editor.bufferline = "multiple";
+      editor.color-modes = true;
+      editor.cursorline = true;
+      editor.line-number = "relative";
+      editor.mouse = true;
+      editor.rulers = [ 80 ];
+      editor.scrolloff = 10;
+      editor.whitespace.render = "all";
 
-      editor.lsp.enable = true;
-      editor.lsp.display-messages = true;
-      editor.lsp.display-inlay-hints = false;
-
+      editor.indent-guides = {
+        render = true;
+        character = "|";
+      };
+      
       editor.cursor-shape = {
         normal = "block";
         insert = "bar";
         select = "underline";
+      };
+
+      editor.lsp = {
+        enable = true;
+        display-messages = true;
+        display-inlay-hints = true;
       };
 
       editor.statusline = {
