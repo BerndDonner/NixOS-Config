@@ -1,17 +1,5 @@
-# run with:                nix develop
-# see metadata with:       nix flake metadata
-# debug with:              nix repl
-#                          :lf .#
-# check with:              nix flake check
-# If you want to update a locked input to the latest version, you need to ask
-# for it:                  nix flake lock --update-input nixpkgs
-# show available packages: nix-env -qa
-#                          nix search nixpkgs
-# show nixos version:      nixos-version
-# 
-
 {
-  description = "LaTeX Development with Nix 24.05";
+  description = "JavaScript Development with Nix 24.05";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
@@ -28,10 +16,18 @@
       pkgs = import nixpkgs { inherit system; };
     in
       pkgs.mkShell {
+        name = "impureJavascriptEnv";
+
         packages = with pkgs; [
-          tetex
+          electron_33
+          nodejs_22
+          node2nix
+          stdenv.cc.cc.lib
         ];
         buildInputs = with pkgs; [];
+
+        # Fixes libstdc++ and libgl.so issues
+        LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib/";
       };
   };
 }
