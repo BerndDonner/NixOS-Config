@@ -46,7 +46,8 @@
     lua54Packages.luarocks
     ripgrep
     lazygit
-    jre_minimal 
+    jre_minimal
+    cargo
     libstdcxx5
     gcc14
     wezterm
