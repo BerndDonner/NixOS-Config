@@ -48,6 +48,7 @@
     lazygit
     jre_minimal
     cargo
+    opam
     libstdcxx5
     gcc14
     wezterm
