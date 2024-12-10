@@ -42,6 +42,7 @@
 
   # Enable the Plasma 5 Desktop Environment.
   services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
   
 
@@ -59,14 +60,53 @@
     Option "TransformationMatrix" "0.57148 0 0 0 1 0 0 0 1"
   '' ];
 
+  # Link /home/bernd/.config/kwinoutputconfig.json to
+  # /var/lib/sddm/.config/kwinoutputconfig.json. And change the ownership to
+  # sddm:sddm. This is neccessary so that plamsa and sddm (display-manager)
+  # use the same monitor setup. 
+  
+  system.activationScripts.setupPlasmaOutputConfig= lib.mkAfter ''
+    # Ensure the target directory exists
+    mkdir -p /var/lib/sddm/.config
+    
+    # Path to the source and target
+    USER_HOME="/home/bernd"
+    SOURCE="$USER_HOME/.config/kwinoutputconfig.json"
+    TARGET="/var/lib/sddm/.config/kwinoutputconfig.json"
+
+    # Check if the target exists
+    if [ -e "$TARGET" ]; then
+      # Backup the existing file even if it is a symlink
+      BACKUP="$TARGET.backup.$(date +%s)"
+      echo "Backing up existing file to $BACKUP"
+      mv "$TARGET" "$BACKUP"
+    fi
+
+    # copy the SOURCE to the TARGET
+    cp "$SOURCE" "$TARGET"
+
+    # Set the ownership to sddm:sddm
+    chown sddm:sddm "$TARGET"
+  '';
+  
+
   # services.xserver.xkb.options = "eurosign:e,caps:escape";
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
 
   # Enable sound.
-  sound.enable = true;
-  hardware.pulseaudio.enable = true;
+  hardware.pulseaudio.enable = false;
+  # rtkit is optional but recommended
+  security.rtkit.enable = true;
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+    # If you want to use JACK applications, uncomment this
+    #jack.enable = true;
+  };
 
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
@@ -111,7 +151,12 @@
     wayland-utils
   ];
 
-  # Some programs need SUID wrappers, can be configured further or are
+  fonts.packages = with pkgs; [
+    nerdfonts
+  ];
+
+  fonts.enableDefaultPackages = true;
+  
   # started in user sessions.
   # programs.mtr.enable = true;
   # programs.gnupg.agent = {
@@ -131,10 +176,9 @@
   # networking.firewall.enable = false;
 
   # Enable OpenGL
-  hardware.opengl = {
+  hardware.graphics = {
     enable = true;
-    driSupport = true;
-    driSupport32Bit = true;
+    enable32Bit = true;
   };
 
   # Load nvidia driver for Xorg and Wayland

@@ -11,10 +11,10 @@
 # 
 
 {
-  description = "LaTeX Development with Nix 24.05";
+  description = "LaTeX Development with Nix 24.11";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
   };
 
   outputs = { self, nixpkgs }: {

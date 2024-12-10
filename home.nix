@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, colors, ... }:
 
 {
   # TODO please change the username & home directory to your own
@@ -42,7 +42,6 @@
     kmplayer
     vlc
     gimp
-    nerdfonts
     lua54Packages.luarocks
     ripgrep
     lazygit
@@ -68,6 +67,7 @@
     poppler
     plasma-thunderbolt
     plasma-browser-integration
+    sddm-kcm
     kdeconnect-kde
     kubrick
     ksvg
@@ -81,6 +81,8 @@
     (pkgs.callPackage ./Packages/Context/luametatex.nix {})
     # (pkgs.callPackage ./Packages/vimPlugin.snacks-nvim/snacks-nvim.nix {})
   ]);
+
+  fonts.fontconfig.enable = true;
 
   # basic configuration of git, please change to your own
   programs.git = {
@@ -346,8 +348,8 @@
       
       editor.cursor-shape = {
         normal = "block";
-        insert = "bar";
-        select = "underline";
+        insert = "block";
+        select = "block";
       };
 
       editor.lsp = {
@@ -373,6 +375,19 @@
         mode.select = "SELECT";
       };
     };
+
+    # themes = with colors.withHashPrefix; {
+    #   gruvbox_dark_hard = {
+    #     "ui.cursor.normal"         = "#ff0000";
+    #     "ui.cursor.insert"         = "#ff0000";
+    #     "ui.cursor.select"         = "#ff0000";
+    #     "ui.cursor.match"          = "#ff0000";
+    #     "ui.cursor.primary"        = "#ff0000";
+    #     "ui.cursor.primary.normal" = "#ff0000";
+    #     "ui.cursor.primary.insert" = "#ff0000";
+    #     "ui.cursor.primary.select" = "#ff0000";
+    #   };
+    # };
 
     languages.language-server.nixd = {
       command = "${lib.getExe pkgs.nixd}";
@@ -433,7 +448,7 @@
   # You can update home Manager without changing this value. See
   # the home Manager release notes for a list of state version
   # changes in each release.
-  home.stateVersion = "24.05";
+  home.stateVersion = "24.11";
 
   # Let home Manager install and manage itself.
   programs.home-manager.enable = true;

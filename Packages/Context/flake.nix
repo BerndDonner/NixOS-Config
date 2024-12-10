@@ -2,7 +2,7 @@
   description = "Flake for LuaMetaTeX, related to ConTeXt development.";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"; # Add the appropriate nixpkgs version
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11"; # Add the appropriate nixpkgs version
     moduleFilter.url = "github:adityam/filter";
     luametatex.url = "github:contextgarden/context";
   };
