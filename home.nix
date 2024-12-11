@@ -82,12 +82,13 @@
     # (pkgs.callPackage ./Packages/vimPlugin.snacks-nvim/snacks-nvim.nix {})
   ]);
 
+  qt.enable = true;
   fonts.fontconfig.enable = true;
 
   # java runtime environment for ltex-ls in nvim
   programs.java = {
      enable = true;
-     package = pkgs.oraclejre8;
+     package = pkgs.jre_minimal;
   };
    
   # basic configuration of git, please change to your own

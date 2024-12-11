@@ -34,6 +34,7 @@ stdenv.mkDerivation {
     qt6.qtbase
     qt6.qtdoc
     qt6.qtsvg
+    qt6.qtgraphs
     qt6.qtquick3d
     qt6.qtwebengine
     qt6.qtwayland
@@ -42,6 +43,8 @@ stdenv.mkDerivation {
     qt6.qt5compat
     qt6.qtdeclarative
     qt6.qtquicktimeline
+    qt6.location
+    qt6.qtpositioning
     openssl
   ];
 
@@ -50,7 +53,6 @@ stdenv.mkDerivation {
     gcc14Stdenv
     pkg-config
     qt6.qttools
-    # qt6.qtdeclarative
     qt6.wrapQtAppsHook
   ];
 
@@ -75,19 +77,14 @@ stdenv.mkDerivation {
   cmakeFlags = [
     "-DPRODUCTION_OPTIMIZATION=ON"
     "-DCMAKE_BUILD_TYPE=Release"
-    "-DQT_QML_PLUGINS_DIR=${qt6.qtdeclarative}/lib/qt-6/qml/QtQuick"
-    "-DQT_INSTALL_PLUGINS_DIR=${qt6.qtdeclarative}/lib/qt-6/qml/QtQuick"
+    # "-DQT_QML_PLUGINS_DIR=${qt6.qtdeclarative}/lib/qt-6/qml/QtQuick"
+    # "-DQT_INSTALL_PLUGINS_DIR=${qt6.qtdeclarative}/lib/qt-6/qml/QtQuick"
     # "--trace-expand"
     # "-DINSTALL_PLUGINSDIR=${qtPluginPrefix}"
     # "-DINSTALL_QMLDIR=${qtQmlPrefix}"
     # "-DCMAKE_INSTALL_PREFIX:PATH=$out"
   ];
 
-  buildPhase = ''
-    echo "CMake Command: cmake ${toString cmakeFlags} ."
-    cmake ${toString cmakeFlags} .
-    make
-  '';
   # buildPhase = ''
   #   echo "CMake Command: cmake ${cmakeFlags[@]} ..."
   #   cmake "${cmakeFlags[@]}" .
