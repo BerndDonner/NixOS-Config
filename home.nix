@@ -25,6 +25,7 @@
     # here is some command line tools I use frequently
     # feel free to add your own or remove some of them
     firefox
+    chromium
     github-desktop
     arduino-ide
     qtcreator
@@ -45,7 +46,6 @@
     lua54Packages.luarocks
     ripgrep
     lazygit
-    jre_minimal
     cargo
     opam
     libstdcxx5
@@ -84,6 +84,12 @@
 
   fonts.fontconfig.enable = true;
 
+  # java runtime environment for ltex-ls in nvim
+  programs.java = {
+     enable = true;
+     package = pkgs.oraclejre8;
+  };
+   
   # basic configuration of git, please change to your own
   programs.git = {
     enable = true;
@@ -101,17 +107,6 @@
     };
   };
 
-  # programs.vscode = {
-  #   enable = true;
-  #   extensions = with pkgs.vscode-extensions; [
-  #     vscodevim.vim
-  #     ms-vscode.cpptools
-  #     ms-vscode.cpptools-extension-pack
-  #     ms-vscode.cmake-tools
-  #   ];
-  # };
-
-  
   programs.vim = {
     enable = true;
 #    package = pkgs.vim_configurable;
@@ -375,19 +370,6 @@
         mode.select = "SELECT";
       };
     };
-
-    # themes = with colors.withHashPrefix; {
-    #   gruvbox_dark_hard = {
-    #     "ui.cursor.normal"         = "#ff0000";
-    #     "ui.cursor.insert"         = "#ff0000";
-    #     "ui.cursor.select"         = "#ff0000";
-    #     "ui.cursor.match"          = "#ff0000";
-    #     "ui.cursor.primary"        = "#ff0000";
-    #     "ui.cursor.primary.normal" = "#ff0000";
-    #     "ui.cursor.primary.insert" = "#ff0000";
-    #     "ui.cursor.primary.select" = "#ff0000";
-    #   };
-    # };
 
     languages.language-server.nixd = {
       command = "${lib.getExe pkgs.nixd}";

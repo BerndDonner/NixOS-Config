@@ -153,6 +153,9 @@
 
   fonts.packages = with pkgs; [
     nerdfonts
+    jetbrains-mono
+    # nerd-fonts.jetbrains-mono
+    # nerd-fonts.symbols-only
   ];
 
   fonts.enableDefaultPackages = true;

@@ -26,5 +26,10 @@ To apply the configuration, use the following command:
 nixos-rebuild switch
 ```
 
+To recreate the font cache use:
+```sh
+fc-cache -r
+```
+
 Feel free to explore and adapt any parts of this configuration to suit your own needs.
 
