@@ -2,7 +2,6 @@
   lib,
   stdenv,
   fetchgit,
-  gcc14Stdenv,
   qt6,
   openssl,
   cmake,
@@ -24,37 +23,56 @@ stdenv.mkDerivation {
   src = fetchgit {
     url = "https://github.com/BerndDonner/Serial-Studio";
     branchName = "nixos";
-    rev = "39126a5f2eef07260a402304e355d915a957ae15";
-    hash = "sha256-C8UuJ8fZzYTIIPBp3TG8NC/axawPokLzMSBgbNUVYZs=";
+    rev = "1bb9cd3d544eaf5ada8a8cb08a6e1308e839680f";
+    hash = "sha256-hyYrJkbicsj3jaEytKH7sRIXNT5SxNb3UE75GSzGCBM=";
   };
 
 
   buildInputs = [
-    qt6.full
     qt6.qtbase
-    qt6.qtdoc
     qt6.qtsvg
     qt6.qtgraphs
-    qt6.qtquick3d
-    qt6.qtwebengine
-    qt6.qtwayland
-    qt6.qtserialport
-    qt6.qtshadertools
-    qt6.qt5compat
-    qt6.qtdeclarative
-    qt6.qtquicktimeline
-    qt6.location
-    qt6.qtpositioning
+    qt6.qtlocation
+    qt6.qtconnectivity
     openssl
   ];
 
   nativeBuildInputs = [
     cmake
-    gcc14Stdenv
     pkg-config
     qt6.qttools
     qt6.wrapQtAppsHook
   ];
+
+  preConfigure = ''
+    export LC_ALL=C.UTF-8
+    export QT_DEPLOY_USE_PATCHELF=ON
+    # export RPATH_SET=patchelf
+    # export NIXPKGS_QT6_QML_IMPORT_PATH=/nix/store/my7sl14chw7q6fy57acyikb8wk2sgbwq-qtgraphs-6.8.0/lib/qt-6/qml/QtGraphs
+    # qtWrapperArgs+=(--prefix NIXPKGS_QT6_QML_IMPORT_PATH : "$qmlDir")
+  '';
+  
+  # preInstall = ''
+  #   echo "1 BERND QT_PLUGIN_PATH: $QT_PLUGIN_PATH"
+  #   echo "1 BERND QML2_IMPORT_PATH: $QML2_IMPORT_PATH"
+
+  #   defaultPreInstall
+  # '';
+  
+  # installPhase = ''
+  #   echo "2 BERND QT_PLUGIN_PATH: $QT_PLUGIN_PATH"
+  #   echo "2 BERND QML2_IMPORT_PATH: $QML2_IMPORT_PATH"
+
+  #   defaultInstallPhase
+  # '';
+  
+  # postInstall = ''
+  #   echo "3 BERND QT_PLUGIN_PATH: $QT_PLUGIN_PATH"
+  #   echo "3 BERND QML2_IMPORT_PATH: $QML2_IMPORT_PATH"
+
+  #   defaultPostInstall
+  # '';
+  
 
   # qtPluginPrefix = "lib/qt-6/plugins";
   # qtQmlPrefix = "lib/qt-6/qml";
@@ -77,6 +95,7 @@ stdenv.mkDerivation {
   cmakeFlags = [
     "-DPRODUCTION_OPTIMIZATION=ON"
     "-DCMAKE_BUILD_TYPE=Release"
+    "-DQT_DEPLOY_USE_PATCHELF=ON"
     # "-DQT_QML_PLUGINS_DIR=${qt6.qtdeclarative}/lib/qt-6/qml/QtQuick"
     # "-DQT_INSTALL_PLUGINS_DIR=${qt6.qtdeclarative}/lib/qt-6/qml/QtQuick"
     # "--trace-expand"
