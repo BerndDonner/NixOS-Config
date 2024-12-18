@@ -64,30 +64,31 @@
   # /var/lib/sddm/.config/kwinoutputconfig.json. And change the ownership to
   # sddm:sddm. This is neccessary so that plamsa and sddm (display-manager)
   # use the same monitor setup. 
+  # TODO: THIS DOES NOT WORK
   
-  system.activationScripts.setupPlasmaOutputConfig= lib.mkAfter ''
-    # Ensure the target directory exists
-    mkdir -p /var/lib/sddm/.config
+  # system.activationScripts.setupPlasmaOutputConfig= lib.mkAfter ''
+  #   # Ensure the target directory exists
+  #   mkdir -p /var/lib/sddm/.config
     
-    # Path to the source and target
-    USER_HOME="/home/bernd"
-    SOURCE="$USER_HOME/.config/kwinoutputconfig.json"
-    TARGET="/var/lib/sddm/.config/kwinoutputconfig.json"
+  #   # Path to the source and target
+  #   USER_HOME="/home/bernd"
+  #   SOURCE="$USER_HOME/.config/kwinoutputconfig.json"
+  #   TARGET="/var/lib/sddm/.config/kwinoutputconfig.json"
 
-    # Check if the target exists
-    if [ -e "$TARGET" ]; then
-      # Backup the existing file even if it is a symlink
-      BACKUP="$TARGET.backup.$(date +%s)"
-      echo "Backing up existing file to $BACKUP"
-      mv "$TARGET" "$BACKUP"
-    fi
+  #   # Check if the target exists
+  #   if [ -e "$TARGET" ]; then
+  #     # Backup the existing file even if it is a symlink
+  #     BACKUP="$TARGET.backup.$(date +%s)"
+  #     echo "Backing up existing file to $BACKUP"
+  #     mv "$TARGET" "$BACKUP"
+  #   fi
 
-    # copy the SOURCE to the TARGET
-    cp "$SOURCE" "$TARGET"
+  #   # copy the SOURCE to the TARGET
+  #   cp "$SOURCE" "$TARGET"
 
-    # Set the ownership to sddm:sddm
-    chown sddm:sddm "$TARGET"
-  '';
+  #   # Set the ownership to sddm:sddm
+  #   chown sddm:sddm "$TARGET"
+  # '';
   
 
   # services.xserver.xkb.options = "eurosign:e,caps:escape";
@@ -121,6 +122,7 @@
       "audio"   # Enable audio changes
     ];
 
+    openssh.authorizedKeys.keys = [ "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDD18j4MrhelwgKsBMftVpClYd1YOzVAfyUmwo33nW/dk2pJn3qv2FHyYFj2Fn/od8lBLuKqymImCUy60Q8VjCSscnzVeNaaTY7rPUeznmzSEKTULMXBhXpu0fs4RdMP+OIm00inH3aP4M5VLqP6q0OKCWxWskR4Q1QP33kMZhEyzxfGVsxNrT8rJDEnyycVFGV0itPIeWxKFp+PV9kAFLBmiIu0ymxCoTYNItYlJRyXhrUZcyfAbBpQEkbwjZbchEuFFf5Idnan0CPQeeExZWePHT+FHHrVYsSdeijELPAl7tCzPdckrCO4Iz+g6vAn5suyJM6YngnJGjvx8iYDs2kUgdh8A6W45He4ezRa6GbvD7chH3LQ3lHJ6qyw6thoTHqUnIlKuQlAi9aplJ2b7h/QLjOLhDe6wsYSKjx7cQg/bi2WEalMw/aGVVPFvou1ZScNCAI++BOhSJy7pJWTp+yjOV9+tt1KpG2W7s6ONro5jZC+hBak28JzVI5s6KvWak= levi@lenzi" ];
     packages = with pkgs; [];
   };
 
@@ -170,7 +172,8 @@
   # List services that you want to enable:
 
   # Enable the OpenSSH daemon.
-  # services.openssh.enable = true;
+  services.openssh.enable = true;
+  services.openssh.permitRootLogin = "no";
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];

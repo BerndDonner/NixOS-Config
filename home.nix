@@ -90,6 +90,17 @@
      enable = true;
      package = pkgs.jre_minimal;
   };
+
+  programs.ssh.enable = true;
+  programs.ssh.extraConfig = ''
+    Host lenzi
+      IdentityFile ~/.ssh/bernd_tracy
+      User levi
+
+    Host *
+      IdentityFile ~/.ssh/bernds-desktop
+  '';
+
    
   # basic configuration of git, please change to your own
   programs.git = {
