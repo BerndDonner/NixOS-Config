@@ -82,8 +82,8 @@
     # This is a simple way to install personal packages.
     # The downside is, you cannot depend on these packages.
     # Use overlays when you want to depend on the packages.
-    (pkgs.callPackage ./Packages/Context/luametatex.nix {})
-    # (pkgs.callPackage ./Packages/vimPlugin.snacks-nvim/snacks-nvim.nix {})
+    (pkgs.callPackage ../Packages/Context/luametatex.nix {})
+    # (pkgs.callPackage ../Packages/vimPlugin.snacks-nvim/snacks-nvim.nix {})
   ]);
 
   qt.enable = true;

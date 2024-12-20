@@ -9,8 +9,8 @@ in
   programs.helix = {
     enable = true;
     # package = (builtins.getFlake "github:helix-editor/helix").packages.${pkgs.system}.default;
-    package = helix;
-    # package = pkgs.unstable.helix;
+    # package = helix;
+    package = pkgs.unstable.helix;
     settings = {
       theme = "gruvbox_dark_hard";
 
