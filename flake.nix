@@ -29,7 +29,7 @@
               })
             ];
 
-            home-manager.users.bernd = import ./home.nix;
+            home-manager.users.bernd = import home-manager/home.nix;
 
             # Optionally, use home-manager.extraSpecialArgs to pass
             # arguments to home.nix
