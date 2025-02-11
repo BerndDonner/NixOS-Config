@@ -30,6 +30,7 @@
     # feel free to add your own or remove some of them
     firefox
     chromium
+    discord
     github-desktop
     arduino-ide
     qtcreator
@@ -45,6 +46,7 @@
     inkscape
     rustc
     kmplayer
+    qbittorrent
     vlc
     gimp
     lua54Packages.luarocks

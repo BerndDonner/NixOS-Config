@@ -1,7 +1,7 @@
 { pkgs, lib, ... }:
 let
   # Skips the input but impurifies the build (use --impure to rebuild)
-  helix = (builtins.getFlake "github:helix-editor/helix/master").packages.${pkgs.system}.default;
+  helix = (builtins.getFlake "github:helix-editor/helix/355e38162624fdd411bd19b1ca19e5e2733159ba").packages.${pkgs.system}.default;
 
   # helix = inputs.helix.packages.${pkgs.system}.default;
 in
@@ -9,8 +9,8 @@ in
   programs.helix = {
     enable = true;
     # package = (builtins.getFlake "github:helix-editor/helix").packages.${pkgs.system}.default;
-    # package = helix;
-    package = pkgs.unstable.helix;
+    package = helix;
+    # package = pkgs.unstable.helix;
     settings = {
       theme = "gruvbox_dark_hard";
 
