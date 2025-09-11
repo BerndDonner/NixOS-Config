@@ -33,7 +33,7 @@
 
         texmf = pkgs.fetchzip {
           url = "http://lmtx.pragma-ade.nl/install-lmtx/texmf.zip";
-          sha256 = "sha256-J7iYpmjTMdv8rngzJ58vtC+K2VmP3pfgQDLLxFxYSbA=";
+          sha256 = "sha256-do9iXJz20OigCiQAb5AREAqYjBYdHRxXVZUTtw23TGI=";
         };
 
         nativeBuildInputs = [
