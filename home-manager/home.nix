@@ -56,7 +56,6 @@
     lazygit
     cargo
     opam
-    libstdcxx5
     gcc14
     wezterm
     tree

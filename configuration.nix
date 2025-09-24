@@ -97,7 +97,7 @@
   services.printing.enable = true;
 
   # Enable sound.
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   # rtkit is optional but recommended
   security.rtkit.enable = true;
   services.pipewire = {
@@ -154,10 +154,8 @@
   ];
 
   fonts.packages = with pkgs; [
-    nerdfonts
-    jetbrains-mono
-    # nerd-fonts.jetbrains-mono
-    # nerd-fonts.symbols-only
+    nerd-fonts.jetbrains-mono
+    nerd-fonts.symbols-only
   ];
 
   fonts.enableDefaultPackages = true;
@@ -255,10 +253,10 @@
     # Optionally, you may need to select the appropriate driver version for your specific GPU.
 
     package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
-      version = "565.57.01";
-      sha256_64bit = "sha256-buvpTlheOF6IBPWnQVLfQUiHv4GcwhvZW3Ks0PsYLHo=";
+      version = "580.76.05";
+      sha256_64bit = "sha256-IZvmNrYJMbAhsujB4O/4hzY8cx+KlAyqh7zAVNBdl/0=";
       sha256_aarch64 = lib.fakeHash;
-      openSha256 = "sha256-/tM3n9huz1MTE6KKtTCBglBMBGGL/GOHi5ZSUag4zXA=";
+      openSha256 = "sha256-xEPJ9nskN1kISnSbfBigVaO6Mw03wyHebqQOQmUg/eQ=";
       settingsSha256 = lib.fakeHash;
       persistencedSha256 = lib.fakeHash;
     };
