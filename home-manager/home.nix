@@ -33,7 +33,9 @@
     discord
     github-desktop
     arduino-ide
+    arduino-cli
     qtcreator
+    jetbrains.pycharm-community
     processing
     stm32cubemx
     kicad
