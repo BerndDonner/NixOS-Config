@@ -1,35 +1,72 @@
 # My NixOS Configuration
 
-Welcome to my NixOS configuration repository. Here you will find various configurations and packages that I use with NixOS. 
+Welcome to my NixOS configuration repository.  
+It contains my system configuration as well as custom Nix packages and development environments.
 
-## LuaMetaTeX Package
+---
 
-One of the highlights of this repository is the LuaMetaTeX package found in the `Packages` subdirectory. This Nix package is based on the excellent work of Marco Feltmann. You can find the original source [here](https://github.com/marcofeltmann/luametatex.nix/blob/master/context.nix).
+## 🧩 LuaMetaTeX (ConTeXt LMTX) Package
 
-### Key Features
+One of the highlights of this repository is the **LuaMetaTeX** package located in the  
+[`pkgs/context`](./pkgs/context) subdirectory.
 
-- **Up-to-Date Repository**: The package leverages the current repository from [contextgarden](https://github.com/contextgarden/context).
-- **Essential Fonts**: It utilizes the zip file from [Pragma ADE](http://lmtx.pragma-ade.nl/install-lmtx/texmf.zip) to provide necessary fonts for the LMTX version of ConTeXt.
+This Nix package is based on the excellent work of [Marco Feltmann](https://github.com/marcofeltmann/luametatex.nix/blob/master/context.nix)  
+and has been adapted for a modern flake-based setup.
 
-### Why LuaMetaTeX?
+### ✨ Key Features
 
-The ConTeXt typesetting system, primarily developed by Hans Hagen, offers a significantly leaner and more structured codebase compared to the LaTeX ecosystem. In my experience, ConTeXt provides superior functionality and efficiency.
+- **Up-to-date sources** – uses the current repository from [contextgarden/context](https://github.com/contextgarden/context)  
+- **Essential fonts** – downloads the `texmf.zip` archive from [Pragma ADE](http://lmtx.pragma-ade.nl/install-lmtx/texmf.zip)  
+- **Ready-to-use commands** – builds `luametatex`, `mtxrun`, and `context` binaries that mirror upstream behavior  
 
-## Personal NixOS Configuration
+### 💡 Why LuaMetaTeX?
 
-This repository also serves as a backup for my personal NixOS configuration. Please note that it may not be optimal due to my relative inexperience with NixOS. However, it reflects my current setup and customization efforts.
+The ConTeXt typesetting system, primarily developed by Hans Hagen, offers a leaner and more structured codebase than LaTeX.  
+In practice, ConTeXt provides a cleaner macro language, integrated fonts and layouts, and very high-quality PDF output.
 
-## Rebuilding the Configuration
+### 🛠 Building the package
 
-To apply the configuration, use the following command:
-```sh
-nixos-rebuild switch
+From the repository root:
+
+```bash
+nix build .#context
 ```
 
-To recreate the font cache use:
-```sh
+The resulting binaries will appear in `./result/bin/`.
+
+To show more detailed build information:
+
+```bash
+nix build .#context --show-trace
+```
+
+A legacy non-flake build still works for compatibility:
+
+```bash
+nix-build -A luametatex pkgs/context
+```
+
+---
+
+## 🏠 Personal NixOS Configuration
+
+This repository also serves as a backup for my personal NixOS and Home-Manager configuration.  
+It may not be optimal in every respect, but it reflects my current setup and customization efforts.
+
+### 🔁 Rebuilding the System
+
+To apply changes to your system:
+
+```bash
+sudo nixos-rebuild switch
+```
+
+If fonts are missing or new ones were installed:
+
+```bash
 fc-cache -r
 ```
 
-Feel free to explore and adapt any parts of this configuration to suit your own needs.
+---
 
+Feel free to explore, adapt, and reuse any part of this configuration for your own NixOS setup.

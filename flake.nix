@@ -8,12 +8,27 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, ... }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, ... }@inputs:
+  let
+    system = "x86_64-linux";
+
+    # Global overlay: makes pkgs.unstable available everywhere
+    overlayUnstable = (final: prev: {
+      unstable = import nixpkgs-unstable { inherit system; };
+    });
+
+    # Unified pkgs for packages/devShells (overlay applied once)
+    pkgs = import nixpkgs {
+      inherit system;
+      overlays = [ overlayUnstable ];
+    };
+  in {
+
     # --------------------------------------------------------------------------
     # 1️⃣ NixOS and Home-Manager configuration
     # --------------------------------------------------------------------------
     nixosConfigurations.tracy = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
+      inherit system;
       modules = [
         ./configuration.nix
         home-manager.nixosModules.home-manager
@@ -22,13 +37,11 @@
           home-manager.useUserPackages = true;
           # home-manager.backupFileExtension = "hm-backup"; #Debugging
 
-          nixpkgs.overlays = [
-            (final: prev: {
-              unstable = import nixpkgs-unstable { system = "x86_64-linux"; };
-            })
-          ];
+          # Apply the same global overlay inside the NixOS eval
+          nixpkgs.overlays = [ overlayUnstable ];
 
-          home-manager.users.bernd = import ./home-manager/home.nix;
+          home-manager.users.bernd = { config, pkgs, lib, ... }:
+            import ./home-manager/home.nix { inherit config pkgs lib inputs; };
         }
       ];
     };
@@ -41,9 +54,7 @@
     # --------------------------------------------------------------------------
     # 3️⃣ Custom packages (derivations you maintain yourself)
     # --------------------------------------------------------------------------
-    packages.x86_64-linux = let
-      pkgs = import nixpkgs { system = "x86_64-linux"; };
-    in {
+    packages.${system} = {
       context = pkgs.callPackage ./pkgs/context { };
       # add more custom packages here later
     };
@@ -51,9 +62,7 @@
     # --------------------------------------------------------------------------
     # 4️⃣ Reusable devShells
     # --------------------------------------------------------------------------
-    devShells.x86_64-linux = let
-      pkgs = import nixpkgs { system = "x86_64-linux"; };
-    in {
+    devShells.${system} = {
       python     = self.lib.python-develop { inherit pkgs; };
       pythonVenv = self.lib.python-venv-develop { inherit pkgs; };
     };

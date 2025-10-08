@@ -145,7 +145,6 @@
     pciutils
     imagemagick
     ghostscript
-    cudatoolkit
     glxinfo
     vaapiVdpau
     nvidia-vaapi-driver

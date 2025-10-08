@@ -1,4 +1,4 @@
-{ config, pkgs, lib, colors, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
   # TODO please change the username & home directory to your own
@@ -35,11 +35,11 @@
     arduino-ide
     arduino-cli
     qtcreator
-    jetbrains.pycharm-community
     processing
     stm32cubemx
     kicad
     ngspice
+    cudatoolkit
     (blender.override {
         cudaSupport = true;
     })
@@ -85,7 +85,7 @@
     # This is a simple way to install personal packages.
     # The downside is, you cannot depend on these packages.
     # Use overlays when you want to depend on the packages.
-    (pkgs.callPackage ../Packages/Context/luametatex.nix {})
+    (pkgs.callPackage ../pkgs/context/luametatex.nix {})
     # (pkgs.callPackage ../Packages/vimPlugin.snacks-nvim/snacks-nvim.nix {})
   ]);
 
@@ -337,6 +337,14 @@
   home.sessionPath = [
     "$HOME/.local/bin"
   ];
+
+  home.activation."nix-registry" = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    flake_path=${inputs.self.outPath}
+    echo "🔗 Ensuring registry entry 'nixos-config' → $flake_path"
+    nix registry list | grep -q "nixos-config" \
+      || nix registry add nixos-config "path:$flake_path"
+  '';
+  
 
   # This value determines the home Manager release that your
   # configuration is compatible with. This helps avoid breakage
