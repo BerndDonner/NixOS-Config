@@ -30,6 +30,9 @@
           unset SOURCE_DATE_EPOCH
           pip install -r requirements.txt
         '';
+
+        # import the shared promptHook with Python symbol
+        shellHook = import ../prompt-hook.nix { symbol = "🐍"; };
       };
   };
 }
