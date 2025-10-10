@@ -1,6 +1,6 @@
+{ pkgs, inputs ? {} }:
 {
-  promptHook    = import ./promptHook.nix;
-  pythonEnv     = import ./pythonEnv.nix;
-  pythonEnvVenv = import ./pythonEnvVenv.nix;
+  promptHook        = import ./prompt-hook.nix;
+  pythonDevelop     = import ./python-develop.nix;
+  pythonVenvDevelop = import ./python-venv-develop.nix;
 }
-

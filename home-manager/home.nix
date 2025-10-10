@@ -1,9 +1,8 @@
 { config, pkgs, lib, inputs, ... }:
 
 {
-  # TODO please change the username & home directory to your own
-  home.username = "bernd";
-  home.homeDirectory = "/home/bernd";
+  home.username = builtins.getEnv "USER";
+  home.homeDirectory = builtins.getEnv "HOME";
 
   imports = [
     ./helix.nix

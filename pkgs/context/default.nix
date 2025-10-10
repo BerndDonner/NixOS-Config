@@ -1,3 +1,5 @@
 # default.nix
 { pkgs }:
-pkgs.callPackage ./luametatex.nix { }
+{
+  luametatex = pkgs.callPackage ./luametatex.nix { }
+}

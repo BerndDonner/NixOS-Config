@@ -1,6 +1,6 @@
 { pkgs
 , symbol ? "🐍"
-, pythonVersion ? pkgs.python311
+, pythonVersion ? pkgs.python3
 , requirementsFile ? ./requirements.txt  # optional path to requirements.txt
 , message ? "🐍 Python venv environment ready (use pip to install packages)"
 }:
@@ -32,16 +32,13 @@ pkgs.mkShell {
       python -m venv "$venvDir"
     fi
 
-    # Activate the venv (normally handled automatically by venvShellHook)
-    source "$venvDir/bin/activate"
-
-    # If a requirements file exists, offer to install packages
+    # If a requirements file exists, remind to install packages
     if [ -f "${requirementsFile}" ]; then
-      echo "📦 Installing from ${requirementsFile}"
-      pip install -r "${requirementsFile}"
+      echo "💡 Run: pip install -r ${requirementsFile}"
     fi
 
     echo "💡 Use 'pip install <package>' to add more libraries."
+    echo "🐍 Python: $(python --version)"
   '';
 }
 

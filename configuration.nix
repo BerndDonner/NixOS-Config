@@ -146,6 +146,7 @@
     imagemagick
     ghostscript
     glxinfo
+    cudatoolkit
     vaapiVdpau
     nvidia-vaapi-driver
     vulkan-tools

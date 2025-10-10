@@ -1,6 +1,6 @@
 { pkgs
 , symbol ? "🐍"
-, pythonVersion ? pkgs.python311
+, pythonVersion ? pkgs.python3
 , extraPackages ? [ ]
 , message ? "🐍 Python development environment ready"
 }:

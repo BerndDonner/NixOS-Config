@@ -49,15 +49,12 @@
     # --------------------------------------------------------------------------
     # 2️⃣ Shared library functions (promptHook, python shells, etc.)
     # --------------------------------------------------------------------------
-    lib = import ./lib;
+    lib = import ./lib { inherit pkgs inputs; };
 
     # --------------------------------------------------------------------------
     # 3️⃣ Custom packages (derivations you maintain yourself)
     # --------------------------------------------------------------------------
-    packages.${system} = {
-      context = pkgs.callPackage ./pkgs/context { };
-      # add more custom packages here later
-    };
+    packages.${system} = import ./pkgs { inherit pkgs; };
 
     # --------------------------------------------------------------------------
     # 4️⃣ Reusable devShells

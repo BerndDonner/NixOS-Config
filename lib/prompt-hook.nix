@@ -20,7 +20,7 @@
   export PS1="${SYMBOL} ${YELLOW}\u@\h:\w\$ ${RESET}"
 
   # === Restore old prompt on exit ===
-  trap 'export PS1="$OLD_PS1"' EXIT
+  trap 'PS1="$OLD_PS1"' EXIT
 
   echo
   echo "${SYMBOL}  Entered Nix dev shell — prompt color changed to yellow"
