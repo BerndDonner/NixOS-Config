@@ -1,9 +1,6 @@
 { config, pkgs, lib, inputs, ... }:
 
 {
-  home.username = builtins.getEnv "USER";
-  home.homeDirectory = builtins.getEnv "HOME";
-
   imports = [
     ./helix.nix
   ];

@@ -6,6 +6,7 @@
 , coreutils
 , gnumake
 , ninja
+, runtimeShell
 }:
 
 stdenv.mkDerivation rec {

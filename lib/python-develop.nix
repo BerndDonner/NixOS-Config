@@ -6,7 +6,7 @@
 }:
 
 let
-  promptHook = import ./promptHook.nix { inherit symbol; };
+  promptHook = import ./prompt-hook.nix { inherit symbol; };
 in
 pkgs.mkShell {
   name = "python-env";

@@ -1,29 +1,57 @@
 { symbol ? "❖" }:
 
+let
+  sym = symbol;
+
+  # helper literal built from separate pieces so Nix never sees "${"
+  db = "$" + "{";
+in
 ''
-  # === Save current prompt ===
-  export OLD_PS1="$PS1"
-
   # === Color definitions ===
-  YELLOW="\[\033[1;33m\]"   # bright yellow (visible on dark bg)
-  RESET="\[\033[0m\]"       # reset colors
-  # Symbols themselves can be colored too, if desired
-  GREEN="\[\033[1;32m\]"
+  YELLOW="\[\033[1;33m\]"
   CYAN="\[\033[1;36m\]"
-  MAGENTA="\[\033[1;35m\]"
-  BLUE="\[\033[1;34m\]"
+  RESET="\[\033[0m\]"
 
-  # === Set symbol (provided by caller) ===
-  SYMBOL="${symbol}"
+  # === Detect current project name ===
+  if [ -n "$PRJ_NAME" ]; then
+    PROJECT_NAME="$PRJ_NAME"
+  elif [ -n "$FLAKE_NAME" ]; then
+    PROJECT_NAME="$FLAKE_NAME"
+  elif [ -f flake.nix ]; then
+    PROJECT_NAME="$(basename "$PWD")"
+  else
+    PROJECT_NAME=""
+  fi
+
+  # === Initialize PS1 stack if not present ===
+  if [ -z "${db}PS1_STACK_INIT:-}" ]; then
+    PS1_STACK=()
+    PS1_STACK_INIT=1
+  fi
+
+  # === Push current prompt ===
+  PS1_STACK+=("$PS1")
 
   # === Compose new prompt ===
-  export PS1="${SYMBOL} ${YELLOW}\u@\h:\w\$ ${RESET}"
+  SYMBOL='${sym}'
+  if [ -n "$PROJECT_NAME" ]; then
+    PROMPT_PREFIX="$SYMBOL [$PROJECT_NAME]"
+  else
+    PROMPT_PREFIX="$SYMBOL"
+  fi
 
-  # === Restore old prompt on exit ===
-  trap 'PS1="$OLD_PS1"' EXIT
+  export PS1="$PROMPT_PREFIX $YELLOW\u@\h:\w\$ $RESET"
+
+  # === Restore prompt on exit ===
+  trap '
+    if ((${db}#PS1_STACK[@]})); then
+      PS1="${db}PS1_STACK[-1]}"
+      unset "PS1_STACK[-1]"
+    fi
+  ' EXIT
 
   echo
-  echo "${SYMBOL}  Entered Nix dev shell — prompt color changed to yellow"
+  echo "${sym}  Entered Nix dev shell — project: ${db}PROJECT_NAME:-unknown}"
   echo
 ''
 
