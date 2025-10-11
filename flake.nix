@@ -1,31 +1,36 @@
 {
-  description = "Bernd’s NixOS + Home-Manager configuration with reusable packages and library";
+  description = "Bernd’s NixOS + Home-Manager configuration (fully flake-only)";
 
   inputs = {
+    # 🧩 Core inputs
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     home-manager.url = "github:nix-community/home-manager/release-25.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    # 🧱 Local flakes
+    lib.url         = "./lib";
+    bootdev-cli.url = "./pkgs/bootdev-cli";
+    context.url     = "./pkgs/context";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, lib, bootdev-cli, context, ... }@inputs:
   let
     system = "x86_64-linux";
 
-    # Global overlay: makes pkgs.unstable available everywhere
-    overlayUnstable = (final: prev: {
+    # Overlay: make pkgs.unstable available
+    overlayUnstable = final: prev: {
       unstable = import nixpkgs-unstable { inherit system; };
-    });
+    };
 
-    # Unified pkgs for packages/devShells (overlay applied once)
+    # Unified pkgs with overlay applied
     pkgs = import nixpkgs {
       inherit system;
       overlays = [ overlayUnstable ];
     };
   in {
-
     # --------------------------------------------------------------------------
-    # 1️⃣ NixOS and Home-Manager configuration
+    # 1️⃣ NixOS + Home-Manager configuration
     # --------------------------------------------------------------------------
     nixosConfigurations.tracy = nixpkgs.lib.nixosSystem {
       inherit system;
@@ -35,26 +40,28 @@
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          # home-manager.backupFileExtension = "hm-backup"; #Debugging
-
-          # Apply the same global overlay inside the NixOS eval
           nixpkgs.overlays = [ overlayUnstable ];
 
           home-manager.users.bernd = { config, pkgs, lib, ... }:
-            import ./home-manager/home.nix { inherit config pkgs lib inputs; };
+            import ./home-manager/home.nix {
+              inherit config pkgs lib inputs;
+            };
         }
       ];
     };
 
     # --------------------------------------------------------------------------
-    # 2️⃣ Shared library functions (promptHook, python shells, etc.)
+    # 2️⃣ Shared library (from local flake)
     # --------------------------------------------------------------------------
-    lib = import ./lib { inherit pkgs inputs; };
+    lib = lib.lib;
 
     # --------------------------------------------------------------------------
-    # 3️⃣ Custom packages (derivations you maintain yourself)
+    # 3️⃣ Custom packages (from sub-flakes)
     # --------------------------------------------------------------------------
-    packages.${system} = import ./pkgs { inherit pkgs; };
+    packages.${system} = {
+      inherit (bootdev-cli.packages.${system}) bootdev-cli;
+      inherit (context.packages.${system}) context;
+    };
 
     # --------------------------------------------------------------------------
     # 4️⃣ Reusable devShells
@@ -64,9 +71,10 @@
       pythonVenv = self.lib.python-venv-develop { inherit pkgs; };
     };
 
-    overlays = {
-      unstable = overlayUnstable;
-    };  
+    # --------------------------------------------------------------------------
+    # 5️⃣ Overlay exports
+    # --------------------------------------------------------------------------
+    overlays.unstable = overlayUnstable;
   };
 }
 
