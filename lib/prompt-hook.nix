@@ -2,9 +2,6 @@
 
 let
   sym = symbol;
-
-  # helper literal built from separate pieces so Nix never sees "${"
-  db = "$" + "{";
 in
 ''
   # === Color definitions ===
@@ -24,7 +21,7 @@ in
   fi
 
   # === Initialize PS1 stack if not present ===
-  if [ -z "${db}PS1_STACK_INIT:-}" ]; then
+  if [ -z "''${PS1_STACK_INIT:-}" ]; then
     PS1_STACK=()
     PS1_STACK_INIT=1
   fi
@@ -44,14 +41,14 @@ in
 
   # === Restore prompt on exit ===
   trap '
-    if ((${db}#PS1_STACK[@]})); then
-      PS1="${db}PS1_STACK[-1]}"
+    if ((''${#PS1_STACK[@]})); then
+      PS1="''${PS1_STACK[-1]}"
       unset "PS1_STACK[-1]"
     fi
   ' EXIT
 
   echo
-  echo "${sym}  Entered Nix dev shell — project: ${db}PROJECT_NAME:-unknown}"
+  echo "${sym}  Entered Nix dev shell — project: ''${PROJECT_NAME:-unknown}"
   echo
 ''
 
