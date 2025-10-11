@@ -63,6 +63,10 @@
       python     = self.lib.python-develop { inherit pkgs; };
       pythonVenv = self.lib.python-venv-develop { inherit pkgs; };
     };
+
+    overlays = {
+      unstable = overlayUnstable;
+    };  
   };
 }
 
