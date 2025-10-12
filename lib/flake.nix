@@ -1,8 +1,6 @@
 {
   description = "Reusable Nix library functions for Bernd’s NixOS configuration";
 
-  inputs.nixpkgs.follows = "nixpkgs";
-
   outputs = { self, nixpkgs }:
     let
       system = "x86_64-linux";
