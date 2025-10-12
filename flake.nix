@@ -9,9 +9,9 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     # 🧱 Local flakes
-    lib.url         = "./lib";
-    bootdev-cli.url = "./pkgs/bootdev-cli";
-    context.url     = "./pkgs/context";
+    lib.url         = "path:./lib";
+    bootdev-cli.url = "path:./pkgs/bootdev-cli";
+    context.url     = "path:./pkgs/context";
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, lib, bootdev-cli, context, ... }@inputs:
