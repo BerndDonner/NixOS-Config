@@ -33,6 +33,7 @@ pkgs.mkShell {
     pythonVersion.pkgs.ipython
     pythonVersion.pkgs.black
     pythonVersion.pkgs.isort
+    jq
   ] ++ extraPackages;
 
   shellHook = ''
