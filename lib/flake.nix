@@ -1,7 +1,7 @@
 {
   description = "Reusable Nix library functions for Bernd’s NixOS configuration";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  inputs.nixpkgs.follows = "nixpkgs";
 
   outputs = { self, nixpkgs }:
     let

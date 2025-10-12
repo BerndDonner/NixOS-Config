@@ -1,7 +1,7 @@
 {
   description = "ConTeXt (LMTX / LuaMetaTeX) package flake for Bernd’s NixOS setup";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  inputs.nixpkgs.follows = "nixpkgs";
 
   outputs = { self, nixpkgs }:
     let

@@ -1,7 +1,7 @@
 {
   description = "Boot.dev CLI package (flake-only setup)";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  inputs.nixpkgs.follows = "nixpkgs";
 
   outputs = { self, nixpkgs }:
     let
