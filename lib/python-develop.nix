@@ -1,17 +1,30 @@
+
+# python-base-shell.nix
 { pkgs
 , symbol ? "🐍"
 , pythonVersion ? pkgs.python3
 , extraPackages ? [ ]
 , message ? "🐍 Python development environment ready"
+, inputs ? null             # optional flake inputs
+, checkInputs ? [ ]         # optional inputs to verify
 }:
 
 let
   promptHook = import ./prompt-hook.nix { inherit symbol; };
+
+  updateWarningHook =
+    if inputs != null && checkInputs != [ ] then
+      import ./update-warning-hook.nix {
+        inherit inputs;
+        inherit checkInputs;
+        symbol = "⚠️";
+      }
+    else
+      ""; # no-op if not provided
 in
 pkgs.mkShell {
   name = "python-env";
 
-  # core packages for every Python shell
   packages = with pkgs; [
     pythonVersion
     pythonVersion.pkgs.pip
@@ -24,7 +37,7 @@ pkgs.mkShell {
 
   shellHook = ''
     ${promptHook}
+    ${updateWarningHook}
     echo "${message}"
   '';
 }
-
