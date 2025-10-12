@@ -1,6 +1,8 @@
 {
   description = "Boot.dev CLI package (flake-only setup)";
 
+  inputs.nixpkgs.follows = "shared-nixpkgs";
+  
   outputs = { self, nixpkgs }:
     let
       system = "x86_64-linux";
