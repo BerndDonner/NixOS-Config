@@ -11,8 +11,12 @@
     
     # 🧱 Local flakes
     lib.url         = "path:./lib";
+    lib.inputs.nixpkgs.follows = "shared-nixpkgs";
     bootdev-cli.url = "path:./pkgs/bootdev-cli";
+    bootdev-cli.inputs.nixpkgs.follows = "shared-nixpkgs";
     context.url     = "path:./pkgs/context";
+    context.inputs.nixpkgs.follows = "shared-nixpkgs";
+    
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, lib, bootdev-cli, context, ... }@inputs:

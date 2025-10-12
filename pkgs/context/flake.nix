@@ -1,6 +1,8 @@
 {
   description = "ConTeXt (LMTX / LuaMetaTeX) package flake for Bernd’s NixOS setup";
 
+  inputs.nixpkgs.follows = "nixpkgs";
+
   outputs = { self, nixpkgs }:
     let
       system = "x86_64-linux";

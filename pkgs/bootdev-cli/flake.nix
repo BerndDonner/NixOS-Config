@@ -1,7 +1,7 @@
 {
   description = "Boot.dev CLI package (flake-only setup)";
 
-  inputs.nixpkgs.follows = "shared-nixpkgs";
+  inputs.nixpkgs.follows = "nixpkgs";
   
   outputs = { self, nixpkgs }:
     let
