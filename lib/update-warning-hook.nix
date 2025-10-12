@@ -6,22 +6,27 @@
 let
   sym = symbol;
 
-  # Precompute bash assignments for all inputs
+  # Sanitize input names to valid Bash identifiers
+  sanitize = name: builtins.replaceStrings [ "-" ] [ "_" ] name;
+
+  # Precompute bash variables safely
   revVars = builtins.concatStringsSep "\n" (
     map (name:
-      let rev = inputs.${name}.rev or "";
-      in ''declare rev_${name}="${rev}"''
+      let
+        safeName = sanitize name;
+        rev = inputs.${name}.rev or "";
+      in ''declare rev_${safeName}="${rev}"''
     ) checkInputs
   );
 
+  # The list of original (unsanitized) input names for display/lookup
   inputList = builtins.concatStringsSep " " checkInputs;
-
 in
 ''
   # === Color definitions ===
-  YELLOW="\033[1;33m"
-  CYAN="\033[1;36m"
-  RESET="\033[0m"
+  YELLOW="\[\033[1;33m\]"
+  CYAN="\[\033[1;36m\]"
+  RESET="\[\033[0m\]"
 
   ${revVars}
 
@@ -30,8 +35,8 @@ in
   echo
 
   for inputName in ${inputList}; do
-    # === Get expected revision from precomputed variable ===
-    eval "rev=\$rev_''${inputName}"
+    safeName="''${inputName//-/_}"   # Bash-side sanitization too, just in case
+    eval "rev=\$rev_''${safeName}"
 
     if [ -n "$rev" ]; then
       echo "   ''${CYAN}$inputName:''${RESET} $rev"
