@@ -1,12 +1,18 @@
 {
   description = "ConTeXt (LMTX / LuaMetaTeX) package flake for Bernd’s NixOS setup";
 
-  inputs.nixpkgs.follows = "nixpkgs";
+  inputs = {
+    nixos-config.url = "github:BerndDonner/NixOS-Config";
+    nixpkgs.follows = "nixos-config/nixpkgs";
+  };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, nixos-config, ... }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [ nixos-config.overlays.unstable ];
+      };
     in {
       # ------------------------------------------------------------------------
       # 🧱 Packages

@@ -24,9 +24,9 @@ let
 in
 ''
   # === Color definitions ===
-  YELLOW="\[\033[1;33m\]"
-  CYAN="\[\033[1;36m\]"
-  RESET="\[\033[0m\]"
+  YELLOW="\033[1;33m"
+  CYAN="\033[1;36m"
+  RESET="\033[0m"
 
   ${revVars}
 

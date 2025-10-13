@@ -1,11 +1,7 @@
 {
   "nodes": {
     "bootdev-cli": {
-      "inputs": {
-        "nixpkgs": [
-          "shared-nixpkgs"
-        ]
-      },
+      "flake": false,
       "locked": {
         "path": "./pkgs/bootdev-cli",
         "type": "path"
@@ -14,14 +10,12 @@
         "path": "./pkgs/bootdev-cli",
         "type": "path"
       },
-      "parent": []
+      "parent": [
+        "nixos-config"
+      ]
     },
     "context": {
-      "inputs": {
-        "nixpkgs": [
-          "shared-nixpkgs"
-        ]
-      },
+      "flake": false,
       "locked": {
         "path": "./pkgs/context",
         "type": "path"
@@ -30,11 +24,14 @@
         "path": "./pkgs/context",
         "type": "path"
       },
-      "parent": []
+      "parent": [
+        "nixos-config"
+      ]
     },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
+          "nixos-config",
           "nixpkgs"
         ]
       },
@@ -54,11 +51,7 @@
       }
     },
     "lib": {
-      "inputs": {
-        "nixpkgs": [
-          "shared-nixpkgs"
-        ]
-      },
+      "flake": false,
       "locked": {
         "path": "./lib",
         "type": "path"
@@ -67,7 +60,32 @@
         "path": "./lib",
         "type": "path"
       },
-      "parent": []
+      "parent": [
+        "nixos-config"
+      ]
+    },
+    "nixos-config": {
+      "inputs": {
+        "bootdev-cli": "bootdev-cli",
+        "context": "context",
+        "home-manager": "home-manager",
+        "lib": "lib",
+        "nixpkgs": "nixpkgs",
+        "nixpkgs-unstable": "nixpkgs-unstable"
+      },
+      "locked": {
+        "lastModified": 1760377301,
+        "narHash": "sha256-5XwcErKjaTc07vpBMqmE80QiNEvsLDbfPzGjliS0WVU=",
+        "owner": "BerndDonner",
+        "repo": "NixOS-Config",
+        "rev": "62dae50aced4180306db6ba92e936aab1ef28944",
+        "type": "github"
+      },
+      "original": {
+        "owner": "BerndDonner",
+        "repo": "NixOS-Config",
+        "type": "github"
+      }
     },
     "nixpkgs": {
       "locked": {
@@ -103,13 +121,9 @@
     },
     "root": {
       "inputs": {
-        "bootdev-cli": "bootdev-cli",
-        "context": "context",
-        "home-manager": "home-manager",
-        "lib": "lib",
-        "nixpkgs": "nixpkgs",
-        "nixpkgs-unstable": "nixpkgs-unstable",
-        "shared-nixpkgs": [
+        "nixos-config": "nixos-config",
+        "nixpkgs": [
+          "nixos-config",
           "nixpkgs"
         ]
       }
