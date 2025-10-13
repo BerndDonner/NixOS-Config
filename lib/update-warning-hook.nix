@@ -30,27 +30,26 @@ in
 
   ${revVars}
 
-  echo
-  echo "''${CYAN}${sym}  Checking flake input revisions...''${RESET}"
-  echo
+  printf "%b\n" "''${CYAN}${sym}  Checking flake input revisions...''${RESET}"
+  printf "\n"
 
   for inputName in ${inputList}; do
     safeName="''${inputName//-/_}"   # Bash-side sanitization too, just in case
     eval "rev=\$rev_''${safeName}"
 
     if [ -n "$rev" ]; then
-      echo "   ''${CYAN}$inputName:''${RESET} $rev"
+      printf "%b\n" "    ''${CYAN}$inputName:''${RESET} $rev"
 
       # === Check for outdated lock file entry ===
       if [ -f flake.lock ]; then
         current_rev=$(jq -r ".locks.nodes.\"$inputName\".locked.rev // empty" flake.lock 2>/dev/null)
         if [ -n "$current_rev" ] && [ "$current_rev" != "$rev" ]; then
-          echo "''${YELLOW}${sym}  Warning:''${RESET} input '$inputName' is outdated!"
-          echo "   → Run: nix flake lock --update-input $inputName"
+          printf "%b\n" "''${YELLOW}${sym}  Warning:''${RESET} input '$inputName' is outdated!"
+          printf "%b\n" "    → Run: nix flake lock --update-input $inputName"
         fi
       fi
     else
-      echo "   ''${CYAN}$inputName:''${RESET} (no revision info available)"
+      printf "%b\n" "    ''${CYAN}$inputName:''${RESET} (no revision info available)"
     fi
   done
 
