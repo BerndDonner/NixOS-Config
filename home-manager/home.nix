@@ -53,7 +53,6 @@
     cargo
     opam
     gcc14
-    wezterm
     tree
     gdu
     bottom
@@ -333,14 +332,6 @@
   home.sessionPath = [
     "$HOME/.local/bin"
   ];
-
-  home.activation."nix-registry" = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    flake_path=${inputs.self.outPath}
-    echo "🔗 Ensuring registry entry 'nixos-config' → $flake_path"
-    nix registry list | grep -q "nixos-config" \
-      || nix registry add nixos-config "path:$flake_path"
-  '';
-  
 
   # This value determines the home Manager release that your
   # configuration is compatible with. This helps avoid breakage

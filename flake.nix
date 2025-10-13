@@ -60,11 +60,11 @@
     lib = lib.lib;
 
     # --------------------------------------------------------------------------
-    # 3️⃣ Custom packages (from sub-flakes)
+    # 3️⃣ Custom packages from derivations
     # --------------------------------------------------------------------------
     packages.${system} = {
-      inherit (bootdev-cli.packages.${system}) bootdev-cli;
-      inherit (context.packages.${system}) context;
+      bootdev-cli = pkgs.callPackage ./pkgs/bootdev-cli { };
+      context = pkgs.callPackage ./pkgs/context { };
     };
 
     # --------------------------------------------------------------------------
