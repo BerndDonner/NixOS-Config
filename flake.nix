@@ -63,8 +63,8 @@
     # 3️⃣ Custom packages from derivations
     # --------------------------------------------------------------------------
     packages.${system} = {
-      bootdev-cli = pkgs.callPackage ./pkgs/bootdev-cli { };
-      context = pkgs.callPackage ./pkgs/context { };
+      bootdev-cli = pkgs.callPackage ./pkgs/bootdev-cli/bootdev-cli.nix { };
+      context = pkgs.callPackage ./pkgs/context/luametatex.nix { };
     };
 
     # --------------------------------------------------------------------------
