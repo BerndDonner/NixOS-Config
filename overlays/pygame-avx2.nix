@@ -4,6 +4,12 @@ final: prev: {
     pygame-avx2 = prev.python3Packages.pygame.overrideAttrs (old: {
       pname = "pygame-avx2";
 
+      # Add your sed command here (executed right after unpacking and patching)
+      postPatch = (old.postPatch or "") + ''
+        echo "🛠️  Applying pygame setup.py patch for distutils"
+        sed -i "s/distutils.ccompiler.spawn/distutils.spawn.spawn/" setup.py
+      '';
+
       preConfigure = ''
         export PYGAME_DETECT_AVX2=1
         ${old.python.pythonOnBuildForHost.interpreter or prev.python3.pythonOnBuildForHost.interpreter} buildconfig/config.py
