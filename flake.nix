@@ -27,7 +27,7 @@
       unstable = import nixpkgs-unstable { inherit system; };
     };
     # Overlay: pygame mit AVX2
-    overlayPygameAvx2 = import ./pkgs/overlays/pygame-avx2.nix;
+    overlayPygameAvx2 = import ./overlays/pygame-avx2.nix;
 
     # Unified pkgs with overlay applied
     pkgs = import nixpkgs {
