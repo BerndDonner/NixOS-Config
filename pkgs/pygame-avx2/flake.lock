@@ -74,11 +74,11 @@
         "nixpkgs-unstable": "nixpkgs-unstable"
       },
       "locked": {
-        "lastModified": 1760392056,
-        "narHash": "sha256-DXyJdYSL677DUZeF7ULC/35A24Ak9SodfmWHSZZ++e4=",
+        "lastModified": 1760421659,
+        "narHash": "sha256-L7Aeni1WQsFlkE4c8PiWIADnYh0JO/gQ3phzDjKOqkI=",
         "owner": "BerndDonner",
         "repo": "NixOS-Config",
-        "rev": "d9aea42e5d84fa1cc4ffa356b7cc975bee82b871",
+        "rev": "da72d238241d1f316442786d448d416c6138c4ec",
         "type": "github"
       },
       "original": {
