@@ -26,11 +26,13 @@
     overlayUnstable = final: prev: {
       unstable = import nixpkgs-unstable { inherit system; };
     };
+    # Overlay: pygame mit AVX2
+    overlayPygameAvx2 = import ./pkgs/overlays/pygame-avx2.nix;
 
     # Unified pkgs with overlay applied
     pkgs = import nixpkgs {
       inherit system;
-      overlays = [ overlayUnstable ];
+      overlays = [ overlayUnstable overlayPygameAvx2 ];
     };
   in {
     # --------------------------------------------------------------------------
@@ -44,7 +46,7 @@
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          nixpkgs.overlays = [ overlayUnstable ];
+          nixpkgs.overlays = [ overlayUnstable overlayPygameAvx2 ];
 
           home-manager.users.bernd = { config, pkgs, lib, ... }:
             import ./home-manager/home.nix {
@@ -78,7 +80,10 @@
     # --------------------------------------------------------------------------
     # 5️⃣ Overlay exports
     # --------------------------------------------------------------------------
-    overlays.unstable = overlayUnstable;
+    overlays = {
+      unstable = overlayUnstable;
+      pygame-avx2 = overlayPygameAvx2;
+    };
   };
 }
 
