@@ -25,6 +25,8 @@ in
 pkgs.mkShell {
   name = "python-env";
 
+  shell = pkgs.bashInteractive;
+
   packages = with pkgs; [
     pythonVersion
     pythonVersion.pkgs.pip
