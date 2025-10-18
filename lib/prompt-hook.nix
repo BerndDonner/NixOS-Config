@@ -4,6 +4,12 @@ let
   sym = symbol;
 in
 ''
+  # === Prevent double-initialization (important for PROMPT_COMMAND) ===
+  if [ -n "''${PROMPT_HOOK_APPLIED:-}" ]; then
+    return 0
+  fi
+  export PROMPT_HOOK_APPLIED=1
+
   # === Color definitions ===
   YELLOW="\[\033[1;33m\]"
   CYAN="\[\033[1;36m\]"
