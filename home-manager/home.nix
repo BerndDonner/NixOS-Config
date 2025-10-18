@@ -74,6 +74,8 @@
     kubrick
     ksvg
     kate
+    kwallet
+    kwalletmanager
     wayland
   ]) ++
   ([
@@ -108,19 +110,26 @@
   programs.git = {
     enable = true;
     lfs.enable = true;
-    userName = "Bernd Donner";
-    userEmail = "bernd.donner@sabel.com";
     package = pkgs.gitFull;
+
+    userName  = "Bernd Donner";
+    userEmail = "bernd.donner@sabel.com";
+
     extraConfig = {
-      credential = {
-        helper = "libsecret";
-      };
-      init = {
-        defaultBranch = "master";
+      credential.helper = "kwallet";     # KDE wallet integration
+      init.defaultBranch = "master";     # keep traditional naming
+
+      pull.rebase = true;
+      merge.ff    = "only";
+
+      alias = {
+        lg     = "log --oneline --graph --decorate --all";
+        ahead  = "log --oneline --graph --decorate @{u}..HEAD";
+        behind = "log --oneline --graph --decorate HEAD..@{u}";
       };
     };
   };
-
+  
   programs.vim = {
     enable = true;
 #    package = pkgs.vim_configurable;

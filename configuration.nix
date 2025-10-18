@@ -44,6 +44,8 @@
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
+  services.kwallet.enable = true;
+  services.kwallet.pam.enable = true;
   
 
   # Configure keymap in X11

@@ -41,13 +41,7 @@ pkgs.mkShell {
   shellHook = ''
     export SHELL=${pkgs.bashInteractive}/bin/bash
     export PATH=${pkgs.bashInteractive}/bin:$PATH
-
-    PROMPT_FILE="$(mktemp)"
-    cat >"$PROMPT_FILE" <<'EOF'
-${promptHook}
-EOF
-    export PROMPT_COMMAND="source $PROMPT_FILE"
-
+    ${promptHook}
     ${updateWarningHook}
     echo "${message}"
   '';
