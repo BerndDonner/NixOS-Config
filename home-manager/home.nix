@@ -25,7 +25,7 @@
     # here is some command line tools I use frequently
     # feel free to add your own or remove some of them
     firefox
-    chromium
+    google-chrome
     discord
     github-desktop
     arduino-ide
@@ -337,10 +337,14 @@
   };
 
   # this is a hack to enable mason on neovim
-
   home.sessionPath = [
     "$HOME/.local/bin"
   ];
+
+  # to enable wayland support in google chrome
+  home.sessionVariables = {
+    OZONE_PLATFORM_HINT = "wayland";
+  };
 
   # This value determines the home Manager release that your
   # configuration is compatible with. This helps avoid breakage
