@@ -155,6 +155,14 @@
     wayland-utils
   ];
 
+  environment.sessionVariables = {
+    XDG_SESSION_TYPE = "wayland";
+    QT_QPA_PLATFORM = "wayland";
+    GDK_BACKEND = "wayland";
+    MOZ_ENABLE_WAYLAND = "1";
+    OZONE_PLATFORM_HINT = "wayland";
+  };
+
   fonts.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
     nerd-fonts.symbols-only

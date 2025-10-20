@@ -336,16 +336,6 @@
     plugins = [pkgs.vimPlugins.lazy-nvim];
   };
 
-  # this is a hack to enable mason on neovim
-  home.sessionPath = [
-    "$HOME/.local/bin"
-  ];
-
-  # to enable wayland support in google chrome
-  home.sessionVariables = {
-    OZONE_PLATFORM_HINT = "wayland";
-  };
-
   # This value determines the home Manager release that your
   # configuration is compatible with. This helps avoid breakage
   # when a new home Manager release introduces backwards
