@@ -1,6 +1,7 @@
 
 # python-base-shell.nix
 { pkgs
+, flakeLockPath ? ./flake.lock   # fallback for same-directory usage
 , symbol ? "🐍"
 , pythonVersion ? pkgs.python3
 , extraPackages ? [ ]
@@ -17,6 +18,7 @@ let
       import ./update-warning-hook.nix {
         inherit inputs;
         inherit checkInputs;
+        inherit flakeLockPath;
         symbol = "⚠️";
       }
     else

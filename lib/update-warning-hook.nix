@@ -1,12 +1,13 @@
 { inputs
 , checkInputs ? [ ]
+, flakeLockPath ? ./flake.lock   # fallback for same-directory usage
 , symbol ? "⚠️"
 }:
 
 let
   # Read the lock file (relative to where this module lives)
   flakeLock =
-    builtins.fromJSON (builtins.readFile ../flake.lock);
+    builtins.fromJSON (builtins.readFile flakeLockPath);
 
   sanitize = name: builtins.replaceStrings [ "-" ] [ "_" ] name;
 
