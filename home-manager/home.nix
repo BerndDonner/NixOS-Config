@@ -28,8 +28,6 @@
     google-chrome
     discord
     github-desktop
-    arduino-ide
-    arduino-cli
     qtcreator
     processing
     stm32cubemx

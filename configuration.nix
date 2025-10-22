@@ -142,7 +142,6 @@
     bc
     zip
     unzip
-    python3
     usbutils
     pciutils
     imagemagick
