@@ -6,6 +6,7 @@
 , inputs ? null             # optional flake inputs
 , checkInputs ? [ ]         # optional inputs to verify
 , extraPackages ? [ ]
+, extraShellHook ? ""
 }:
 
 let
@@ -43,6 +44,7 @@ pkgs.mkShell {
     ${promptHook}
     ${updateWarningHook}
     echo "${message}"
+    ${extraShellHook}
   '';
 }
 
