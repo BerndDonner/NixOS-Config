@@ -31,7 +31,6 @@ pkgs.mkShell {
   # Base toolchain for Arduino C/C++ development
   packages = with pkgs; [
     arduino-cli             # command-line interface for sketches & board management
-    gcc-avr                 # compiler for classic AVR boards (Uno, Nano, Mega)
     avrdude                 # upload tool for AVR boards
     picocom                 # simple serial monitor
     minicom                 # advanced serial terminal
