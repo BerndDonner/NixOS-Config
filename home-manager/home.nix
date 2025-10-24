@@ -127,13 +127,9 @@
 
         # 🧩 Generalized upmaster alias: works with any default branch
         upmaster = ''
-          # Get the default branch name
           default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed "s@^refs/remotes/origin/@@")
-        
-          # Get the current branch
           current_branch=$(git symbolic-ref --short HEAD)
         
-          # Abort if on the default branch (master/main)
           if [ "$current_branch" = "$default_branch" ]; then
             echo "🚫 You are on the default branch ($default_branch) — not rebasing it!";
             exit 1;
