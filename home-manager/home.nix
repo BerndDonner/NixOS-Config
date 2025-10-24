@@ -103,8 +103,6 @@
       IdentityFile ~/.ssh/bernds-desktop
   '';
 
-  home.file.".ssh/config".forceCopy = true;
-
    
   # basic configuration of git, please change to your own
   programs.git = {
@@ -126,6 +124,26 @@
         lg     = "log --oneline --graph --decorate --all";
         ahead  = "log --oneline --graph --decorate @{u}..HEAD";
         behind = "log --oneline --graph --decorate HEAD..@{u}";
+
+        # 🧩 Generalized upmaster alias: works with any default branch
+        upmaster = ''
+          # Get the default branch name
+          default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed "s@^refs/remotes/origin/@@")
+        
+          # Get the current branch
+          current_branch=$(git symbolic-ref --short HEAD)
+        
+          # Abort if on the default branch (master/main)
+          if [ "$current_branch" = "$default_branch" ]; then
+            echo "🚫 You are on the default branch ($default_branch) — not rebasing it!";
+            exit 1;
+          else
+            echo "🔁 Rebasing $current_branch onto origin/$default_branch...";
+            git fetch origin &&
+            git rebase origin/$default_branch &&
+            git push --force-with-lease;
+          fi
+        '';
       };
     };
   };
