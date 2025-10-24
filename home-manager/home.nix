@@ -127,17 +127,14 @@
 
         # 🧩 Generalized upmaster alias: works with any default branch
         upmaster = ''
-          default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed "s@^refs/remotes/origin/@@")
-          current_branch=$(git symbolic-ref --short HEAD)
-        
-          if [ "$current_branch" = "$default_branch" ]; then
-            echo "🚫 You are on the default branch ($default_branch) — not rebasing it!";
-            exit 1;
-          else
-            echo "🔁 Rebasing $current_branch onto origin/$default_branch...";
-            git fetch origin &&
-            git rebase origin/$default_branch &&
-            git push --force-with-lease;
+          !b=$(git symbolic-ref refs/remotes/origin/HEAD | sed "s@^refs/remotes/origin/@@") && \
+          c=$(git symbolic-ref --short HEAD) && \
+          if [ "$b" = "$c" ]; then \
+            echo "🚫 You are on the default branch ($b) — not rebasing it!"; \
+            exit 1; \
+          else \
+            echo "🔁 Rebasing $c onto origin/$b..."; \
+            git fetch origin && git rebase origin/$b && git push --force-with-lease; \
           fi
         '';
       };
