@@ -38,7 +38,7 @@
         cudaSupport = true;
     })
     obs-studio
-    rnote
+    xournalpp
     inkscape
     rustc
     kmplayer
@@ -81,7 +81,6 @@
     # The downside is, you cannot depend on these packages.
     # Use overlays when you want to depend on the packages.
     (pkgs.callPackage ../pkgs/context/luametatex.nix {})
-    # (pkgs.callPackage ../Packages/vimPlugin.snacks-nvim/snacks-nvim.nix {})
   ]);
 
   qt.enable = true;
@@ -140,6 +139,70 @@
       };
     };
   };
+
+programs.tmux = {
+  enable = true;
+  keyMode = "vi";
+  mouse = true;
+  escapeTime = 0;
+  historyLimit = 20000;
+  terminal = "tmux-256color";
+
+  plugins = with pkgs.tmuxPlugins; [
+    sensible
+    yank
+    resurrect
+  ];
+
+  extraConfig = ''
+    # --- Prefix ---------------------------------------------------
+    unbind C-b
+    set -g prefix C-a
+    bind C-a send-prefix
+
+    # --- Terminal capabilities ------------------------------------
+    set -g default-terminal "tmux-256color"
+    set -ag terminal-overrides ',xterm-256color:RGB'
+    set -g allow-passthrough on
+
+    # --- General behaviour ----------------------------------------
+    setw -g mode-keys vi
+    set -g status-keys vi
+    set -s escape-time 0
+    set -g mouse on
+    set -g history-limit 20000
+    set -g base-index 1
+    setw -g pane-base-index 1
+
+    # --- Look & feel ----------------------------------------------
+    set -g status-bg colour236
+    set -g status-fg colour223
+    set -g message-style fg=colour223,bg=colour239
+    set -g pane-border-style fg=colour239
+    set -g pane-active-border-style fg=colour111
+    set -g status-left " ⎈ #S "
+    set -g status-right " %Y-%m-%d %H:%M "
+
+    # --- Copy / paste behaviour -----------------------------------
+    bind-key -T copy-mode-vi v send-keys -X begin-selection
+    bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+    set -g set-clipboard on
+
+    # --- Pane management ------------------------------------------
+    bind - split-window -h -c "#{pane_current_path}"
+    bind _ split-window -v -c "#{pane_current_path}"
+    bind x kill-pane
+
+    bind C-h select-pane -L
+    bind C-j select-pane -D
+    bind C-k select-pane -U
+    bind C-l select-pane -R
+
+    bind r source-file ~/.config/tmux/tmux.conf \; display "tmux.conf reloaded ✅"
+    bind e split-window -v -c "#{pane_current_path}" "hx"
+  '';
+};
+
   
   programs.vim = {
     enable = true;
@@ -309,43 +372,6 @@
     '';
   };
 
-  programs.neovim = {
-    enable = true;
-    package = pkgs.unstable.neovim-unwrapped;
-    # viAlias = true;
-    # vimAlias = true;
-    vimdiffAlias = true;
-
-
-    # these packages will only be available to neovim
-    # see ./lua/myconfig/formatters.lua and ./lua/myconfig/lspservers.lua
-    # for making them known to neovim
-    extraPackages = with pkgs.unstable; [
-      tree-sitter
-      gcc # treesitter needs gcc
-
-      # Lua LSP
-      lua5_1
-      lua-language-server # LSP
-      luarocks
-      stylua # formatter
-
-      # Nix
-      alejandra #formatter
-      nixd # LSP
-
-      # Python
-      nodejs # required by pyright and prettier
-      pyright
-      ruff
-
-      nodePackages.prettier
-    ];
-
-    # the only plugin that I need is lazy, because lazy will load the rest of the plugins
-    # that is made reproducable by committing the lazy-lock.json file
-    plugins = [pkgs.vimPlugins.lazy-nvim];
-  };
 
   # This value determines the home Manager release that your
   # configuration is compatible with. This helps avoid breakage
