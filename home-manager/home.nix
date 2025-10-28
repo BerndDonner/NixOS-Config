@@ -98,6 +98,12 @@
       IdentityFile ~/.ssh/bernd_tracy
       User levi
 
+    Host github-tabby-bootstrap
+      HostName github.com
+      User git
+      IdentityFile ~/.ssh/id_tabby_bootstrap
+      IdentitiesOnly yes
+
     Host *
       IdentityFile ~/.ssh/bernds-desktop
   '';
