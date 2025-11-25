@@ -182,6 +182,11 @@
   services.openssh.enable = true;
   services.openssh.settings.PermitRootLogin = "no";
 
+  services.nordvpn = {
+    enable = true;
+    allowedUsers = [ "bernd" ];
+  };
+
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
