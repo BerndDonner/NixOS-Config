@@ -103,6 +103,7 @@
       User git
       IdentityFile ~/.ssh/id_tabby_bootstrap
       IdentitiesOnly yes
+      StrictHostKeyChecking no
 
     Host *
       IdentityFile ~/.ssh/bernds-desktop

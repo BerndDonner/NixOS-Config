@@ -15,7 +15,6 @@
     bootdev-cli.flake = false;
     context.url     = "path:./pkgs/context";
     context.flake = false;
-    
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, lib, bootdev-cli, context, ... }@inputs:
@@ -43,6 +42,8 @@
       modules = [
         ./configuration.nix
         home-manager.nixosModules.home-manager
+        ./modules/nordvpn.nix
+
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
@@ -66,7 +67,8 @@
     # --------------------------------------------------------------------------
     packages.${system} = {
       bootdev-cli = pkgs.callPackage ./pkgs/bootdev-cli/bootdev-cli.nix { };
-      context = pkgs.callPackage ./pkgs/context/luametatex.nix { };
+      context     = pkgs.callPackage ./pkgs/context/luametatex.nix { };
+      nordvpn     = pkgs.callPackage ./pkgs/nordvpn/nordvpn.nix { };
     };
 
     # --------------------------------------------------------------------------
@@ -81,9 +83,8 @@
     # 5️⃣ Overlay exports
     # --------------------------------------------------------------------------
     overlays = {
-      unstable = overlayUnstable;
+      unstable    = overlayUnstable;
       pygame-avx2 = overlayPygameAvx2;
     };
   };
 }
-
