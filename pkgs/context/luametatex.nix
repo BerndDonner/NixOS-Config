@@ -53,15 +53,18 @@ stdenv.mkDerivation rec {
     cp "$src/scripts/context/lua/"{mtxrun.lua,context.lua} \
        "$out/tex/texmf-linux-64/bin/"
 
-    # Small helper to create wrappers for mtxrun/context
-    makeWrapper() {
-      local name="$1"
-      local luaScript="$2"
-
-      cat > "$out/bin/$name" <<'EOF'
+    # ----------------------------------------------------------------------
+    # context-init-cache: one-shot cache + font DB + formats initializer
+    # ----------------------------------------------------------------------
+    cat > "$out/bin/context-init-cache" <<'EOF'
 #!${runtimeShell}
+set -euo pipefail
+
 # Per-user cache directory; ConTeXt will append "luametatex-cache/context/<hash>".
-export TEXMFCACHE="''${XDG_CACHE_HOME:-$HOME/.cache}"
+if [ -z "''${TEXMFCACHE:-}" ]; then
+  TEXMFCACHE="''${XDG_CACHE_HOME:-$HOME/.cache}"
+  export TEXMFCACHE
+fi
 
 # System + user font search paths (only if not set by user)
 if [ -z "''${OSFONTDIR:-}" ]; then
@@ -71,13 +74,61 @@ if [ -z "''${OSFONTDIR:-}" ]; then
   OSFONTDIR="$OSFONTDIR:$HOME/.fonts"
   export OSFONTDIR
 fi
+
+CACHE_ROOT="''${TEXMFCACHE%/}"
 EOF
 
-      cat >> "$out/bin/$name" <<EOF
-# Ensure user cache is initialized (idempotent)
-"$out/bin/context-init-cache"
+    cat >> "$out/bin/context-init-cache" <<EOF
+ENGINE="$out/tex/texmf-linux-64/bin/luametatex"
+MTXRUN_LUA="$out/tex/texmf-linux-64/bin/mtxrun.lua"
+CONTEXT_LUA="$out/tex/texmf-linux-64/bin/context.lua"
 
-# Call LuaMetaTeX with the proper frontend
+echo "Initializing ConTeXt cache in \$CACHE_ROOT/luametatex-cache ..." >&2
+
+mkdir -p "\$CACHE_ROOT"
+"\$ENGINE" --luaonly "\$MTXRUN_LUA" --generate
+"\$ENGINE" --luaonly "\$MTXRUN_LUA" --script fonts --reload
+"\$ENGINE" --luaonly "\$CONTEXT_LUA" --make
+EOF
+    chmod +x "$out/bin/context-init-cache"
+
+    # ----------------------------------------------------------------------
+    # Small helper to create wrappers for mtxrun/context
+    # ----------------------------------------------------------------------
+    makeWrapper() {
+      local name="$1"
+      local luaScript="$2"
+
+      cat > "$out/bin/$name" <<'EOF'
+#!${runtimeShell}
+set -euo pipefail
+
+# Per-user cache directory; ConTeXt will append "luametatex-cache/context/<hash>".
+if [ -z "''${TEXMFCACHE:-}" ]; then
+  TEXMFCACHE="''${XDG_CACHE_HOME:-$HOME/.cache}"
+  export TEXMFCACHE
+fi
+
+# System + user font search paths (only if not set by user)
+if [ -z "''${OSFONTDIR:-}" ]; then
+  OSFONTDIR="/run/current-system/sw/share/X11/fonts"
+  OSFONTDIR="$OSFONTDIR:/run/current-system/sw/share/fonts"
+  OSFONTDIR="$OSFONTDIR:$HOME/.local/share/fonts"
+  OSFONTDIR="$OSFONTDIR:$HOME/.fonts"
+  export OSFONTDIR
+fi
+
+CACHE_ROOT="''${TEXMFCACHE%/}"
+EOF
+
+    cat >> "$out/bin/$name" <<EOF
+CACHE_CONTEXT_DIR="\$CACHE_ROOT/luametatex-cache/context"
+
+# One-time initialization of cache + formats + font DB
+if [ ! -d "\$CACHE_CONTEXT_DIR" ]; then
+  "$out/bin/context-init-cache"
+fi
+
 exec "$out/tex/texmf-linux-64/bin/luametatex" --luaonly \
   "$out/tex/texmf-linux-64/bin/$luaScript" "\$@"
 EOF
@@ -122,9 +173,8 @@ EOF
     cp "$moduleFilter"/{t-syntax-*,2context.vim,t-vim.tex,vimtyping-default.css} \
        "$out/tex/texmf-context/tex/context/third/vim/"
 
-    # Important: do NOT generate caches in the Nix store.
-    # Font and format caches will be created per user at runtime
-    # (mtxrun --generate, mtxrun --script fonts --reload, context --make).
+    # No cache generation in the Nix store!
+    # Per-user cache and fonts DB are initialized on first use.
 
     runHook postInstall
   '';
