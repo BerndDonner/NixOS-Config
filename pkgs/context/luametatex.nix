@@ -17,7 +17,7 @@ stdenv.mkDerivation rec {
     owner = "contextgarden";
     repo  = "context";
     rev   = "41a8e614f633b55052f2087ee9400130eb432b54";
-    hash  = "sha256-xxxxxxxxxxxxxxxxxxxxxxx";
+    hash  = "sha256-8yuhTSsnb5ud62CpKgHa+qNZWSJZi9tR8wvSGu4oJ08=";
   };
 
   moduleFilter = fetchFromGitHub {
@@ -45,43 +45,68 @@ stdenv.mkDerivation rec {
   installPhase = ''
     runHook preInstall
 
-    echo "🧩 Installing LuaMetaTeX / ConTeXt tree"
+    echo "Installing LuaMetaTeX / ConTeXt tree"
     mkdir -p "$out/bin" "$out/tex/texmf-linux-64/bin" "$out/tex/texmf-context"
 
-    # Copy compiled binary and Lua helpers
+    # Engine + Lua frontends
     cp build/luametatex "$out/tex/texmf-linux-64/bin/"
-    cp "$src/scripts/context/lua/"{mtxrun.lua,context.lua} "$out/tex/texmf-linux-64/bin/"
+    cp "$src/scripts/context/lua/"{mtxrun.lua,context.lua} \
+       "$out/tex/texmf-linux-64/bin/"
 
-    # ----------------------------------------------------------------------------
-    # Create wrappers (luametatex, mtxrun, context)
-    # ----------------------------------------------------------------------------
-    echo '#!${runtimeShell}' > "$out/bin/luametatex"
-    echo "exec \"$out/tex/texmf-linux-64/bin/luametatex\" \"\$@\"" >> "$out/bin/luametatex"
+    # Small helper to create wrappers for mtxrun/context
+    makeWrapper() {
+      local name="$1"
+      local luaScript="$2"
+
+      cat > "$out/bin/$name" <<'EOF'
+#!${runtimeShell}
+# Per-user cache directory; ConTeXt will append "luametatex-cache/context/<hash>".
+export TEXMFCACHE="''${XDG_CACHE_HOME:-$HOME/.cache}"
+
+# System + user font search paths (only if not set by user)
+if [ -z "''${OSFONTDIR:-}" ]; then
+  OSFONTDIR="/run/current-system/sw/share/X11/fonts"
+  OSFONTDIR="$OSFONTDIR:/run/current-system/sw/share/fonts"
+  OSFONTDIR="$OSFONTDIR:$HOME/.local/share/fonts"
+  OSFONTDIR="$OSFONTDIR:$HOME/.fonts"
+  export OSFONTDIR
+fi
+EOF
+
+      cat >> "$out/bin/$name" <<EOF
+# Ensure user cache is initialized (idempotent)
+"$out/bin/context-init-cache"
+
+# Call LuaMetaTeX with the proper frontend
+exec "$out/tex/texmf-linux-64/bin/luametatex" --luaonly \
+  "$out/tex/texmf-linux-64/bin/$luaScript" "\$@"
+EOF
+
+      chmod +x "$out/bin/$name"
+    }
+
+    # Raw engine wrapper: do not force TEXMFCACHE/OSFONTDIR here
+    cat > "$out/bin/luametatex" <<EOF
+#!${runtimeShell}
+exec "$out/tex/texmf-linux-64/bin/luametatex" "\$@"
+EOF
     chmod +x "$out/bin/luametatex"
 
-    echo '#!${runtimeShell}' > "$out/bin/mtxrun"
-    echo "exec \"$out/tex/texmf-linux-64/bin/luametatex\" --luaonly \"$out/tex/texmf-linux-64/bin/mtxrun.lua\" \"\$@\"" >> "$out/bin/mtxrun"
-    chmod +x "$out/bin/mtxrun"
+    # mtxrun + context with cache/fonts setup
+    makeWrapper mtxrun  mtxrun.lua
+    makeWrapper context context.lua
 
-    echo '#!${runtimeShell}' > "$out/bin/context"
-    echo "exec \"$out/tex/texmf-linux-64/bin/luametatex\" --luaonly \"$out/tex/texmf-linux-64/bin/context.lua\" \"\$@\"" >> "$out/bin/context"
-    chmod +x "$out/bin/context"
-
-    # ----------------------------------------------------------------------------
-    # Copy TeX tree
-    # ----------------------------------------------------------------------------
-    echo "📦 Copying TeX trees"
+    # Copy TeX trees
+    echo "Copying TeX trees"
     cp -r "$texmf/texmf" "$out/tex/"
     for d in colors context doc fonts metapost scripts tex web2c; do
       cp -r "$src/$d" "$out/tex/texmf-context/"
     done
 
-    # Ensure write permission before adding extra modules
+    # Allow modifications while adding third-party modules
     chmod -R u+w "$out"
 
-    # ----------------------------------------------------------------------------
-    # Add third-party modules (filter + vim)
-    # ----------------------------------------------------------------------------
+    # Third-party modules (filter + vim)
     mkdir -p \
       "$out/tex/texmf-context/tex/context/third/filter" \
       "$out/tex/texmf-context/doc/context/third/filter" \
@@ -97,13 +122,9 @@ stdenv.mkDerivation rec {
     cp "$moduleFilter"/{t-syntax-*,2context.vim,t-vim.tex,vimtyping-default.css} \
        "$out/tex/texmf-context/tex/context/third/vim/"
 
-    # ----------------------------------------------------------------------------
-    # Generate texmf cache
-    # ----------------------------------------------------------------------------
-    echo "⚙️  Generating texmf-cache"
-    "$out/bin/mtxrun"  --generate
-    "$out/bin/mtxrun"  --script fonts --reload
-    "$out/bin/context" --make
+    # Important: do NOT generate caches in the Nix store.
+    # Font and format caches will be created per user at runtime
+    # (mtxrun --generate, mtxrun --script fonts --reload, context --make).
 
     runHook postInstall
   '';
@@ -120,4 +141,3 @@ stdenv.mkDerivation rec {
     $out/bin/luametatex --version
   '';
 }
-
