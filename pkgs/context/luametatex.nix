@@ -11,13 +11,13 @@
 
 stdenv.mkDerivation rec {
   pname = "luametatex";
-  version = "2.11.06";
+  version = "2.11.07";
 
   src = fetchFromGitHub {
     owner = "contextgarden";
     repo  = "context";
-    rev   = "0d2ec448a05c3cf7e83d79ad62eb485f48464872";
-    hash  = "sha256-T+v0mX1aY+G8hoAgM4OvYvvPUq+uW/p2I0SUzN9J1aQ=";
+    rev   = "41a8e614f633b55052f2087ee9400130eb432b54";
+    hash  = "sha256-xxxxxxxxxxxxxxxxxxxxxxx";
   };
 
   moduleFilter = fetchFromGitHub {
