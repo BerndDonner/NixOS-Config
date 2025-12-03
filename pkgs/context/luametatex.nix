@@ -53,51 +53,8 @@ stdenv.mkDerivation rec {
     cp "$src/scripts/context/lua/"{mtxrun.lua,context.lua} \
        "$out/tex/texmf-linux-64/bin/"
 
-    # ----------------------------------------------------------------------
-    # context-init-cache: one-shot cache + font DB + formats initializer
-    # ----------------------------------------------------------------------
-    cat > "$out/bin/context-init-cache" <<'EOF'
-#!${runtimeShell}
-set -euo pipefail
-
-# Per-user cache directory; ConTeXt will append "luametatex-cache/context/<hash>".
-if [ -z "''${TEXMFCACHE:-}" ]; then
-  TEXMFCACHE="''${XDG_CACHE_HOME:-$HOME/.cache}"
-  export TEXMFCACHE
-fi
-
-# System + user font search paths (only if not set by user)
-if [ -z "''${OSFONTDIR:-}" ]; then
-  OSFONTDIR="/run/current-system/sw/share/X11/fonts"
-  OSFONTDIR="$OSFONTDIR:/run/current-system/sw/share/fonts"
-  OSFONTDIR="$OSFONTDIR:$HOME/.local/share/fonts"
-  OSFONTDIR="$OSFONTDIR:$HOME/.fonts"
-  export OSFONTDIR
-fi
-
-CACHE_ROOT="''${TEXMFCACHE%/}"
-EOF
-
-    cat >> "$out/bin/context-init-cache" <<EOF
-ENGINE="$out/tex/texmf-linux-64/bin/luametatex"
-MTXRUN_LUA="$out/tex/texmf-linux-64/bin/mtxrun.lua"
-CONTEXT_LUA="$out/tex/texmf-linux-64/bin/context.lua"
-
-echo "Initializing ConTeXt cache in \$CACHE_ROOT/luametatex-cache ..." >&2
-
-mkdir -p "\$CACHE_ROOT"
-"\$ENGINE" --luaonly "\$MTXRUN_LUA" --generate
-"\$ENGINE" --luaonly "\$MTXRUN_LUA" --script fonts --reload
-"\$ENGINE" --luaonly "\$CONTEXT_LUA" --make
-EOF
-    chmod +x "$out/bin/context-init-cache"
-
-    # ----------------------------------------------------------------------
-    # Small helper to create wrappers for mtxrun/context
-    # ----------------------------------------------------------------------
-    makeWrapper() {
+    initEnvironment() {
       local name="$1"
-      local luaScript="$2"
 
       cat > "$out/bin/$name" <<'EOF'
 #!${runtimeShell}
@@ -120,6 +77,36 @@ fi
 
 CACHE_ROOT="''${TEXMFCACHE%/}"
 EOF
+    }
+
+    # ----------------------------------------------------------------------
+    # context-init-cache: one-shot cache + font DB + formats initializer
+    # ----------------------------------------------------------------------
+
+    initEnvironment context-init-cache
+
+    cat >> "$out/bin/context-init-cache" <<EOF
+ENGINE="$out/tex/texmf-linux-64/bin/luametatex"
+MTXRUN_LUA="$out/tex/texmf-linux-64/bin/mtxrun.lua"
+CONTEXT_LUA="$out/tex/texmf-linux-64/bin/context.lua"
+
+echo "Initializing ConTeXt cache in \$CACHE_ROOT/luametatex-cache ..." >&2
+
+mkdir -p "\$CACHE_ROOT"
+"\$ENGINE" --luaonly "\$MTXRUN_LUA" --generate
+"\$ENGINE" --luaonly "\$MTXRUN_LUA" --script fonts --reload
+"\$ENGINE" --luaonly "\$CONTEXT_LUA" --make
+EOF
+    chmod +x "$out/bin/context-init-cache"
+
+    # ----------------------------------------------------------------------
+    # Small helper to create wrappers for mtxrun/context
+    # ----------------------------------------------------------------------
+    makeWrapper() {
+      local name="$1"
+      local luaScript="$2"
+
+    initEnvironment "$name"
 
     cat >> "$out/bin/$name" <<EOF
 CACHE_CONTEXT_DIR="\$CACHE_ROOT/luametatex-cache/context"
@@ -139,6 +126,8 @@ EOF
     # Raw engine wrapper: do not force TEXMFCACHE/OSFONTDIR here
     cat > "$out/bin/luametatex" <<EOF
 #!${runtimeShell}
+set -euo pipefail
+
 exec "$out/tex/texmf-linux-64/bin/luametatex" "\$@"
 EOF
     chmod +x "$out/bin/luametatex"
