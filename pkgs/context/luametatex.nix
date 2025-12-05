@@ -53,7 +53,11 @@ stdenv.mkDerivation rec {
     cp "$src/scripts/context/lua/"{mtxrun.lua,context.lua} \
        "$out/tex/texmf-linux-64/bin/"
 
-    initEnvironment() {
+    # ----------------------------------------------------------------------
+    # init environment helper
+    # ----------------------------------------------------------------------
+
+     initEnvironment() {
       local name="$1"
 
       cat > "$out/bin/$name" <<'EOF'
@@ -97,18 +101,36 @@ mkdir -p "\$CACHE_ROOT"
 "\$ENGINE" --luaonly "\$MTXRUN_LUA" --script fonts --reload
 "\$ENGINE" --luaonly "\$CONTEXT_LUA" --make
 EOF
-    chmod +x "$out/bin/context-init-cache"
 
     # ----------------------------------------------------------------------
-    # Small helper to create wrappers for mtxrun/context
+    # luametatex wrapper
     # ----------------------------------------------------------------------
-    makeWrapper() {
-      local name="$1"
-      local luaScript="$2"
+    
+    cat > "$out/bin/luametatex" <<EOF
+#!${runtimeShell}
+set -eu
 
-    initEnvironment "$name"
+exec "$out/tex/texmf-linux-64/bin/luametatex" "\$@"
+EOF
 
-    cat >> "$out/bin/$name" <<EOF
+    # ----------------------------------------------------------------------
+    # mtxrun wrapper
+    # ----------------------------------------------------------------------
+    
+    initEnvironment mtxrun
+
+    cat >> "$out/bin/mtxrun" <<EOF
+exec "$out/tex/texmf-linux-64/bin/luametatex" --luaonly \
+  "$out/tex/texmf-linux-64/bin/mtxrun.lua" "\$@"
+EOF
+
+    # ----------------------------------------------------------------------
+    # context wrappers
+    # ----------------------------------------------------------------------
+    
+    initEnvironment context
+
+    cat >> "$out/bin/context" <<EOF
 CACHE_CONTEXT_DIR="\$CACHE_ROOT/luametatex-cache/context"
 
 # One-time initialization of cache + formats + font DB
@@ -117,24 +139,13 @@ if [ ! -d "\$CACHE_CONTEXT_DIR" ]; then
 fi
 
 exec "$out/tex/texmf-linux-64/bin/luametatex" --luaonly \
-  "$out/tex/texmf-linux-64/bin/$luaScript" "\$@"
+  "$out/tex/texmf-linux-64/bin/context.lua" "\$@"
 EOF
 
-      chmod +x "$out/bin/$name"
-    }
-
-    # Raw engine wrapper: do not force TEXMFCACHE/OSFONTDIR here
-    cat > "$out/bin/luametatex" <<EOF
-#!${runtimeShell}
-set -euo pipefail
-
-exec "$out/tex/texmf-linux-64/bin/luametatex" "\$@"
-EOF
+    chmod +x "$out/bin/context-init-cache"
     chmod +x "$out/bin/luametatex"
-
-    # mtxrun + context with cache/fonts setup
-    makeWrapper mtxrun  mtxrun.lua
-    makeWrapper context context.lua
+    chmod +x "$out/bin/mtxrun"
+    chmod +x "$out/bin/context"
 
     # Copy TeX trees
     echo "Copying TeX trees"
