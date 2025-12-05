@@ -169,6 +169,7 @@
   ];
 
   fonts.enableDefaultPackages = true;
+  fonts.fontDir.enable = true;
   
   # started in user sessions.
   # programs.mtr.enable = true;
