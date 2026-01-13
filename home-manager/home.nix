@@ -27,6 +27,7 @@
     firefox
     google-chrome
     discord
+    magic-wormhole
     github-desktop
     qtcreator
     processing
