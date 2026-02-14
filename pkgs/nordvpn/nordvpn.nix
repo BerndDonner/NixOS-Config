@@ -21,14 +21,14 @@
 
 let
   pname = "nordvpn";
-  version = "4.1.1";
+  version = "4.4.0";
 
   nordVPNBase = stdenv.mkDerivation {
     inherit pname version;
 
     src = fetchurl {
       url = "https://repo.nordvpn.com/deb/nordvpn/debian/pool/main/n/nordvpn/nordvpn_${version}_amd64.deb";
-      hash = "sha256-JWgY0V2GbA9fJ01VhiGfUvVzau/FLOd/kDu2nQ3rMuY=";
+      hash = "sha256-rePBEVe6o49If5dYvIUW361E7nFqngzd+XkiOeehY7w=";
     };
 
     # Runtime dependencies of the unpacked binaries

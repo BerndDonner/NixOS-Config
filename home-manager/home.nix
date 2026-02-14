@@ -34,15 +34,11 @@
     stm32cubemx
     kicad
     ngspice
-    cudatoolkit
-    (blender.override {
-        cudaSupport = true;
-    })
     obs-studio
     xournalpp
     inkscape
     rustc
-    kmplayer
+    haruna
     qbittorrent
     vlc
     gimp
@@ -81,7 +77,7 @@
     # This is a simple way to install personal packages.
     # The downside is, you cannot depend on these packages.
     # Use overlays when you want to depend on the packages.
-    (pkgs.callPackage ../pkgs/context/luametatex.nix {})
+ #   (pkgs.callPackage ../pkgs/context/luametatex.nix {})
   ]);
 
   qt.enable = true;
@@ -93,22 +89,31 @@
      package = pkgs.jre_minimal;
   };
 
-  programs.ssh.enable = true;
-  programs.ssh.extraConfig = ''
-    Host lenzi
-      IdentityFile ~/.ssh/bernd_tracy
-      User levi
+  programs.ssh = {
+    enable = true;
+    enableDefaultConfig = false;
 
-    Host github-tabby-bootstrap
-      HostName github.com
-      User git
-      IdentityFile ~/.ssh/id_tabby_bootstrap
-      IdentitiesOnly yes
-      StrictHostKeyChecking no
+    matchBlocks = {
+      "lenzi" = {
+        user = "levi";
+        identityFile = "~/.ssh/bernd_tracy";
+      };
 
-    Host *
-      IdentityFile ~/.ssh/bernds-desktop
-  '';
+      "github-tabby-bootstrap" = {
+        host = "github.com";
+        user = "git";
+        identityFile = "~/.ssh/id_tabby_bootstrap";
+        identitiesOnly = true;
+        extraOptions = {
+          StrictHostKeyChecking = "no";
+        };
+      };
+
+      "*" = {
+        identityFile = "~/.ssh/bernds-desktop";
+      };
+    };
+  };
 
    
   # basic configuration of git, please change to your own
@@ -117,10 +122,10 @@
     lfs.enable = true;
     package = pkgs.gitFull;
 
-    userName  = "Bernd Donner";
-    userEmail = "bernd.donner@sabel.com";
+    settings = {
+      user.name = "Bernd Donner";
+      user.email = "bernd.donner@sabel.com";
 
-    extraConfig = {
       credential.helper = "kwallet";     # KDE wallet integration
       init.defaultBranch = "master";     # keep traditional naming
 
@@ -389,7 +394,7 @@ programs.tmux = {
   # You can update home Manager without changing this value. See
   # the home Manager release notes for a list of state version
   # changes in each release.
-  home.stateVersion = "24.11";
+  home.stateVersion = "25.11";
 
   # Let home Manager install and manage itself.
   programs.home-manager.enable = true;

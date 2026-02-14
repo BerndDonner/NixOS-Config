@@ -1,9 +1,11 @@
 { pkgs, lib, ... }:
 let
-  # Skips the input but impurifies the build (use --impure to rebuild)
-  helix = (builtins.getFlake "github:helix-editor/helix/50e4385aefdd1cea80a3a50af62d5eefcb42b4e8").packages.${pkgs.system}.default;
+  system = pkgs.stdenv.hostPlatform.system;
 
-  # helix = inputs.helix.packages.${pkgs.system}.default;
+  # Skips the input but impurifies the build (use --impure to rebuild)
+  helix = (builtins.getFlake "github:helix-editor/helix/50e4385aefdd1cea80a3a50af62d5eefcb42b4e8").packages.${system}.default;
+
+  # helix = inputs.helix.packages.${system}.default;
 in
 {
   programs.helix = {
@@ -61,7 +63,7 @@ in
     };
 
     languages.language-server.nixd = {
-      command = "${lib.getExe pkgs.nixd}";
+      command = lib.getExe pkgs.nixd;
     };
 
     languages.language = [
@@ -75,7 +77,7 @@ in
       {
         name = "nix";
         language-servers = [ "nixd" ];
-        formatter.binary = "${lib.getExe pkgs.nixfmt-classic}";
+        formatter.binary = lib.getExe pkgs.nixfmt;
         formatter.command = "nixfmt";
       }
     ];
@@ -99,7 +101,7 @@ in
       nodePackages.prettier
 
       # Nix
-      nixfmt-classic
+      nixfmt
       nixd
 
       cmake-language-server

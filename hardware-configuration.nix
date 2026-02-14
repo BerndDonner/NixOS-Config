@@ -3,64 +3,61 @@
 # to /etc/nixos/configuration.nix instead.
 { config, lib, pkgs, modulesPath, ... }:
 
+let
+  btrfsOpts = [ "noatime" "ssd" "space_cache=v2" "discard=async" "compress=zstd:3" ];
+  btrfsDev  = "/dev/disk/by-uuid/94bcd5e3-ec96-4a28-80b2-f987d18c8a12";
+in
 {
   imports =
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "nvme" "thunderbolt" "usbhid" "usb_storage" "sd_mod" ];
+  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "thunderbolt" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-intel" ];
+  boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
 
-  fileSystems."/" =
-    { device = "/dev/disk/by-uuid/ce928be5-9d26-42cf-af9d-378cb0167940";
-      fsType = "btrfs";
-      options = [ "subvol=root" "noatime" ];
-    };
+  fileSystems."/" = {
+    device = btrfsDev;
+    fsType = "btrfs";
+    options = [ "subvol=@" ] ++ btrfsOpts;
+  };
 
-  fileSystems."/home" =
-    { device = "/dev/disk/by-uuid/ce928be5-9d26-42cf-af9d-378cb0167940";
-      fsType = "btrfs";
-      options = [ "subvol=home" "noatime" ];
-    };
+  fileSystems."/home" = {
+    device = btrfsDev;
+    fsType = "btrfs";
+    options = [ "subvol=@home" ] ++ btrfsOpts;
+  };
 
-  fileSystems."/nix" =
-    { device = "/dev/disk/by-uuid/ce928be5-9d26-42cf-af9d-378cb0167940";
-      fsType = "btrfs";
-      options = [ "subvol=nix" "noatime" ];
-    };
+  fileSystems."/nix" = {
+    device = btrfsDev;
+    fsType = "btrfs";
+    options = [ "subvol=@nix" ] ++ btrfsOpts;
+  };
 
-  fileSystems."/persist" =
-    { device = "/dev/disk/by-uuid/ce928be5-9d26-42cf-af9d-378cb0167940";
-      fsType = "btrfs";
-      options = [ "subvol=persist" "noatime" ];
-    };
+  fileSystems."/persist" = {
+    device = btrfsDev;
+    fsType = "btrfs";
+    options = [ "subvol=@persist" ] ++ btrfsOpts;
+  };
 
-  fileSystems."/var/log" =
-    { device = "/dev/disk/by-uuid/ce928be5-9d26-42cf-af9d-378cb0167940";
-      fsType = "btrfs";
-      options = [ "subvol=log" "noatime" ];
-      neededForBoot = true;
-    };
+  fileSystems."/.snapshots" = {
+    device = btrfsDev;
+    fsType = "btrfs";
+    options = [ "subvol=@snapshots" ] ++ btrfsOpts;
+  };
 
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/1408-3A4D";
-      fsType = "vfat";
-      options = [ "fmask=0022" "dmask=0022" ];
-    };
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/9715-401E";
+    fsType = "vfat";
+    options = [ "fmask=0077" "dmask=0077" ];
+  };
 
   swapDevices =
-    [ { device = "/dev/disk/by-uuid/4061d057-93ce-4a58-972b-679937ad7598"; }
+    [ { device = "/dev/disk/by-uuid/c4072834-5654-415d-a8af-95e8e160dc5b"; }
     ];
 
-  # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
-  # (the default) this is the recommended approach. When using systemd-networkd it's
-  # still possible to use this option, but it's recommended to use it in conjunction
-  # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
-  networking.useDHCP = lib.mkDefault true;
-  # networking.interfaces.enp4s0.useDHCP = lib.mkDefault true;
-
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
+
