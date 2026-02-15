@@ -1,11 +1,9 @@
-{ pkgs, lib, ... }:
+{ inputs, pkgs, lib, ... }:
 let
   system = pkgs.stdenv.hostPlatform.system;
 
-  # Skips the input but impurifies the build (use --impure to rebuild)
-  helix = (builtins.getFlake "github:helix-editor/helix/50e4385aefdd1cea80a3a50af62d5eefcb42b4e8").packages.${system}.default;
-
-  # helix = inputs.helix.packages.${system}.default;
+  # Helix pinned via flake.lock (inputs.helix), updates only when you update the lock file.
+  helix = inputs.helix.packages.${system}.default;
 in
 {
   programs.helix = {

@@ -8,6 +8,10 @@
     home-manager.url = "github:nix-community/home-manager/release-25.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     
+
+    # ✍️ Editor (pinned via flake.lock)
+    helix.url = "github:helix-editor/helix";
+
     # 🧱 Local flakes
     lib.url         = "path:./lib";
     lib.flake = false;
@@ -17,7 +21,7 @@
     context.flake = false;
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, lib, bootdev-cli, context, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, helix, lib, bootdev-cli, context, ... }@inputs:
   let
     system = "x86_64-linux";
 
@@ -47,12 +51,11 @@
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
+          home-manager.extraSpecialArgs = { inherit inputs; };
           nixpkgs.overlays = [ overlayUnstable overlayPygameAvx2 ];
 
-          home-manager.users.bernd = { config, pkgs, lib, ... }:
-            import ./home-manager/home.nix {
-              inherit config pkgs lib inputs;
-            };
+          home-manager.users.bernd =
+            import ./home-manager/home.nix;
         }
       ];
     };
