@@ -5,6 +5,7 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ./vault.nix
   ];
 
   # Bootloader (eigene EFI-Partition auf der NixOS-SSD)
@@ -80,6 +81,8 @@
 
   # Packages (wie tracy, aber NVIDIA-Kram komplett entfernt)
   environment.systemPackages = with pkgs; [
+    cryptsetup
+    e2fsprogs
     wget
     w3m
     git
