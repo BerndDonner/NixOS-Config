@@ -40,7 +40,7 @@
     nixosConfigurations.kitty = nixpkgs.lib.nixosSystem {
       inherit system;
       modules = [
-        ./configuration.nix
+        ./hosts/kitty/configuration.nix
         home-manager.nixosModules.home-manager
         ./modules/nordvpn.nix
 
