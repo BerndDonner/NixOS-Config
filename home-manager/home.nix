@@ -119,102 +119,203 @@
   # basic configuration of git, please change to your own
   programs.git = {
     enable = true;
-    lfs.enable = true;
     package = pkgs.gitFull;
 
     settings = {
-      user.name = "Bernd Donner";
+      user.name  = "Bernd Donner";
       user.email = "bernd.donner@sabel.com";
 
-      credential.helper = "kwallet";     # KDE wallet integration
-      init.defaultBranch = "master";     # keep traditional naming
+      credential.helper = "kwallet";
+      init.defaultBranch = "master";
 
+      # Workflow-Defaults
       pull.rebase = true;
-      merge.ff    = "only";
+      rebase.autoStash = true;
+      fetch.prune = true;
+      rerere.enabled = true;
+
+      # Wenn irgendwo doch "pull" ohne rebase passiert: nur FF, keine Merge-Commits
+      merge.ff = "only";
 
       alias = {
-        lg     = "log --oneline --graph --decorate --all";
-        ahead  = "log --oneline --graph --decorate @{u}..HEAD";
-        behind = "log --oneline --graph --decorate HEAD..@{u}";
+        # Überblick
+        st = "status -sb";
+        lg = "log --oneline --graph --decorate --all";
+        br = "branch -vv";
 
-        # 🧩 Generalized upmaster alias: works with any default branch
-        upmaster = ''
-          !b=$(git symbolic-ref refs/remotes/origin/HEAD | sed "s@^refs/remotes/origin/@@") && \
-          c=$(git symbolic-ref --short HEAD) && \
-          if [ "$b" = "$c" ]; then \
-            echo "🚫 You are on the default branch ($b) — not rebasing it!"; \
-            exit 1; \
-          else \
-            echo "🔁 Rebasing $c onto origin/$b..."; \
-            git fetch origin && git rebase origin/$b && git push --force-with-lease; \
-          fi
+        # Publish (setzt upstream, falls noch nicht gesetzt)
+        pub = ''!f(){ b=$(git rev-parse --abbrev-ref HEAD); git push -u origin "$b"; }; f'';
+
+        # up --force : fetch + rebase auf upstream (auch mit lokalen Commits ok)
+        # up: fetch + rebase auf upstream, aber bricht ab wenn unpushed Commits existieren (Multi-PC-sicher)
+        up = ''
+          !f(){ \
+            set -e; \
+            force=0; \
+            if [ "$1" = "--force" ] || [ "$1" = "-f" ]; then force=1; shift; fi; \
+            u=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null) || { \
+              echo "ERROR: No upstream configured. Run: git pub"; exit 1; }; \
+            ahead=$(git rev-list --count @{u}..HEAD); \
+            if [ "$ahead" -gt 0 ] && [ "$force" -eq 0 ]; then \
+              echo "ERROR: You have $ahead local commit(s) that are NOT pushed."; \
+              echo "       Run: git pub   or (explicitly): git up --force"; \
+              exit 1; \
+            fi; \
+            if [ "$ahead" -gt 0 ] && [ "$force" -eq 1 ]; then \
+              b=$(git rev-parse --abbrev-ref HEAD); \
+              echo "⚠️  WARNING: git up --force"; \
+              echo "   Branch:   $b"; \
+              echo "   Upstream: $u"; \
+              echo "   Status:   ahead by $ahead commit(s) (not pushed)"; \
+              echo "   Action:   fetch + rebase --autostash onto upstream"; \
+              echo "   Note:     If you push afterwards, you may need --force-with-lease."; \
+              echo "             Conflicts are normal here. To abort: git abort-op"; \
+              echo ""; \
+            fi; \
+            git fetch --prune; \
+            git rebase --autostash @{u}; \
+          }; f
+        '';
+
+
+        # Konflikt-Helfer mit verständlichen Namen (rebase-sicher)
+        # Conflict helpers:
+        # - git current <file>  : keep the version currently checked out in your working tree
+        # - git incoming <file> : take the version from the other side (the one being merged/rebased in)
+        # After choosing: git add <file> and continue (git rebase --continue / git commit)
+        current = ''
+          !f(){ \
+            if test -d "$(git rev-parse --git-path rebase-apply)" -o -d "$(git rev-parse --git-path rebase-merge)"; then \
+              git checkout --theirs -- "$@"; \
+            else \
+              git checkout --ours -- "$@"; \
+            fi; \
+          }; f
+        '';
+        incoming = ''
+          !f(){ \
+            if test -d "$(git rev-parse --git-path rebase-apply)" -o -d "$(git rev-parse --git-path rebase-merge)"; then \
+              git checkout --ours -- "$@"; \
+            else \
+              git checkout --theirs -- "$@"; \
+            fi; \
+          }; f
+        '';
+
+        # Lebensretter
+        undo    = "reset --soft HEAD~1";
+        discard = "reset --hard";
+
+        # Feature-Branch hart auf Remote zurücksetzen (Schutz für master/main)
+        reset-to-remote = ''
+          !f(){ set -e; \
+            b="$1"; \
+            if [ -z "$b" ]; then b=$(git rev-parse --abbrev-ref HEAD); fi; \
+            if [ "$b" = master ] || [ "$b" = main ]; then \
+              echo "ERROR: reset-to-remote nicht auf '$b' ausfuehren."; exit 1; \
+            fi; \
+            git fetch --all --prune; \
+            git switch "$b"; \
+            if git show-ref --verify --quiet "refs/remotes/origin/$b"; then \
+              r="origin/$b"; \
+            else \
+              u=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true); \
+              if [ -n "$u" ]; then r="$u"; else \
+                echo "ERROR: Weder origin/$b noch upstream gefunden."; exit 1; fi; \
+            fi; \
+            git reset --hard "$r"; \
+          }; f
+        '';
+
+        # Panic-Button: laufende Operationen abbrechen
+        abort-op = ''
+          !f(){ \
+            set +e; \
+            try(){ \
+              op="$1"; shift; \
+              "$@" >/dev/null 2>&1; \
+              rc=$?; \
+              if [ $rc -eq 0 ]; then \
+                echo "OK: aborted $op"; \
+                exit 0; \
+              fi; \
+            }; \
+            try rebase      git rebase --abort; \
+            try merge       git merge --abort; \
+            try cherry-pick git cherry-pick --abort; \
+            try revert      git revert --abort; \
+            try am          git am --abort; \
+            try bisect      git bisect reset; \
+            echo "INFO: no in-progress operation detected."; \
+          }; f
         '';
       };
     };
   };
 
-programs.tmux = {
-  enable = true;
-  keyMode = "vi";
-  mouse = true;
-  escapeTime = 0;
-  historyLimit = 20000;
-  terminal = "tmux-256color";
 
-  plugins = with pkgs.tmuxPlugins; [
-    sensible
-    yank
-    resurrect
-  ];
+  programs.tmux = {
+    enable = true;
+    keyMode = "vi";
+    mouse = true;
+    escapeTime = 0;
+    historyLimit = 20000;
+    terminal = "tmux-256color";
 
-  extraConfig = ''
-    # --- Prefix ---------------------------------------------------
-    unbind C-b
-    set -g prefix C-a
-    bind C-a send-prefix
+    plugins = with pkgs.tmuxPlugins; [
+      sensible
+      yank
+      resurrect
+    ];
 
-    # --- Terminal capabilities ------------------------------------
-    set -g default-terminal "tmux-256color"
-    set -ag terminal-overrides ',xterm-256color:RGB'
-    set -g allow-passthrough on
+    extraConfig = ''
+      # --- Prefix ---------------------------------------------------
+      unbind C-b
+      set -g prefix C-a
+      bind C-a send-prefix
 
-    # --- General behaviour ----------------------------------------
-    setw -g mode-keys vi
-    set -g status-keys vi
-    set -s escape-time 0
-    set -g mouse on
-    set -g history-limit 20000
-    set -g base-index 1
-    setw -g pane-base-index 1
+      # --- Terminal capabilities ------------------------------------
+      set -g default-terminal "tmux-256color"
+      set -ag terminal-overrides ',xterm-256color:RGB'
+      set -g allow-passthrough on
 
-    # --- Look & feel ----------------------------------------------
-    set -g status-bg colour236
-    set -g status-fg colour223
-    set -g message-style fg=colour223,bg=colour239
-    set -g pane-border-style fg=colour239
-    set -g pane-active-border-style fg=colour111
-    set -g status-left " ⎈ #S "
-    set -g status-right " %Y-%m-%d %H:%M "
+      # --- General behaviour ----------------------------------------
+      setw -g mode-keys vi
+      set -g status-keys vi
+      set -s escape-time 0
+      set -g mouse on
+      set -g history-limit 20000
+      set -g base-index 1
+      setw -g pane-base-index 1
 
-    # --- Copy / paste behaviour -----------------------------------
-    bind-key -T copy-mode-vi v send-keys -X begin-selection
-    bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
-    set -g set-clipboard on
+      # --- Look & feel ----------------------------------------------
+      set -g status-bg colour236
+      set -g status-fg colour223
+      set -g message-style fg=colour223,bg=colour239
+      set -g pane-border-style fg=colour239
+      set -g pane-active-border-style fg=colour111
+      set -g status-left " ⎈ #S "
+      set -g status-right " %Y-%m-%d %H:%M "
 
-    # --- Pane management ------------------------------------------
-    bind - split-window -h -c "#{pane_current_path}"
-    bind _ split-window -v -c "#{pane_current_path}"
-    bind x kill-pane
+      # --- Copy / paste behaviour -----------------------------------
+      bind-key -T copy-mode-vi v send-keys -X begin-selection
+      bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+      set -g set-clipboard on
 
-    bind C-h select-pane -L
-    bind C-j select-pane -D
-    bind C-k select-pane -U
-    bind C-l select-pane -R
+      # --- Pane management ------------------------------------------
+      bind - split-window -h -c "#{pane_current_path}"
+      bind _ split-window -v -c "#{pane_current_path}"
+      bind x kill-pane
 
-    bind r source-file ~/.config/tmux/tmux.conf \; display "tmux.conf reloaded ✅"
-    bind e split-window -v -c "#{pane_current_path}" "hx"
-  '';
-};
+      bind C-h select-pane -L
+      bind C-j select-pane -D
+      bind C-k select-pane -U
+      bind C-l select-pane -R
+
+      bind r source-file ~/.config/tmux/tmux.conf \; display "tmux.conf reloaded ✅"
+      bind e split-window -v -c "#{pane_current_path}" "hx"
+    '';
+  };
 
   
   programs.vim = {
