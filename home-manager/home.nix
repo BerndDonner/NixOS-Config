@@ -77,7 +77,7 @@
     # This is a simple way to install personal packages.
     # The downside is, you cannot depend on these packages.
     # Use overlays when you want to depend on the packages.
- #   (pkgs.callPackage ../pkgs/context/luametatex.nix {})
+    (pkgs.callPackage ../pkgs/context/luametatex.nix {})
   ]);
 
   qt.enable = true;
