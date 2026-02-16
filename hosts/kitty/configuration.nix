@@ -13,7 +13,12 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Hibernate (swap partition)
-  boot.resumeDevice = "/dev/disk/by-label/NIXOS_SWAP";
+  boot.resumeDevice = "/dev/disk/by-uuid/c4072834-5654-415d-a8af-95e8e160dc5b";
+
+  # Ensure the kernel actually attempts resume (do not override other params)
+  boot.kernelParams = lib.mkAfter [
+    "resume=/dev/disk/by-uuid/c4072834-5654-415d-a8af-95e8e160dc5b"
+  ];
 
   # Kernel
   boot.kernelPackages = pkgs.linuxPackages_latest;
