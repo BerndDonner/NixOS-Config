@@ -20,6 +20,14 @@
     "resume=/dev/disk/by-uuid/c4072834-5654-415d-a8af-95e8e160dc5b"
   ];
 
+  # Force a reliable hibernation path: "platform" (firmware-assisted) resume can fail on some AMD/UEFI laptops
+  # with errors like "inconsistent memory map / image mismatch". Using HibernateMode=shutdown makes hibernate
+  # use the kernel-managed shutdown/resume flow, which is typically much more stable.
+  systemd.sleep.extraConfig = ''
+    HibernateMode=shutdown
+    HibernateState=disk
+  '';
+
   # Kernel
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
