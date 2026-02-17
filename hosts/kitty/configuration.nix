@@ -6,6 +6,7 @@
   imports = [
     ./hardware-configuration.nix
     ./vault.nix
+    ./hibernate-hooks.nix
   ];
 
   # Bootloader (eigene EFI-Partition auf der NixOS-SSD)
@@ -25,8 +26,12 @@
   # use the kernel-managed shutdown/resume flow, which is typically much more stable.
   systemd.sleep.extraConfig = ''
     HibernateMode=shutdown
-    HibernateState=disk
   '';
+
+  # Force the kernel default hibernation mode early at boot so user space (KDE/logind) can't end up using "platform".
+  systemd.tmpfiles.rules = [
+    "w /sys/power/disk - - - - shutdown"
+  ];
 
   # Kernel
   boot.kernelPackages = pkgs.linuxPackages_latest;
