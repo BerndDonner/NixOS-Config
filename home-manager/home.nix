@@ -94,27 +94,34 @@
     enableDefaultConfig = false;
 
     matchBlocks = {
-      "lenzi" = {
-        user = "levi";
-        identityFile = "~/.ssh/bernd_tracy";
-      };
-
       "github-tabby-bootstrap" = {
         host = "github.com";
         user = "git";
         identityFile = "~/.ssh/id_tabby_bootstrap";
         identitiesOnly = true;
-        extraOptions = {
-          StrictHostKeyChecking = "no";
-        };
+        extraOptions = { StrictHostKeyChecking = "accept-new"; };
+      };
+
+      "forgejo" = {
+        host = "forgejo.DEINHOST.TLD";
+        user = "git";
+        identityFile = "~/.ssh/bernds-desktop";
+        identitiesOnly = true;
+        extraOptions = { StrictHostKeyChecking = "accept-new"; };
+      };
+
+      "lenzi" = {
+        user = "levi";
+        identityFile = "~/.ssh/bernd_tracy";
+        identitiesOnly = true;
       };
 
       "*" = {
         identityFile = "~/.ssh/bernds-desktop";
+        identitiesOnly = true;
       };
     };
   };
-
    
   # basic configuration of git, please change to your own
   programs.git = {
