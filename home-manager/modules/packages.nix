@@ -53,6 +53,6 @@
       wayland
     ])
     ++ [
-      (pkgs.callPackage ../pkgs/context/luametatex.nix {})
+      (pkgs.callPackage ../../pkgs/context/luametatex.nix {})
     ];
 }
