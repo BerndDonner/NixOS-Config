@@ -89,39 +89,65 @@
      package = pkgs.jre_minimal;
   };
 
-  programs.ssh = {
-    enable = true;
-    enableDefaultConfig = false;
+programs.ssh = {
+  enable = true;
+  enableDefaultConfig = false;
 
-    matchBlocks = {
-      "github-tabby-bootstrap" = {
-        host = "github.com";
-        user = "git";
-        identityFile = "~/.ssh/id_tabby_bootstrap";
-        identitiesOnly = true;
-        extraOptions = { StrictHostKeyChecking = "accept-new"; };
-      };
+  # IP-Fallback: wenn du per IP connectest, nimm immer den Wegwerf-Key
+  extraConfig = ''
+    Match host *, exec "echo %h | grep -Eq '^([0-9]{1,3}\\.){3}[0-9]{1,3}$'"
+      User ubuntu
+      IdentityFile ~/.ssh/id_tabby_bootstrap
+      IdentitiesOnly yes
+      StrictHostKeyChecking no
+      UserKnownHostsFile /dev/null
+      LogLevel ERROR
+  '';
 
-      "forgejo" = {
-        host = "forgejo.DEINHOST.TLD";
-        user = "git";
-        identityFile = "~/.ssh/bernds-desktop";
-        identitiesOnly = true;
-        extraOptions = { StrictHostKeyChecking = "accept-new"; };
-      };
-
-      "lenzi" = {
-        user = "levi";
-        identityFile = "~/.ssh/bernd_tracy";
-        identitiesOnly = true;
-      };
-
-      "*" = {
-        identityFile = "~/.ssh/bernds-desktop";
-        identitiesOnly = true;
+  matchBlocks = {
+    # Dein stabiler Name zeigt auf ephemere IP -> genauso behandeln wie IP
+    "ai-donner-lab" = {
+      host = "ai.donner-lab.org";
+      user = "ubuntu";
+      identityFile = "~/.ssh/id_tabby_bootstrap";
+      identitiesOnly = true;
+      extraOptions = {
+        StrictHostKeyChecking = "no";
+        UserKnownHostsFile = "/dev/null";
+        LogLevel = "ERROR";
       };
     };
+
+    # GitHub (Deploy Key)
+    "github-tabby-bootstrap" = {
+      host = "github.com";
+      user = "git";
+      identityFile = "~/.ssh/id_tabby_bootstrap";
+      identitiesOnly = true;
+      extraOptions = { StrictHostKeyChecking = "accept-new"; };
+    };
+
+    # Forgejo Beispiel (falls du willst, hier dein Host)
+    "forgejo-meisterk" = {
+      host = "forgejo.meisterk.de";
+      user = "git";
+      identityFile = "~/.ssh/bernds-desktop";
+      identitiesOnly = true;
+      extraOptions = { StrictHostKeyChecking = "accept-new"; };
+    };
+
+    "lenzi" = {
+      user = "levi";
+      identityFile = "~/.ssh/bernd_tracy";
+      identitiesOnly = true;
+    };
+
+    "*" = {
+      identityFile = "~/.ssh/bernds-desktop";
+      identitiesOnly = true;
+    };
   };
+};
    
   # basic configuration of git, please change to your own
   programs.git = {
