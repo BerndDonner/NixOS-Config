@@ -9,6 +9,7 @@
     ./modules/tmux.nix
     ./modules/vim.nix
     ./modules/helix.nix
+    ./modules/starship.nix
   ];
 
   home.stateVersion = "25.11";
