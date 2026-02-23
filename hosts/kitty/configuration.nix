@@ -6,7 +6,7 @@
   imports = [
     ./hardware-configuration.nix
     ./vault.nix
-#    ./hibernate-hooks.nix
+    ./hibernate-hooks.nix
   ];
 
   # Bootloader (eigene EFI-Partition auf der NixOS-SSD)
@@ -19,20 +19,21 @@
   # Ensure the kernel actually attempts resume (do not override other params)
   boot.kernelParams = lib.mkAfter [
     "resume=/dev/disk/by-uuid/c4072834-5654-415d-a8af-95e8e160dc5b"
+    "nvme_core.default_ps_max_latency_us=0"
   ];
 
-  # # Force a reliable hibernation path: "platform" (firmware-assisted) resume can fail on some AMD/UEFI laptops
-  # # with errors like "inconsistent memory map / image mismatch". Using HibernateMode=shutdown makes hibernate
-  # # use the kernel-managed shutdown/resume flow, which is typically much more stable.
-  # systemd.sleep.extraConfig = ''
-  #   HibernateMode=shutdown
-  #   HibernateDelaySec=2min
-  # '';
+  # Force a reliable hibernation path: "platform" (firmware-assisted) resume can fail on some AMD/UEFI laptops
+  # with errors like "inconsistent memory map / image mismatch". Using HibernateMode=shutdown makes hibernate
+  # use the kernel-managed shutdown/resume flow, which is typically much more stable.
+  systemd.sleep.extraConfig = ''
+    HibernateMode=shutdown
+    HibernateDelaySec=2min
+  '';
 
-  # # Force the kernel default hibernation mode early at boot so user space (KDE/logind) can't end up using "platform".
-  # systemd.tmpfiles.rules = [
-  #   "w /sys/power/disk - - - - shutdown"
-  # ];
+  # Force the kernel default hibernation mode early at boot so user space (KDE/logind) can't end up using "platform".
+  systemd.tmpfiles.rules = [
+    "w /sys/power/disk - - - - shutdown"
+  ];
 
   # boot.blacklistedKernelModules = [
   #   "mt7925e"

@@ -11,30 +11,23 @@
         User ubuntu
         IdentityFile ~/.ssh/id_tabby_bootstrap
         IdentitiesOnly yes
-        StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
+        StrictHostKeyChecking accept-new
+        UserKnownHostsFile ~/.ssh/known_hosts_ephemeral
         LogLevel ERROR
     '';
 
     matchBlocks = {
-      "ai-donner-lab" = {
-        host = "ai.donner-lab.org";
+      "ai.donner-lab.org" = {
+        host = "ai";
+        hostname = "ai.donner-lab.org";
         user = "ubuntu";
         identityFile = "~/.ssh/id_tabby_bootstrap";
         identitiesOnly = true;
         extraOptions = {
-          StrictHostKeyChecking = "no";
-          UserKnownHostsFile = "/dev/null";
+          StrictHostKeyChecking = "accept-new";
+          UserKnownHostsFile = "~/.ssh/known_hosts_ephemeral";
           LogLevel = "ERROR";
         };
-      };
-
-      "github-tabby-bootstrap" = {
-        host = "github.com";
-        user = "git";
-        identityFile = "~/.ssh/id_tabby_bootstrap";
-        identitiesOnly = true;
-        extraOptions = { StrictHostKeyChecking = "accept-new"; };
       };
 
       "forgejo-meisterk" = {
