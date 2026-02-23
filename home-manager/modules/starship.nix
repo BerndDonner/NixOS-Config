@@ -34,8 +34,8 @@
 
       env_var = {
         VIRTUAL_ENV = {
-          format = "[󰌠 venv](cyan) ";
           default = "";
+          format = "[󰌠 $env_value](cyan) ";
         };
       };
 
@@ -76,7 +76,7 @@
 
       cmd_duration = {
         min_time = 1500;
-        format = "[ $${duration}]($style) ";
+        format = "[ $duration]($style) ";
       };
     };
   };
