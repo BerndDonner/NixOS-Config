@@ -4,6 +4,7 @@
   imports = [
     ./modules/basics.nix
     ./modules/packages.nix
+    ./modules/bash.nix
     ./modules/ssh.nix
     ./modules/git.nix
     ./modules/tmux.nix

@@ -70,13 +70,13 @@
 
       status = {
         disabled = false;
-        only_nonzero = true;
-        format = "[✘ $status]($style) ";
+        symbol = "✘ ";
+        format = "[$symbol$status]($style) ";
       };
 
       cmd_duration = {
         min_time = 1500;
-        format = "[ ${duration}]($style) ";
+        format = "[ $${duration}]($style) ";
       };
     };
   };
