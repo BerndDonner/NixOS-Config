@@ -4,7 +4,7 @@
 {
   programs.starship = {
     enable = true;
-    enableBashIntegration = true;
+    enableBashIntegration = false;
 
     settings = {
       # We fully control line breaks in `format`, so keep this off.
@@ -15,8 +15,7 @@
 
       # Main (left) prompt: powerline segments + your nix/venv/git_state.
       format = ''
-        [╭─](bold green)[](fg:#33658A)$os[](fg:#06969A bg:#33658A)[](fg:#86BBD8 bg:#06969A)$username$hostname[](fg:#86BBD8 bg:#D8BB86)$directory[](fg:#D8BB86 bg:#FCA17D)$git_branch$git_status$git_state[](fg:#FCA17D bg:#FCF392)$nix_shell$env_var$golang$nodejs$bun$deno$ruby$rust$python$lua[](fg:#FCF392 bg:#7DF9AA)$package[](fg:#7DF9AA bg:#9A86D8)$aws$azure$gcloud$kubernetes[](fg:#9A86D8 bg:#06969A)$docker_context[](fg:#06969A bg:#33658A)($shell)[](fg:#33658A)
-        [│](bold green)
+        [╭─](bold green)[](fg:#86BBD8)$username$hostname[](fg:#86BBD8 bg:#D8BB86)$directory[](fg:#D8BB86 bg:#FCA17D)$git_branch$git_status$git_state[](fg:#FCA17D bg:#FCF392)$nix_shell$env_var$golang$nodejs$bun$deno$ruby$rust$python$lua[](fg:#FCF392)
         [╰─$character ](bold green)
       '';
 
@@ -86,12 +85,11 @@
 
       nix_shell = {
         style = "fg:#000000 bg:#FCF392";
-        format = "[  nix:$state ]($style)";
+        format = "[  ]($style)";
       };
 
       env_var = {
         VIRTUAL_ENV = {
-          default = "";
           style = "fg:#000000 bg:#FCF392";
           format = "[ 󰌠 $env_value ]($style)";
         };
@@ -118,12 +116,6 @@
         time_format = "%R";
         style = "fg:#ffffff";
         format = " [󰥔 $time]($style)";
-      };
-
-      shell = {
-        disabled = false;
-        style = "fg:#ffffff bg:#33658A";
-        format = "[$indicator]($style)";
       };
 
       # Language modules: keep the same bg as the “lang” segment
