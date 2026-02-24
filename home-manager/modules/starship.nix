@@ -7,51 +7,67 @@
     enableBashIntegration = true;
 
     settings = {
-      add_newline = true;
+      # We fully control line breaks in `format`, so keep this off.
+      add_newline = false;
 
-      # 1) Kontext (SSH/Nix/Venv/Pfad/Git)
-      # 2) Status/Dauer (optional)
-      # 3) Prompt-Symbol
+      command_timeout = 1000;
+      continuation_prompt = "[╰─ ](bold green)";
+
+      # Main (left) prompt: powerline segments + your nix/venv/git_state.
       format = ''
-        $hostname$nix_shell$env_var$directory$git_branch$git_status$git_state
-        $status$cmd_duration
-        $character
+        [╭─](bold green)[](fg:#33658A)$os[](fg:#06969A bg:#33658A)[](fg:#86BBD8 bg:#06969A)$username$hostname[](fg:#86BBD8 bg:#D8BB86)$directory[](fg:#D8BB86 bg:#FCA17D)$git_branch$git_status$git_state[](fg:#FCA17D bg:#FCF392)$nix_shell$env_var$golang$nodejs$bun$deno$ruby$rust$python$lua[](fg:#FCF392 bg:#7DF9AA)$package[](fg:#7DF9AA bg:#9A86D8)$aws$azure$gcloud$kubernetes[](fg:#9A86D8 bg:#06969A)$docker_context[](fg:#06969A bg:#33658A)($shell)[](fg:#33658A)
+        [│](bold green)
+        [╰─$character ](bold green)
       '';
 
+      # Right prompt: timing on the right (and status, if you want it there too).
+      right_format = "$status$cmd_duration$time";
+
+      line_break = { disabled = true; };
+
       character = {
-        success_symbol = "[❯](green)";
-        error_symbol = "[❯](red)";
+        success_symbol = "[](bold green)";
+        error_symbol = "[](bold red)";
+      };
+
+      os = {
+        disabled = false;
+        style = "fg:#ffffff bg:#33658A";
+        format = "[ $symbol ]($style)";
+      };
+
+      username = {
+        show_always = true;
+        style_user = "bg:#86BBD8 fg:#000000";
+        style_root = "bold bg:#86BBD8 fg:#000000";
+        format = "[  ($user) ]($style)";
       };
 
       hostname = {
         ssh_only = true;
-        format = "[󰣀 $hostname](bold red) ";
-      };
-
-      nix_shell = {
-        format = "[ nix:$state](bold yellow) [❯](bold yellow) ";
-      };
-
-      env_var = {
-        VIRTUAL_ENV = {
-          default = "";
-          format = "[󰌠 $env_value](cyan) ";
-        };
+        style = "bg:#86BBD8 fg:#000000";
+        format = "[ $hostname ]($style)";
       };
 
       directory = {
-        truncation_length = 4;
         truncate_to_repo = true;
-        format = "[$path]($style) ";
+        truncation_length = 4;          # keep your preference
+        truncation_symbol = "…/";
+        style = "bg:#D8BB86 fg:#000000";
+        format = "[ $path ]($style)";
       };
 
       git_branch = {
         symbol = " ";
-        format = "[$symbol$branch]($style) ";
+        style = "bg:#FCA17D";
+        truncation_length = 20;
+        format = "[[ $symbol$branch ](fg:#000000 bg:#FCA17D)]($style)";
       };
 
       git_status = {
-        format = "[$all_status$ahead_behind]($style) ";
+        style = "bg:#FCA17D";
+        format = "[[($all_status$ahead_behind )](fg:#000000 bg:#FCA17D)]($style)";
+
         conflicted = "!";
         stashed = "$";
         modified = "*";
@@ -65,18 +81,113 @@
       };
 
       git_state = {
-        format = "[$state( $progress_current/$progress_total)]($style) ";
+        format = "[($state( $progress_current/$progress_total ))](fg:#000000 bg:#FCA17D)";
       };
 
+      nix_shell = {
+        style = "fg:#000000 bg:#FCF392";
+        format = "[  nix:$state ]($style)";
+      };
+
+      env_var = {
+        VIRTUAL_ENV = {
+          default = "";
+          style = "fg:#000000 bg:#FCF392";
+          format = "[ 󰌠 $env_value ]($style)";
+        };
+      };
+
+      # Right side bits
       status = {
         disabled = false;
-        symbol = "✘ ";
-        format = "[$symbol$status]($style) ";
+        symbol = "✘";
+        success_symbol = "";
+        style = "bold red";
+        format = " [$symbol $status]($style)";
+        map_symbol = true;
       };
 
       cmd_duration = {
         min_time = 1500;
-        format = "[ $duration]($style) ";
+        style = "bold yellow";
+        format = " [ $duration]($style)";
+      };
+
+      time = {
+        disabled = false;
+        time_format = "%R";
+        style = "fg:#ffffff";
+        format = " [󰥔 $time]($style)";
+      };
+
+      shell = {
+        disabled = false;
+        style = "fg:#ffffff bg:#33658A";
+        format = "[$indicator]($style)";
+      };
+
+      # Language modules: keep the same bg as the “lang” segment
+      python = {
+        style = "fg:#000000 bg:#FCF392";
+        format = "[ $symbol$version ]($style)";
+      };
+      rust = {
+        style = "fg:#000000 bg:#FCF392";
+        format = "[ $symbol$version ]($style)";
+      };
+      golang = {
+        style = "fg:#000000 bg:#FCF392";
+        format = "[ $symbol$version ]($style)";
+      };
+      nodejs = {
+        style = "fg:#000000 bg:#FCF392";
+        format = "[ $symbol$version ]($style)";
+        detect_files = [ "package.json" ".node-version" "!bunfig.toml" "!bun.lockb" ];
+      };
+      bun = {
+        style = "fg:#000000 bg:#FCF392";
+        format = "[ $symbol$version ]($style)";
+      };
+      deno = {
+        style = "fg:#000000 bg:#FCF392";
+        format = "[ $symbol$version ]($style)";
+      };
+      ruby = {
+        style = "fg:#000000 bg:#FCF392";
+        format = "[ $symbol$version ]($style)";
+      };
+      lua = {
+        style = "fg:#000000 bg:#FCF392";
+        format = "[ $symbol$version ]($style)";
+      };
+
+      package = {
+        style = "fg:#000000 bg:#7DF9AA";
+        format = "[ $symbol$version ]($style)";
+      };
+
+      aws = {
+        style = "bg:#9A86D8";
+        format = "[[ $symbol$profile ](fg:#000000 bg:#9A86D8)]($style)";
+      };
+      azure = {
+        disabled = false;
+        style = "bg:#9A86D8";
+        format = "[[ $symbol$subscription ](fg:#000000 bg:#9A86D8)]($style)";
+      };
+      gcloud = {
+        style = "bg:#9A86D8";
+        format = "[[ $symbol$account ](fg:#000000 bg:#9A86D8)]($style)";
+      };
+      kubernetes = {
+        disabled = false;
+        style = "bg:#9A86D8";
+        format = "[[ $symbol$context ](fg:#000000 bg:#9A86D8)]($style)";
+      };
+
+      docker_context = {
+        style = "bg:#06969A";
+        format = "[[ $symbol$context ](fg:#000000 bg:#06969A)]($style)";
       };
     };
   };
