@@ -116,6 +116,8 @@
     fd
     bc
     zip
+    blesh
+    starship
     unzip
     usbutils
     pciutils

@@ -1,27 +1,22 @@
-# modules/starship-bernd.nix
+# modules/starship.nix  (NixOS-Modul)
 { config, lib, pkgs, ... }:
 
 {
   programs.starship = {
     enable = true;
-    enableBashIntegration = false;
 
     settings = {
-      # We fully control line breaks in `format`, so keep this off.
       add_newline = false;
 
       command_timeout = 1000;
       continuation_prompt = "[╰─ ](bold green)";
 
-      # Main (left) prompt: powerline segments + your nix/venv/git_state.
       format = ''
         [╭─](bold green)[](fg:#86BBD8)$username$hostname[](fg:#86BBD8 bg:#D8BB86)$directory[](fg:#D8BB86 bg:#FCA17D)$git_branch$git_status$git_state[](fg:#FCA17D bg:#FCF392)$nix_shell$env_var$golang$nodejs$bun$deno$ruby$rust$python$lua[](fg:#FCF392)
         [╰─$character ](bold green)
       '';
 
-      # Right prompt: timing on the right (and status, if you want it there too).
       right_format = "$status$cmd_duration$time";
-
       line_break = { disabled = true; };
 
       character = {
@@ -50,7 +45,7 @@
 
       directory = {
         truncate_to_repo = true;
-        truncation_length = 4;          # keep your preference
+        truncation_length = 4;
         truncation_symbol = "…/";
         style = "bg:#D8BB86 fg:#000000";
         format = "[ $path ]($style)";
@@ -95,7 +90,6 @@
         };
       };
 
-      # Right side bits
       status = {
         disabled = false;
         symbol = "✘";
@@ -118,40 +112,18 @@
         format = " [󰥔 $time]($style)";
       };
 
-      # Language modules: keep the same bg as the “lang” segment
-      python = {
-        style = "fg:#000000 bg:#FCF392";
-        format = "[ $symbol$version ]($style)";
-      };
-      rust = {
-        style = "fg:#000000 bg:#FCF392";
-        format = "[ $symbol$version ]($style)";
-      };
-      golang = {
-        style = "fg:#000000 bg:#FCF392";
-        format = "[ $symbol$version ]($style)";
-      };
+      python = { style = "fg:#000000 bg:#FCF392"; format = "[ $symbol$version ]($style)"; };
+      rust   = { style = "fg:#000000 bg:#FCF392"; format = "[ $symbol$version ]($style)"; };
+      golang = { style = "fg:#000000 bg:#FCF392"; format = "[ $symbol$version ]($style)"; };
       nodejs = {
         style = "fg:#000000 bg:#FCF392";
         format = "[ $symbol$version ]($style)";
         detect_files = [ "package.json" ".node-version" "!bunfig.toml" "!bun.lockb" ];
       };
-      bun = {
-        style = "fg:#000000 bg:#FCF392";
-        format = "[ $symbol$version ]($style)";
-      };
-      deno = {
-        style = "fg:#000000 bg:#FCF392";
-        format = "[ $symbol$version ]($style)";
-      };
-      ruby = {
-        style = "fg:#000000 bg:#FCF392";
-        format = "[ $symbol$version ]($style)";
-      };
-      lua = {
-        style = "fg:#000000 bg:#FCF392";
-        format = "[ $symbol$version ]($style)";
-      };
+      bun  = { style = "fg:#000000 bg:#FCF392"; format = "[ $symbol$version ]($style)"; };
+      deno = { style = "fg:#000000 bg:#FCF392"; format = "[ $symbol$version ]($style)"; };
+      ruby = { style = "fg:#000000 bg:#FCF392"; format = "[ $symbol$version ]($style)"; };
+      lua  = { style = "fg:#000000 bg:#FCF392"; format = "[ $symbol$version ]($style)"; };
 
       package = {
         style = "fg:#000000 bg:#7DF9AA";

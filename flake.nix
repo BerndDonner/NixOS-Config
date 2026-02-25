@@ -45,8 +45,11 @@
       inherit system;
       modules = [
         ./hosts/kitty/configuration.nix
-        home-manager.nixosModules.home-manager
+        ./modules/bash.nix
+        ./modules/starship.nix
         ./modules/nordvpn.nix
+        ./modules/virtualisation.nix
+        home-manager.nixosModules.home-manager
 
         {
           home-manager.useGlobalPkgs = true;

@@ -28,7 +28,6 @@
       opam
       gcc14
       tree
-      blesh
       gdu
       bottom
       nodejs_20
