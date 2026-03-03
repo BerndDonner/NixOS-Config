@@ -12,6 +12,7 @@
   # Bootloader (eigene EFI-Partition auf der NixOS-SSD)
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.supportedFilesystems.exfat = true;
 
   # Hibernate (swap partition)
   boot.resumeDevice = "/dev/disk/by-uuid/c4072834-5654-415d-a8af-95e8e160dc5b";
@@ -110,6 +111,7 @@
   environment.systemPackages = with pkgs; [
     cryptsetup
     e2fsprogs
+    exfatprogs
     wget
     w3m
     git
