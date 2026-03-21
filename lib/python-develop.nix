@@ -8,6 +8,7 @@
 , message ? "🐍 Python development environment ready"
 , inputs ? null             # optional flake inputs
 , checkInputs ? [ ]         # optional inputs to verify
+, extraShellHook ? ""
 }:
 
 let
@@ -45,6 +46,7 @@ pkgs.mkShell {
     export PATH=${pkgs.bashInteractive}/bin:$PATH
     ${promptHook}
     ${updateWarningHook}
+    ${extraShellHook}
     echo "${message}"
   '';
 }
