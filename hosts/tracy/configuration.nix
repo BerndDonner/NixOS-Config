@@ -142,11 +142,14 @@
     bc
     zip
     unzip
+    blesh
+    starship
+    unzip
     usbutils
     pciutils
     imagemagick
     ghostscript
-    glxinfo
+    mesa-demos
     cudatoolkit
     vaapiVdpau
     nvidia-vaapi-driver

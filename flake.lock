@@ -64,18 +64,6 @@
         "type": "github"
       }
     },
-    "lib": {
-      "flake": false,
-      "locked": {
-        "path": "./lib",
-        "type": "path"
-      },
-      "original": {
-        "path": "./lib",
-        "type": "path"
-      },
-      "parent": []
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1775036866,
@@ -130,7 +118,6 @@
         "context": "context",
         "helix": "helix",
         "home-manager": "home-manager",
-        "lib": "lib",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }
