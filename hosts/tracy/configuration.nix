@@ -151,7 +151,7 @@
     ghostscript
     mesa-demos
     cudatoolkit
-    vaapiVdpau
+    libva-vdpau-driver
     nvidia-vaapi-driver
     vulkan-tools
     wayland-utils
