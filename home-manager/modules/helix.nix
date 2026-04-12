@@ -70,7 +70,7 @@ in
         language-servers = [ "typescript-language-server" ];
         formatter.command = "prettier";
         formatter.args = [ "--parser" "typescript" ];
-        formatter.binary = "${lib.getExe pkgs.nodePackages.prettier}";
+        formatter.binary = lib.getExe pkgs.prettier;
       }
       {
         name = "nix";
@@ -85,7 +85,7 @@ in
       llvmPackages_18.clang-tools # C/C++
       rust-analyzer # Rust
       gopls # Golang
-      nodePackages.bash-language-server # Bash
+      bash-language-server # Bash
       dockerfile-language-server # Dockerfile
       vscode-langservers-extracted # HTML/CSS/JSON
       texlab # LaTEX
@@ -95,8 +95,8 @@ in
       marksman
 
       # TS/JS
-      nodePackages.typescript-language-server
-      nodePackages.prettier
+      typescript-language-server
+      prettier
 
       # Nix
       nixfmt
