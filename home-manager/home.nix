@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, osConfig, inputs, ... }:
 
 {
   imports = [
@@ -9,8 +9,8 @@
     ./modules/tmux.nix
     ./modules/vim.nix
     ./modules/helix.nix
+    (./hosts + "/${osConfig.networking.hostName}.nix")
   ];
 
-  home.stateVersion = "25.11";
   programs.home-manager.enable = true;
 }
