@@ -11,10 +11,6 @@
     # ✍️ Editor (pinned via flake.lock)
     helix.url = "github:helix-editor/helix";
 
-    # 🧱 Local flakes
-    lib.url = "path:./lib";
-    lib.flake = false;
-
     bootdev-cli.url = "path:./pkgs/bootdev-cli";
     bootdev-cli.flake = false;
 
@@ -22,7 +18,7 @@
     context.flake = false;
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, helix, lib, bootdev-cli, context, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, helix, bootdev-cli, context, ... }@inputs:
     let
       system = "x86_64-linux";
 
@@ -82,11 +78,6 @@
       };
 
       # ------------------------------------------------------------------------
-      # 2️⃣ Shared library (from local flake)
-      # ------------------------------------------------------------------------
-      lib = lib.lib;
-
-      # ------------------------------------------------------------------------
       # 3️⃣ Custom packages from derivations
       # ------------------------------------------------------------------------
       packages.${system} = {
@@ -99,8 +90,8 @@
       # 4️⃣ Reusable devShells
       # ------------------------------------------------------------------------
       devShells.${system} = {
-        python = self.lib.python-develop { inherit pkgs; };
-        pythonVenv = self.lib.python-venv-develop { inherit pkgs; };
+        python = (import ./lib/python-develop.nix) { inherit pkgs; };
+        pythonVenv = (import ./lib/python-venv-develop.nix) { inherit pkgs; };
       };
 
       # ------------------------------------------------------------------------

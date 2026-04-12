@@ -29,7 +29,7 @@ stdenv.mkDerivation rec {
 
   texmf = fetchzip {
     url    = "http://lmtx.pragma-ade.nl/install-lmtx/texmf.zip";
-    sha256 = "sha256-9yFZoyn4UmvjVWusmc7jdFRlu3COaRSWemeibD27eL8=";
+    sha256 = "sha256-S3kCPJqB+0+CD7S7ai6yalOQihzhHy6XS1krFdWhdVc=";
   };
 
   nativeBuildInputs = [ cmake gnumake ninja coreutils ];
