@@ -24,7 +24,10 @@
 
       # Overlay: make pkgs.unstable available
       overlayUnstable = final: prev: {
-        unstable = import nixpkgs-unstable { inherit system; };
+        unstable = import nixpkgs-unstable {
+          inherit (final.stdenv.hostPlatform) system;
+          config = final.config;
+        };
       };
 
       # Overlay: pygame mit AVX2
