@@ -1,33 +1,63 @@
-{
-  description = "JavaScript Development with Nix 24.11";
+{ pkgs
+, symbol ? "⚛"
+, message ? "Electron development environment ready"
+, nodejsPackage ? pkgs.nodejs_22
+, electronPackage ? pkgs.electron
+, codePackage ? pkgs.vscode-fhs
+, includeElectron ? true
+, includeCode ? true
+, extraPackages ? [ ]
+, extraNativeBuildInputs ? [ ]
+, extraBuildInputs ? [ ]
+, extraShellHook ? ""
+}:
 
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
-  };
+let
+  lib = pkgs.lib;
 
-  outputs = { self, nixpkgs }: {
-    devShells = {
-      x86_64-linux.default  = self.buildDevShell "x86_64-linux";
-      aarch64-linux.default = self.buildDevShell "aarch64-linux";
-      x86_64-darwin.default = self.buildDevShell "x86_64-darwin";
-    };
-  } // {
-    buildDevShell = system: let
-      pkgs = import nixpkgs { inherit system; };
-    in
-      pkgs.mkShell {
-        name = "impureJavascriptEnv";
+  nativeBuildInputs = with pkgs; [
+    nodejsPackage
+    python3
+    pkg-config
+    gcc
+    gnumake
+  ] ++ extraNativeBuildInputs;
 
-        packages = with pkgs; [
-          electron_33
-          nodejs_22
-          node2nix
-          stdenv.cc.cc.lib
-        ];
-        buildInputs = with pkgs; [];
+  buildInputs = [
+    (pkgs.systemd.dev or pkgs.systemd)
+    (pkgs.libusb1.dev or pkgs.libusb1)
+  ] ++ extraBuildInputs;
 
-        # Fixes libstdc++ and libgl.so issues
-        LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib/";
-      };
-  };
+  runtimePackages =
+    lib.optionals includeElectron [ electronPackage ]
+    ++ lib.optionals includeCode [ codePackage ]
+    ++ extraPackages;
+
+  promptHook =
+    if builtins.pathExists ../prompt-hook.nix
+    then import ../prompt-hook.nix { inherit symbol; }
+    else "";
+in
+pkgs.mkShell {
+  name = "electron-development";
+
+  packages = runtimePackages;
+  inherit nativeBuildInputs buildInputs;
+
+  LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
+  NPM_CONFIG_PREFIX = "$HOME/.cache/npm/global";
+
+  shellHook = ''
+    mkdir -p "$NPM_CONFIG_PREFIX/bin"
+    export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+
+    ${promptHook}
+
+    echo "${message}"
+    echo "Node: $(node --version)"
+    echo "npm:  $(npm --version)"
+    ${lib.optionalString includeCode ''echo "VS Code: $(command -v code)"''}
+
+    ${extraShellHook}
+  '';
 }
