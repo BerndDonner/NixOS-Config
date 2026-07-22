@@ -47,6 +47,10 @@ pkgs.mkShell {
   LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
   NPM_CONFIG_PREFIX = "$HOME/.cache/npm/global";
 
+  # Current node-addon-api headers use C++17 features such as
+  # std::string_view and if constexpr.
+  CXXFLAGS = "-std=c++17";
+
   shellHook = ''
     mkdir -p "$NPM_CONFIG_PREFIX/bin"
     export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
