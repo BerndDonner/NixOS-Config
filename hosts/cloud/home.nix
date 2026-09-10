@@ -2,7 +2,10 @@
 
 {
   imports = [
-    ../profiles/cli.nix
+    ../../home-manager/modules/git.nix
+    ../../home-manager/modules/tmux.nix
+    ../../home-manager/modules/vim.nix
+    ../../home-manager/modules/helix.nix
   ];
 
   home.stateVersion = "26.05";

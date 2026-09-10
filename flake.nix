@@ -129,7 +129,7 @@
               };
 
               home-manager.users.bernd =
-                import ./home-manager/home.nix;
+                import ./hosts/kitty/home.nix;
             }
           ];
         };
@@ -165,7 +165,7 @@
               };
 
               home-manager.users.bernd =
-                import ./home-manager/home.nix;
+                import ./hosts/tracy/home.nix;
             }
           ];
         };
@@ -202,7 +202,7 @@
               };
 
               home-manager.users.bleau =
-                import ./home-manager/hosts/cloud.nix;
+                import ./hosts/cloud/home.nix;
             }
           ];
         };
