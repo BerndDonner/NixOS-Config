@@ -1,4 +1,4 @@
-# modules/starship.nix  (NixOS-Modul)
+# modules/nixos/starship.nix  (NixOS-Modul)
 { config, lib, pkgs, ... }:
 
 {

@@ -2,7 +2,7 @@
 
 let
   cfg = config.services.nordvpn;
-  nordVpnPkg = pkgs.callPackage ../pkgs/nordvpn/nordvpn.nix { };
+  nordVpnPkg = pkgs.callPackage ../../pkgs/nordvpn/nordvpn.nix { };
 in
 with lib; {
   options.services.nordvpn = {

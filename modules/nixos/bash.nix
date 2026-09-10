@@ -1,4 +1,4 @@
-# modules/bash.nix  (NixOS-Modul)
+# modules/nixos/bash.nix  (NixOS-Modul)
 { config, lib, pkgs, ... }:
 
 {

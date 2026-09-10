@@ -44,7 +44,11 @@
       "nixpkgs";
 
     # Helix with Steel plugin system (PR #8675)
-    helix.url = "github:mattwparas/helix/steel-event-system";
+    helix = {
+      url = "github:mattwparas/helix/steel-event-system";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    
     steel.url = "github:mattwparas/steel";
     steel.inputs.nixpkgs.follows = "nixpkgs";
   };
@@ -108,10 +112,10 @@
           modules = [
             ./hosts/kitty/configuration.nix
 
-            ./modules/bash.nix
-            ./modules/starship.nix
-            ./modules/nordvpn.nix
-            ./modules/virtualisation.nix
+            ./modules/nixos/bash.nix
+            ./modules/nixos/starship.nix
+            ./modules/nixos/nordvpn.nix
+            ./modules/nixos/virtualisation.nix
 
             home-manager-2511.nixosModules.home-manager
 
@@ -145,9 +149,9 @@
           modules = [
             ./hosts/tracy/configuration.nix
 
-            ./modules/bash.nix
-            ./modules/starship.nix
-            ./modules/nordvpn.nix
+            ./modules/nixos/bash.nix
+            ./modules/nixos/starship.nix
+            ./modules/nixos/nordvpn.nix
 
             home-manager-2511.nixosModules.home-manager
 
@@ -184,8 +188,8 @@
             disko.nixosModules.disko
             ./hosts/cloud/disko.nix
 
-            ./modules/bash.nix
-            ./modules/starship.nix
+            ./modules/nixos/bash.nix
+            ./modules/nixos/starship.nix
 
             home-manager.nixosModules.home-manager
 

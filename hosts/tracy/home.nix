@@ -2,14 +2,14 @@
 
 {
   imports = [
-    ../../home-manager/modules/basics.nix
-    ../../home-manager/modules/packages.nix
-    ../../home-manager/modules/ssh.nix
-    ../../home-manager/modules/git.nix
-    ../../home-manager/modules/git-desktop.nix
-    ../../home-manager/modules/tmux.nix
-    ../../home-manager/modules/vim.nix
-    ../../home-manager/modules/helix.nix
+    ../../modules/home-manager/basics.nix
+    ../../modules/home-manager/packages.nix
+    ../../modules/home-manager/ssh.nix
+    ../../modules/home-manager/git.nix
+    ../../modules/home-manager/git-desktop.nix
+    ../../modules/home-manager/tmux.nix
+    ../../modules/home-manager/vim.nix
+    ../../modules/home-manager/helix.nix
   ];
 
   home.stateVersion = "23.11";

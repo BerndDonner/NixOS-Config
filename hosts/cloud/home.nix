@@ -2,10 +2,10 @@
 
 {
   imports = [
-    ../../home-manager/modules/git.nix
-    ../../home-manager/modules/tmux.nix
-    ../../home-manager/modules/vim.nix
-    ../../home-manager/modules/helix.nix
+    ../../modules/home-manager/git.nix
+    ../../modules/home-manager/tmux.nix
+    ../../modules/home-manager/vim.nix
+    ../../modules/home-manager/helix.nix
   ];
 
   home.stateVersion = "26.05";
