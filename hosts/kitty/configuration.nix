@@ -26,10 +26,10 @@
   # Force a reliable hibernation path: "platform" (firmware-assisted) resume can fail on some AMD/UEFI laptops
   # with errors like "inconsistent memory map / image mismatch". Using HibernateMode=shutdown makes hibernate
   # use the kernel-managed shutdown/resume flow, which is typically much more stable.
-  systemd.sleep.extraConfig = ''
-    HibernateMode=shutdown
-    HibernateDelaySec=2min
-  '';
+  systemd.sleep.settings.Sleep = {
+    HibernateMode = "shutdown";
+    HibernateDelaySec = "2min";
+  };
 
   # Force the kernel default hibernation mode early at boot so user space (KDE/logind) can't end up using "platform".
   systemd.tmpfiles.rules = [

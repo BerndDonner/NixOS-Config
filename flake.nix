@@ -107,7 +107,7 @@
         #
         # TEMPORARY: still on NixOS 25.11.
         # ---------------------------------------------------------------------
-        kitty = nixpkgs-2511.lib.nixosSystem {
+        kitty = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
 
           modules = [
@@ -118,7 +118,7 @@
             ./modules/nixos/nordvpn.nix
             ./modules/nixos/virtualisation.nix
 
-            home-manager-2511.nixosModules.home-manager
+            home-manager.nixosModules.home-manager
 
             {
               nixpkgs.overlays = [
