@@ -149,28 +149,28 @@
 
           modules = [
             ./hosts/tracy/configuration.nix
-            # ./modules/nixos/bash.nix
-            # ./modules/nixos/starship.nix
-            # ./modules/nixos/nordvpn.nix
+            ./modules/nixos/bash.nix
+            ./modules/nixos/starship.nix
+            ./modules/nixos/nordvpn.nix
 
-            # home-manager.nixosModules.home-manager
+            home-manager.nixosModules.home-manager
 
-            # {
-            #   nixpkgs.overlays = [
-            #     overlayUnstable
-            #     overlayPygameAvx2
-            #   ];
+            {
+              nixpkgs.overlays = [
+                overlayUnstable
+                overlayPygameAvx2
+              ];
 
-            #   home-manager.useGlobalPkgs = true;
-            #   home-manager.useUserPackages = true;
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
 
-            #   home-manager.extraSpecialArgs = {
-            #     inherit inputs;
-            #   };
+              home-manager.extraSpecialArgs = {
+                inherit inputs;
+              };
 
-            #   home-manager.users.bernd =
-            #     import ./hosts/tracy/home.nix;
-            # }
+              home-manager.users.bernd =
+                import ./hosts/tracy/home.nix;
+            }
           ];
         };
 

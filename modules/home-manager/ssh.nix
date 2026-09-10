@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ ... }:
 
 {
   programs.ssh = {
@@ -16,37 +16,33 @@
         LogLevel ERROR
     '';
 
-    matchBlocks = {
-      "ai.donner-lab.org" = {
-        host = "ai";
-        hostname = "ai.donner-lab.org";
-        user = "ubuntu";
-        identityFile = "~/.ssh/id_tabby_bootstrap";
-        identitiesOnly = true;
-        extraOptions = {
-          StrictHostKeyChecking = "accept-new";
-          UserKnownHostsFile = "~/.ssh/known_hosts_ephemeral";
-          LogLevel = "ERROR";
-        };
+    settings = {
+      "ai" = {
+        HostName = "ai.donner-lab.org";
+        User = "ubuntu";
+        IdentityFile = "~/.ssh/id_tabby_bootstrap";
+        IdentitiesOnly = true;
+        StrictHostKeyChecking = "accept-new";
+        UserKnownHostsFile = "~/.ssh/known_hosts_ephemeral";
+        LogLevel = "ERROR";
       };
 
-      "forgejo-meisterk" = {
-        host = "forgejo.meisterk.de";
-        user = "git";
-        identityFile = "~/.ssh/bernds-desktop";
-        identitiesOnly = true;
-        extraOptions = { StrictHostKeyChecking = "accept-new"; };
+      "forgejo.meisterk.de" = {
+        User = "git";
+        IdentityFile = "~/.ssh/bernds-desktop";
+        IdentitiesOnly = true;
+        StrictHostKeyChecking = "accept-new";
       };
 
       "lenzi" = {
-        user = "levi";
-        identityFile = "~/.ssh/bernd_tracy";
-        identitiesOnly = true;
+        User = "levi";
+        IdentityFile = "~/.ssh/bernd_tracy";
+        IdentitiesOnly = true;
       };
 
       "*" = {
-        identityFile = "~/.ssh/bernds-desktop";
-        identitiesOnly = true;
+        IdentityFile = "~/.ssh/bernds-desktop";
+        IdentitiesOnly = true;
       };
     };
   };

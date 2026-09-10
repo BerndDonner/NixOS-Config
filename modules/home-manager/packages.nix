@@ -30,7 +30,7 @@
       tree
       gdu
       bottom
-      nodejs_20
+      nodejs
       wl-clipboard
       rclone
       krita
