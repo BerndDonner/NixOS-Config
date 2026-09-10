@@ -21,6 +21,10 @@
       # vi keymap aktivieren
       bleopt default_keymap=vi
 
+      # Ctrl-C: aktuelle Commandline verwerfen und neuen Prompt anzeigen
+      ble-bind -m vi_imap -f 'C-c' discard-line
+      ble-bind -m vi_nmap -f 'C-c' discard-line
+
       # Highlighting / Completion (dark-friendly)
       bleopt highlight_syntax=1
       bleopt highlight_filename=1

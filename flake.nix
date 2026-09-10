@@ -45,6 +45,8 @@
 
     # Helix with Steel plugin system (PR #8675)
     helix.url = "github:mattwparas/helix/steel-event-system";
+    steel.url = "github:mattwparas/steel";
+    steel.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =

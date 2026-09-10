@@ -2,19 +2,17 @@
 let
   system = pkgs.stdenv.hostPlatform.system;
 
-  # Temporarily disabled because their upstream repositories are unavailable.
-  disabledGrammars = [
-  # "go-format-string"
-  # "lua-format-string"
-  ];
+    # Helix with Steel support.
+  helix = inputs.helix.packages.${system}.default;
 
-  # Helix Steel, pinned through flake.lock.
-  helix = inputs.helix.packages.${system}.default.override {
-    includeGrammarIf = grammar:
-      !(builtins.elem grammar.name disabledGrammars);
-  };
+  # Steel toolchain: steel, forge, steel-language-server, cargo-steel-lib.
+  steel = inputs.steel.packages.${system}.default;
 in
 {
+  home.packages = [
+    steel
+  ];
+
   programs.helix = {
     enable = true;
     # package = (builtins.getFlake "github:helix-editor/helix").packages.${pkgs.system}.default;
