@@ -1,4 +1,4 @@
-{ inputs, pkgs, lib, ... }:
+{ config, inputs, pkgs, lib, ... }:
 let
   system = pkgs.stdenv.hostPlatform.system;
 
@@ -7,6 +7,8 @@ let
 
   # Steel toolchain: steel, forge, steel-language-server, cargo-steel-lib.
   steel = inputs.steel.packages.${system}.default;
+
+  cursorHistoryDir = "${config.xdg.cacheHome}/helix";
 in
 {
   home.packages = [
@@ -117,4 +119,22 @@ in
     ];
 
   };
+
+  xdg.configFile."helix/cogs/cursor-history.scm".source =
+    ./helix/cursor-history.scm;
+
+  xdg.configFile."helix/helix.scm".text = ''
+    (require "helix/editor.scm")
+    (require "helix/misc.scm")
+    (require (prefix-in helix.static. "helix/static.scm"))
+  '';
+
+  xdg.configFile."helix/init.scm".text = ''
+    (require "cogs/cursor-history.scm")
+
+    (cursor-history-install!
+      "${cursorHistoryDir}"
+      "${cursorHistoryDir}/cursor-history.scm")
+  '';
+
 }
