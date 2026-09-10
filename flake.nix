@@ -21,20 +21,6 @@
       "github:nixos/nixpkgs/nixpkgs-unstable";
 
     # -------------------------------------------------------------------------
-    # TEMPORARY: NixOS 25.11
-    #
-    # Remove these two inputs after kitty and tracy have been migrated to 26.05.
-    # -------------------------------------------------------------------------
-    nixpkgs-2511.url =
-      "github:nixos/nixpkgs/nixos-25.11";
-
-    home-manager-2511.url =
-      "github:nix-community/home-manager/release-25.11";
-
-    home-manager-2511.inputs.nixpkgs.follows =
-      "nixpkgs-2511";
-
-    # -------------------------------------------------------------------------
     # External modules / applications
     # -------------------------------------------------------------------------
     disko.url =
@@ -56,10 +42,8 @@
   outputs =
     inputs@{
       nixpkgs,
-      nixpkgs-2511,
       nixpkgs-unstable,
       home-manager,
-      home-manager-2511,
       disko,
       ...
     }:
@@ -84,9 +68,6 @@
         import ./overlays/pygame-avx2.nix;
 
       # Package set used by this flake's own packages and devShells.
-      #
-      # This deliberately uses the current NixOS release, not the temporary
-      # 25.11 compatibility input.
       pkgs = import nixpkgs {
         inherit system;
 
@@ -104,8 +85,6 @@
       nixosConfigurations = {
         # ---------------------------------------------------------------------
         # kitty
-        #
-        # TEMPORARY: still on NixOS 25.11.
         # ---------------------------------------------------------------------
         kitty = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
@@ -141,8 +120,6 @@
 
         # ---------------------------------------------------------------------
         # tracy
-        #
-        # TEMPORARY: still on NixOS 25.11.
         # ---------------------------------------------------------------------
         tracy = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
