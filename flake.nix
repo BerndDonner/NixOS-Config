@@ -43,9 +43,8 @@
     disko.inputs.nixpkgs.follows =
       "nixpkgs";
 
-    # Helix pinned via flake.lock.
-    helix.url =
-      "github:helix-editor/helix";
+    # Helix with Steel plugin system (PR #8675)
+    helix.url = "github:mattwparas/helix/steel-event-system";
   };
 
   outputs =

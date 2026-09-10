@@ -2,8 +2,17 @@
 let
   system = pkgs.stdenv.hostPlatform.system;
 
-  # Helix pinned via flake.lock (inputs.helix), updates only when you update the lock file.
-  helix = inputs.helix.packages.${system}.default;
+  # Temporarily disabled because their upstream repositories are unavailable.
+  disabledGrammars = [
+  # "go-format-string"
+  # "lua-format-string"
+  ];
+
+  # Helix Steel, pinned through flake.lock.
+  helix = inputs.helix.packages.${system}.default.override {
+    includeGrammarIf = grammar:
+      !(builtins.elem grammar.name disabledGrammars);
+  };
 in
 {
   programs.helix = {

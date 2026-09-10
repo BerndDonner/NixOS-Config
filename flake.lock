@@ -26,15 +26,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1775828607,
-        "narHash": "sha256-Qa0if6Rp9/ELdRVlT93fGwjKF4oEeKaY+ML+GY/fYSM=",
-        "owner": "helix-editor",
+        "lastModified": 1788213353,
+        "narHash": "sha256-vJ7VgxuM/Dp7vyVlu6EXjP/ES14TALy64jgzyuYZl6g=",
+        "owner": "mattwparas",
         "repo": "helix",
-        "rev": "eb49c5e4e07b4d7c63b88371d3a6e542a140c6b3",
+        "rev": "ba5b022c1000a0ce28d4ce1d09acdd062a83a020",
         "type": "github"
       },
       "original": {
-        "owner": "helix-editor",
+        "owner": "mattwparas",
+        "ref": "steel-event-system",
         "repo": "helix",
         "type": "github"
       }
