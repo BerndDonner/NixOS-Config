@@ -1,33 +1,9 @@
 {
   "nodes": {
-    "bootdev-cli": {
-      "flake": false,
-      "locked": {
-        "path": "./pkgs/bootdev-cli",
-        "type": "path"
-      },
-      "original": {
-        "path": "./pkgs/bootdev-cli",
-        "type": "path"
-      },
-      "parent": []
-    },
-    "context": {
-      "flake": false,
-      "locked": {
-        "path": "./pkgs/context",
-        "type": "path"
-      },
-      "original": {
-        "path": "./pkgs/context",
-        "type": "path"
-      },
-      "parent": []
-    },
     "disko": {
       "inputs": {
         "nixpkgs": [
-          "nixpkgs-2605"
+          "nixpkgs"
         ]
       },
       "locked": {
@@ -70,27 +46,6 @@
         ]
       },
       "locked": {
-        "lastModified": 1775425411,
-        "narHash": "sha256-KY6HsebJHEe5nHOWP7ur09mb0drGxYSzE3rQxy62rJo=",
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "rev": "0d02ec1d0a05f88ef9e74b516842900c41f0f2fe",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "ref": "release-25.11",
-        "repo": "home-manager",
-        "type": "github"
-      }
-    },
-    "home-manager-2605": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs-2605"
-        ]
-      },
-      "locked": {
         "lastModified": 1788642154,
         "narHash": "sha256-sPpQFVaFTDqO/4vvCAhuAhqTgqN/ygu+9eJcs5eB0js=",
         "owner": "nix-community",
@@ -101,6 +56,27 @@
       "original": {
         "owner": "nix-community",
         "ref": "release-26.05",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "home-manager-2511": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs-2511"
+        ]
+      },
+      "locked": {
+        "lastModified": 1779506708,
+        "narHash": "sha256-QOD/CNm196nCJRheux/URi4/HE66fthdOMqCJoPP1Y0=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "3ee51fbdac8c8bdfe1e7e1fcaba6520a563f394f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "ref": "release-25.11",
         "repo": "home-manager",
         "type": "github"
       }
@@ -121,18 +97,18 @@
         "type": "github"
       }
     },
-    "nixpkgs-2605": {
+    "nixpkgs-2511": {
       "locked": {
-        "lastModified": 1788921488,
-        "narHash": "sha256-8+xWRxEkD6l217cIUdRxfeUGS9lQX0hVtUuNVsBaDzk=",
+        "lastModified": 1782847189,
+        "narHash": "sha256-twXPFqFsrrY5r28Zh7Homgcp2gUMBgQ6WDS98Q/3xFI=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "6aefcda9401be8acc2b74244fb3b37520ea1f0a8",
+        "rev": "b6018f87da91d19d0ab4cf979885689b469cdd41",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
-        "ref": "nixos-26.05",
+        "ref": "nixos-25.11",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -155,30 +131,28 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1775811116,
-        "narHash": "sha256-t+HZK42pB6N+i5RGbuy7Xluez/VvWbembBdvzsc23Ss=",
+        "lastModified": 1788921488,
+        "narHash": "sha256-8+xWRxEkD6l217cIUdRxfeUGS9lQX0hVtUuNVsBaDzk=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "54170c54449ea4d6725efd30d719c5e505f1c10e",
+        "rev": "6aefcda9401be8acc2b74244fb3b37520ea1f0a8",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
-        "ref": "nixos-25.11",
+        "ref": "nixos-26.05",
         "repo": "nixpkgs",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "bootdev-cli": "bootdev-cli",
-        "context": "context",
         "disko": "disko",
         "helix": "helix",
         "home-manager": "home-manager",
-        "home-manager-2605": "home-manager-2605",
+        "home-manager-2511": "home-manager-2511",
         "nixpkgs": "nixpkgs_2",
-        "nixpkgs-2605": "nixpkgs-2605",
+        "nixpkgs-2511": "nixpkgs-2511",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }
     },
