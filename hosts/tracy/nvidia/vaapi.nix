@@ -38,12 +38,12 @@ in
 
     # TODO(bernd): Find a way to properly integrate this so we can
     # upstream it.
-    home-manager.users.bernd.programs.firefox.profiles.bernd.settings = lib.mkIf cfg.firefox.enable {
-      "media.ffmpeg.vaapi.enabled" = true;
-      "media.rdd-ffmpeg.enabled" = true;
-      "media.av1.enabled" = cfg.firefox.av1Support;
-      "gfx.x11-egl.force-enabled" = true;
-      "widget.dmabuf.force-enabled" = true;
-    };
+    # home-manager.users.bernd.programs.firefox.profiles.bernd.settings = lib.mkIf cfg.firefox.enable {
+    #   "media.ffmpeg.vaapi.enabled" = true;
+    #   "media.rdd-ffmpeg.enabled" = true;
+    #   "media.av1.enabled" = cfg.firefox.av1Support;
+    #   "gfx.x11-egl.force-enabled" = true;
+    #   "widget.dmabuf.force-enabled" = true;
+    # };
   };
 }

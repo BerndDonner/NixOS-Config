@@ -187,10 +187,10 @@
   services.openssh.enable = true;
   services.openssh.settings.PermitRootLogin = "no";
 
-  services.nordvpn = {
-    enable = true;
-    allowedUsers = [ "bernd" ];
-  };
+  # services.nordvpn = {
+  #   enable = true;
+  #   allowedUsers = [ "bernd" ];
+  # };
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
@@ -199,10 +199,7 @@
   # networking.firewall.enable = false;
 
   # Enable OpenGL
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-  };
+  hardware.graphics.enable = true;
 
   # Load nvidia driver for Xorg and Wayland
   services.xserver.videoDrivers = ["nvidia"];
@@ -271,14 +268,7 @@
 
     # Optionally, you may need to select the appropriate driver version for your specific GPU.
 
-    package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
-      version = "580.76.05";
-      sha256_64bit = "sha256-IZvmNrYJMbAhsujB4O/4hzY8cx+KlAyqh7zAVNBdl/0=";
-      sha256_aarch64 = lib.fakeHash;
-      openSha256 = "sha256-xEPJ9nskN1kISnSbfBigVaO6Mw03wyHebqQOQmUg/eQ=";
-      settingsSha256 = lib.fakeHash;
-      persistencedSha256 = lib.fakeHash;
-    };
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
 
     vaapi = {
       enable = true;
@@ -286,17 +276,6 @@
     };
   };
 
-  # programs.nix-ld.enable = true;
-  #
-  # programs.nix-ld.libraries = with pkgs; [
-  #   # Add any missing dynamic libraries for unpackaged programs
-  #   # here, NOT in environment.systemPackages
-  #   # ./electron/dist/libvulkan.so.1
-  #   # ./electron/dist/libffmpeg.so
-  #   # ./electron/dist/libvk_swiftshader.so
-  #   # ./electron/dist/libGLESv2.so
-  #   # ./electron/dist/libEGL.so
-  # ];
 
   # Copy the NixOS configuration file and link it from the resulting system
   # (/run/current-system/configuration.nix). This is useful in case you

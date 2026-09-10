@@ -17,7 +17,7 @@
   home.packages = with pkgs; [
     cudatoolkit
 
-    (blender.override {
+    (unstable.blender.override {
       cudaSupport = true;
     })
   ];

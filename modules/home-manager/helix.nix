@@ -130,11 +130,15 @@ in
   '';
 
   xdg.configFile."helix/init.scm".text = ''
+    (require (prefix-in helix. "helix/commands.scm"))
+    (require (only-in "helix/ext" evalp eval-buffer))
+
+    (helix.echo "STEEL INIT LOADED")
+
     (require "cogs/cursor-history.scm")
 
     (cursor-history-install!
       "${cursorHistoryDir}"
       "${cursorHistoryDir}/cursor-history.scm")
   '';
-
 }
