@@ -6,6 +6,7 @@
     ./modules/packages.nix
     ./modules/ssh.nix
     ./modules/git.nix
+    ./modules/git-desktop.nix
     ./modules/tmux.nix
     ./modules/vim.nix
     ./modules/helix.nix

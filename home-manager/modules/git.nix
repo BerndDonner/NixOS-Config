@@ -9,7 +9,6 @@
       user.name  = "Bernd Donner";
       user.email = "bernd.donner@sabel.com";
 
-      credential.helper = "kwallet";
       init.defaultBranch = "master";
 
       pull.rebase = true;

@@ -4,9 +4,13 @@
   inputs = {
     # 🧩 Core inputs
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs-2605.url = "github:nixos/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    
     home-manager.url = "github:nix-community/home-manager/release-25.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    home-manager-2605.url = "github:nix-community/home-manager/release-26.05";
+    home-manager-2605.inputs.nixpkgs.follows = "nixpkgs-2605";
 
     # ✍️ Editor (pinned via flake.lock)
     helix.url = "github:helix-editor/helix";
@@ -16,9 +20,12 @@
 
     context.url = "path:./pkgs/context";
     context.flake = false;
+
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "nixpkgs-2605";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, helix, bootdev-cli, context, ... }@inputs:
+  outputs = {self, nixpkgs, nixpkgs-unstable, nixpkgs-2605, home-manager, home-manager-2605, helix, bootdev-cli, context, disko, ... }@inputs:
     let
       system = "x86_64-linux";
 
@@ -77,6 +84,33 @@
               ./hosts/tracy/configuration.nix
             ]
             ++ commonSystemModules;
+        };
+
+        cloud = nixpkgs-2605.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules =
+            [
+              disko.nixosModules.disko
+              ./hosts/cloud/disko.nix
+              ./hosts/cloud/configuration.nix
+
+              ./modules/bash.nix
+              ./modules/starship.nix
+
+              home-manager-2605.nixosModules.home-manager
+
+              {
+                # Helix etc. verwenden pkgs.unstable
+                nixpkgs.overlays = [ overlayUnstable ];
+
+                home-manager.useGlobalPkgs = true;
+                home-manager.useUserPackages = true;
+                home-manager.extraSpecialArgs = { inherit inputs; };
+
+                home-manager.users.bleau =
+                  import ./home-manager/hosts/cloud.nix;
+              }
+            ];
         };
       };
 
