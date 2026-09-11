@@ -2,8 +2,15 @@
 let
   system = pkgs.stdenv.hostPlatform.system;
 
-    # Helix with Steel support.
-  helix = inputs.helix.packages.${system}.default;
+  # Helix with Steel support.
+  helix = inputs.helix.packages.${system}.default.overrideAttrs (old: {
+    cargoBuildFeatures =
+      lib.unique ((old.cargoBuildFeatures or [ ]) ++ [ "steel" "git" ]);
+
+    preBuild = (old.preBuild or "") + ''
+      cargo xtask code-gen
+    '';
+  });
 
   # Steel toolchain: steel, forge, steel-language-server, cargo-steel-lib.
   steel = inputs.steel.packages.${system}.default;
@@ -131,7 +138,7 @@ in
 
   xdg.configFile."helix/init.scm".text = ''
     (require (prefix-in helix. "helix/commands.scm"))
-    (require (only-in "helix/ext" evalp eval-buffer))
+    (require (only-in "helix/ext.scm" evalp eval-buffer))
 
     (helix.echo "STEEL INIT LOADED")
 

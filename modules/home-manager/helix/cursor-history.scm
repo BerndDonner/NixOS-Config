@@ -74,9 +74,7 @@
            (call-with-input-file
              *cursor-history-state-file*
              (lambda (input)
-               (~> input
-                   read-port-to-string
-                   read!)))])
+               (read input)))])
       (when (list? state)
         (set! *cursor-history* state)))))
 
@@ -92,7 +90,8 @@
         #:exists 'truncate)
 
       (lambda (output)
-        (write-line! output (to-string *cursor-history*))))
+        (write *cursor-history* output)
+        (newline output)))
 
     (set! *cursor-history-dirty* #f)))
 
@@ -135,6 +134,8 @@
               (helix.static.range->selection
                 (helix.static.range position position)))
 
+            (helix.static.align_view_center)
+
             (set! *cursor-history-restoring* #f)))))))
 
 
@@ -170,13 +171,7 @@
 
   ;; Normal-mode movement and other commands.
   (register-hook
-    'post-command
-    (lambda (_)
-      (sync-current-position!)))
-
-  ;; Cursor also moves while typing.
-  (register-hook
-    'post-insert-char
+    'selection-did-change
     (lambda (_)
       (sync-current-position!)))
 
