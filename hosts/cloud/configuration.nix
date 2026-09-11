@@ -38,9 +38,28 @@
   ];
 
   environment.systemPackages = with pkgs; [
+    # Basis
     git
-    helix
-    tmux
+    curl
+    wget
+    rsync
+
+    # Archive / Kompression
+    zip
+    unzip
+    zstd
+
+    # CLI-Werkzeuge
+    fd
+    jq
+    file
+    bc
+
+    # Server-Diagnose
+    lsof
+    strace
+    tcpdump
+    dnsutils
   ];
 
   system.stateVersion = "26.05";
