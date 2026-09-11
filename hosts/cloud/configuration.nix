@@ -1,6 +1,10 @@
 { pkgs, ... }:
 
 {
+  imports = [
+    ./hardware-configuration.nix
+  ];
+
   networking.hostName = "cloud";
   networking.useDHCP = true;
 

@@ -1,5 +1,6 @@
 { config, inputs, pkgs, lib, ... }:
 let
+  cfg = config.donner.helix;
   system = pkgs.stdenv.hostPlatform.system;
 
   # Helix with Steel support.
@@ -44,7 +45,7 @@ let
       cp ${./helix/cursor-history-lock/src/lib.rs} \
         cursor-history-lock/src/lib.rs
 
-      cat > cursor-history-lock/Cargo.toml <<'EOF'
+      cat > cursor-history-lock/Cargo.toml <<'CARGO_EOF'
       [package]
       name = "cursor-history-lock"
       version = "0.1.0"
@@ -58,7 +59,7 @@ let
       [dependencies]
       steel-core = { workspace = true }
       abi_stable = "=${abiStableVersion}"
-      EOF
+      CARGO_EOF
 
       # Make the helper a real Helix workspace member. Its steel-core
       # dependency therefore inherits Helix's workspace dependency verbatim.
@@ -81,10 +82,52 @@ let
     '';
   });
 
-  # Steel toolchain for Forge and the Steel language server. This is not used
-  # to build the native helper; the helper intentionally follows Helix's own
-  # steel-core Cargo dependency instead.
-  steel = inputs.steel.packages.${system}.default;
+  # External Steel runtime used for the Steel language server and, on the
+  # desktop hosts, Forge. This is NOT a build dependency of Helix or the native
+  # helper: Helix embeds its own steel-core, and the helper inherits that exact
+  # Cargo workspace dependency during the Helix build above.
+  #
+  # cloud only needs the Steel language server. tracy/kitty keep Forge too.
+  steelRuntime = inputs.steel.packages.${system}.default.override {
+    includeLSP = true;
+    includeForge = cfg.steelForge;
+  };
+
+  # Explicit Helix runtime tooling for workstation hosts. These packages are
+  # not needed merely to BUILD Helix/Steel. In particular clang-tools brings
+  # LLVM 18 and nixd currently brings LLVM 21 into the runtime closure.
+  developmentPackages = with pkgs.unstable; [
+    llvmPackages_18.clang-tools # C/C++
+    rust-analyzer               # Rust
+    gopls                       # Golang
+    bash-language-server       # Bash
+    dockerfile-language-server # Dockerfile
+    vscode-langservers-extracted # HTML/CSS/JSON
+    texlab                     # LaTeX
+
+    # Markdown
+    markdown-oxide
+    marksman
+
+    # TS/JS
+    typescript-language-server
+    prettier
+
+    # Nix
+    nixfmt
+    nixd
+
+    cmake-language-server
+    taplo
+    python312Packages.python-lsp-server
+    lua-language-server
+  ];
+
+  # Use the same package instances in generated languages.toml and in
+  # extraPackages. This avoids accidentally pulling stable + unstable copies.
+  nixdPackage = pkgs.unstable.nixd;
+  nixfmtPackage = pkgs.unstable.nixfmt;
+  prettierPackage = pkgs.unstable.prettier;
 
   cursorHistoryDir = "${config.xdg.stateHome}/helix";
 
@@ -96,135 +139,136 @@ let
   '';
 in
 {
-  home.packages = [
-    steel
-  ];
-
-  programs.helix = {
-    enable = true;
-    package = helix;
-
-    settings = {
-      theme = "gruvbox_dark_hard";
-
-      editor.auto-format = true;
-      editor.auto-save = true;
-      editor.bufferline = "multiple";
-      editor.color-modes = true;
-      editor.cursorline = true;
-      editor.line-number = "relative";
-      editor.mouse = true;
-      editor.rulers = [ 80 ];
-      editor.scrolloff = 10;
-      editor.whitespace.render = "all";
-      editor.rainbow-brackets = true;
-
-      editor.indent-guides = {
-        render = true;
-        character = "|";
-      };
-
-      editor.cursor-shape = {
-        normal = "block";
-        insert = "block";
-        select = "block";
-      };
-
-      editor.lsp = {
-        enable = true;
-        display-messages = true;
-        display-inlay-hints = true;
-      };
-
-      editor.statusline = {
-        left = [ "mode" "spinner" "version-control" ];
-        center = [ "file-name" "file-modification-indicator" ];
-        right = [
-          "diagnostics"
-          "selections"
-          "position"
-          "file-encoding"
-          "file-line-ending"
-          "file-type"
-        ];
-        separator = "│";
-        mode.normal = "NORMAL";
-        mode.insert = "INSERT";
-        mode.select = "SELECT";
-      };
+  options.donner.helix = {
+    developmentTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Install the workstation Helix runtime toolchain (LSP servers,
+        formatters and related tools). Keep this disabled on small servers.
+      '';
     };
 
-    languages.language-server.nixd = {
-      command = lib.getExe pkgs.nixd;
+    steelForge = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Build/install Forge as part of the external Steel runtime. The embedded
+        Steel engine inside Helix does not depend on this.
+      '';
     };
-
-    languages.language-server.steel = {
-      command = "steel-language-server";
-    };
-
-    languages.language = [
-      {
-        name = "typescript";
-        language-servers = [ "typescript-language-server" ];
-        formatter.command = "prettier";
-        formatter.args = [ "--parser" "typescript" ];
-        formatter.binary = lib.getExe pkgs.prettier;
-      }
-
-      {
-        name = "nix";
-        language-servers = [ "nixd" ];
-        formatter.binary = lib.getExe pkgs.nixfmt;
-        formatter.command = "nixfmt";
-      }
-
-      {
-        name = "scheme";
-        language-servers = [ "steel" ];
-      }
-    ];
-
-    # LSPs and formatters installed globally for convenience.
-    extraPackages = with pkgs.unstable; [
-      llvmPackages_18.clang-tools # C/C++
-      rust-analyzer              # Rust
-      gopls                      # Golang
-      bash-language-server       # Bash
-      dockerfile-language-server # Dockerfile
-      vscode-langservers-extracted # HTML/CSS/JSON
-      texlab                     # LaTeX
-
-      # Markdown
-      markdown-oxide
-      marksman
-
-      # TS/JS
-      typescript-language-server
-      prettier
-
-      # Nix
-      nixfmt
-      nixd
-
-      cmake-language-server
-      taplo
-      python312Packages.python-lsp-server
-      lua-language-server
-    ];
   };
 
-  # Steel cog, generated machine-specific config, and native lock helper.
-  xdg.configFile."helix/cogs/cursor-history.scm".source =
-    ./helix/cursor-history.scm;
+  config = {
+    home.packages = [
+      steelRuntime
+    ];
 
-  xdg.configFile."helix/cogs/cursor-history-config.scm".text =
-    cursorHistoryConfigScheme;
+    programs.helix = {
+      enable = true;
+      package = helix;
 
-  xdg.dataFile."steel/native/libcursor_history_lock.so".source =
-    "${helix}/lib/steel/native/libcursor_history_lock.so";
+      settings = {
+        theme = "gruvbox_dark_hard";
 
-  xdg.configFile."helix/init.scm".text = ''
-    (require (only-in "helix/ext.scm" evalp eval-buffer))
-    (require "cogs/cursor-history.scm")
-  '';
+        editor.auto-format = true;
+        editor.auto-save = true;
+        editor.bufferline = "multiple";
+        editor.color-modes = true;
+        editor.cursorline = true;
+        editor.line-number = "relative";
+        editor.mouse = true;
+        editor.rulers = [ 80 ];
+        editor.scrolloff = 10;
+        editor.whitespace.render = "all";
+        editor.rainbow-brackets = true;
+
+        editor.indent-guides = {
+          render = true;
+          character = "|";
+        };
+
+        editor.cursor-shape = {
+          normal = "block";
+          insert = "block";
+          select = "block";
+        };
+
+        editor.lsp = {
+          enable = true;
+          display-messages = true;
+          display-inlay-hints = true;
+        };
+
+        editor.statusline = {
+          left = [ "mode" "spinner" "version-control" ];
+          center = [ "file-name" "file-modification-indicator" ];
+          right = [
+            "diagnostics"
+            "selections"
+            "position"
+            "file-encoding"
+            "file-line-ending"
+            "file-type"
+          ];
+          separator = "│";
+          mode.normal = "NORMAL";
+          mode.insert = "INSERT";
+          mode.select = "SELECT";
+        };
+      };
+
+      languages.language-server = {
+        steel = {
+          command = "steel-language-server";
+        };
+      } // lib.optionalAttrs cfg.developmentTools {
+        nixd = {
+          command = lib.getExe nixdPackage;
+        };
+      };
+
+      languages.language = [
+        {
+          name = "scheme";
+          language-servers = [ "steel" ];
+        }
+      ] ++ lib.optionals cfg.developmentTools [
+        {
+          name = "typescript";
+          language-servers = [ "typescript-language-server" ];
+          formatter.command = "prettier";
+          formatter.binary = lib.getExe prettierPackage;
+          formatter.args = [ "--parser" "typescript" ];
+        }
+
+        {
+          name = "nix";
+          language-servers = [ "nixd" ];
+          formatter.command = "nixfmt";
+          formatter.binary = lib.getExe nixfmtPackage;
+        }
+      ];
+
+      # Runtime tools visible to Helix. Nix already keeps build-only
+      # dependencies out of the target closure unless an installed binary
+      # actually references them at runtime.
+      extraPackages = lib.optionals cfg.developmentTools developmentPackages;
+    };
+
+    # Steel cog, generated machine-specific config, and native lock helper.
+    xdg.configFile."helix/cogs/cursor-history.scm".source =
+      ./helix/cursor-history.scm;
+
+    xdg.configFile."helix/cogs/cursor-history-config.scm".text =
+      cursorHistoryConfigScheme;
+
+    xdg.dataFile."steel/native/libcursor_history_lock.so".source =
+      "${helix}/lib/steel/native/libcursor_history_lock.so";
+
+    xdg.configFile."helix/init.scm".text = ''
+      (require (only-in "helix/ext.scm" evalp eval-buffer))
+      (require "cogs/cursor-history.scm")
+    '';
+  };
 }

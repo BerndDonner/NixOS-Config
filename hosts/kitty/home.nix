@@ -12,6 +12,11 @@
     ../../modules/home-manager/helix.nix
   ];
 
+  donner.helix = {
+    developmentTools = true;
+    steelForge = true;
+  };
+
   home.stateVersion = "25.11";
 
   home.packages = with pkgs; [
