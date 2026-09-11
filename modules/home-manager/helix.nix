@@ -87,6 +87,14 @@ let
   steel = inputs.steel.packages.${system}.default;
 
   cursorHistoryDir = "${config.xdg.stateHome}/helix";
+
+  # Inject the Home Manager state path into the cog itself.  The cog can then
+  # initialize on require without exporting its private install function.
+  cursorHistoryScheme =
+    builtins.replaceStrings
+      [ "@CURSOR_HISTORY_STATE_DIR@" ]
+      [ (builtins.toJSON cursorHistoryDir) ]
+      (builtins.readFile ./helix/cursor-history.scm);
 in
 {
   home.packages = [
@@ -207,8 +215,8 @@ in
   };
 
   # Steel cog and its native lock helper.
-  xdg.configFile."helix/cogs/cursor-history.scm".source =
-    ./helix/cursor-history.scm;
+  xdg.configFile."helix/cogs/cursor-history.scm".text =
+    cursorHistoryScheme;
 
   xdg.dataFile."steel/native/libcursor_history_lock.so".source =
     "${helix}/lib/steel/native/libcursor_history_lock.so";
@@ -216,9 +224,5 @@ in
   xdg.configFile."helix/init.scm".text = ''
     (require (only-in "helix/ext.scm" evalp eval-buffer))
     (require "cogs/cursor-history.scm")
-
-    (cursor-history-install!
-      "${cursorHistoryDir}"
-      "${cursorHistoryDir}/cursor-history.scm")
   '';
 }

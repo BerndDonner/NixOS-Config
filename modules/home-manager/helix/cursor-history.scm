@@ -8,7 +8,12 @@
     cursor-history-lock-try-acquire
     cursor-history-lock-release))
 
-(provide cursor-history-install! cursor-history-prune)
+(provide cursor-history-prune)
+
+;; Home Manager replaces this placeholder with config.xdg.stateHome/helix.
+;; Keeping the path injection here lets this module initialize itself while
+;; exposing only actual user-facing commands to Helix.
+(define *cursor-history-configured-state-dir* @CURSOR_HISTORY_STATE_DIR@)
 
 ;; ---------------------------------------------------------------------------
 ;; Runtime state
@@ -358,3 +363,11 @@
     (lambda (_)
       (sync-current-position!)
       (flush-state!))))
+
+;; Initialize automatically when the cog is required.  cursor-history-install!
+;; intentionally remains private so it does not appear as a typable command.
+(cursor-history-install!
+  *cursor-history-configured-state-dir*
+  (string-append
+    *cursor-history-configured-state-dir*
+    "/cursor-history.scm"))
