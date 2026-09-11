@@ -10,7 +10,7 @@ let
   # same Rust toolchain in the same build. No separate Cargo.toml/Cargo.lock is
   # maintained for the helper.
   helixCargoLock =
-    builtins.fromTOML (builtins.readFile "${inputs.helix}/Cargo.lock");
+    fromTOML (builtins.readFile "${inputs.helix}/Cargo.lock");
 
   abiStablePackage =
     lib.findFirst
@@ -88,13 +88,12 @@ let
 
   cursorHistoryDir = "${config.xdg.stateHome}/helix";
 
-  # Inject the Home Manager state path into the cog itself.  The cog can then
-  # initialize on require without exporting its private install function.
-  cursorHistoryScheme =
-    builtins.replaceStrings
-      [ "@CURSOR_HISTORY_STATE_DIR@" ]
-      [ (builtins.toJSON cursorHistoryDir) ]
-      (builtins.readFile ./helix/cursor-history.scm);
+  # Keep machine-specific state paths out of the plugin source. Home Manager
+  # generates this tiny module; cursor-history.scm itself stays plain Steel.
+  cursorHistoryConfigScheme = ''
+    (provide cursor-history-state-dir)
+    (define cursor-history-state-dir ${builtins.toJSON cursorHistoryDir})
+  '';
 in
 {
   home.packages = [
@@ -214,9 +213,12 @@ in
     ];
   };
 
-  # Steel cog and its native lock helper.
-  xdg.configFile."helix/cogs/cursor-history.scm".text =
-    cursorHistoryScheme;
+  # Steel cog, generated machine-specific config, and native lock helper.
+  xdg.configFile."helix/cogs/cursor-history.scm".source =
+    ./helix/cursor-history.scm;
+
+  xdg.configFile."helix/cogs/cursor-history-config.scm".text =
+    cursorHistoryConfigScheme;
 
   xdg.dataFile."steel/native/libcursor_history_lock.so".source =
     "${helix}/lib/steel/native/libcursor_history_lock.so";

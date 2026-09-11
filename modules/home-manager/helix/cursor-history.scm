@@ -1,5 +1,6 @@
 (require "helix/editor.scm")
 (require "helix/misc.scm")
+(require "cogs/cursor-history-config.scm")
 (require (prefix-in helix.static. "helix/static.scm"))
 (require-builtin helix/core/text as text.)
 
@@ -9,11 +10,6 @@
     cursor-history-lock-release))
 
 (provide cursor-history-prune)
-
-;; Home Manager replaces this placeholder with config.xdg.stateHome/helix.
-;; Keeping the path injection here lets this module initialize itself while
-;; exposing only actual user-facing commands to Helix.
-(define *cursor-history-configured-state-dir* @CURSOR_HISTORY_STATE_DIR@)
 
 ;; ---------------------------------------------------------------------------
 ;; Runtime state
@@ -104,16 +100,45 @@
 ;; Persistence
 ;; ---------------------------------------------------------------------------
 
+(define (history-entry? entry)
+  (and
+    (list? entry)
+    (= (length entry) 3)
+    (string? (car entry))
+    (integer? (cadr entry))
+    (integer? (caddr entry))
+    (>= (cadr entry) 0)
+    (>= (caddr entry) 0)))
+
+
+(define (history-state? state)
+  (and
+    (list? state)
+    (= (length state)
+       (length (filter history-entry? state)))))
+
+
+(define (invalid-state-message!)
+  (set-status!
+    "Cursor history: invalid state file ignored"))
+
+
 (define (read-state-file)
   (if (path-exists? *cursor-history-state-file*)
-      (let ([state
-             (call-with-input-file
-               *cursor-history-state-file*
-               (lambda (input)
-                 (read input)))])
-        (if (list? state)
-            state
-            '()))
+      (with-handler
+        (lambda (_)
+          (invalid-state-message!)
+          '())
+        (let ([state
+               (call-with-input-file
+                 *cursor-history-state-file*
+                 (lambda (input)
+                   (read input)))])
+          (if (history-state? state)
+              state
+              (begin
+                (invalid-state-message!)
+                '()))))
       '()))
 
 
@@ -367,7 +392,7 @@
 ;; Initialize automatically when the cog is required.  cursor-history-install!
 ;; intentionally remains private so it does not appear as a typable command.
 (cursor-history-install!
-  *cursor-history-configured-state-dir*
+  cursor-history-state-dir
   (string-append
-    *cursor-history-configured-state-dir*
+    cursor-history-state-dir
     "/cursor-history.scm"))
