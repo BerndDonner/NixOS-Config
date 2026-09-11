@@ -15,7 +15,7 @@ let
   # Steel toolchain: steel, forge, steel-language-server, cargo-steel-lib.
   steel = inputs.steel.packages.${system}.default;
 
-  cursorHistoryDir = "${config.xdg.cacheHome}/helix";
+  cursorHistoryDir = "${config.xdg.stateHome}/helix";
 in
 {
   home.packages = [
@@ -40,6 +40,9 @@ in
       editor.rulers = [ 80 ];
       editor.scrolloff = 10;
       editor.whitespace.render = "all";
+
+      # Besonders sinnvoll für Lisp/Scheme/Steel:
+      editor.rainbow-brackets = true;
 
       editor.indent-guides = {
         render = true;
@@ -80,6 +83,10 @@ in
       command = lib.getExe pkgs.nixd;
     };
 
+    languages.language-server.steel = {
+      command = "steel-language-server";
+    };
+
     languages.language = [
       {
         name = "typescript";
@@ -88,11 +95,17 @@ in
         formatter.args = [ "--parser" "typescript" ];
         formatter.binary = lib.getExe pkgs.prettier;
       }
+
       {
         name = "nix";
         language-servers = [ "nixd" ];
         formatter.binary = lib.getExe pkgs.nixfmt;
         formatter.command = "nixfmt";
+      }
+
+      {
+        name = "scheme";
+        language-servers = [ "steel" ];
       }
     ];
 
@@ -139,8 +152,6 @@ in
   xdg.configFile."helix/init.scm".text = ''
     (require (prefix-in helix. "helix/commands.scm"))
     (require (only-in "helix/ext.scm" evalp eval-buffer))
-
-    (helix.echo "STEEL INIT LOADED")
 
     (require "cogs/cursor-history.scm")
 
