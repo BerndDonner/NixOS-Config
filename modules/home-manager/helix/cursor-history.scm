@@ -8,7 +8,7 @@
     cursor-history-lock-try-acquire
     cursor-history-lock-release))
 
-(provide cursor-history-install!)
+(provide cursor-history-install! cursor-history-prune)
 
 ;; ---------------------------------------------------------------------------
 ;; Runtime state
@@ -281,6 +281,43 @@
             (remember-location!
               path
               (position->location rope position)))))))
+
+
+;; ---------------------------------------------------------------------------
+;; Maintenance commands
+;; ---------------------------------------------------------------------------
+
+;;@doc
+;; Remove cursor-history entries whose files no longer exist.
+(define (cursor-history-prune)
+  (let ([stale-paths
+         (map car
+           (filter
+             (lambda (entry)
+               (not (path-exists? (car entry))))
+             *cursor-history*))])
+
+    (for-each
+      (lambda (path)
+        (set! *cursor-history*
+              (remove-path path *cursor-history*))
+        (mark-path-dirty! path))
+      stale-paths)
+
+    (unless (null? stale-paths)
+      (set! *cursor-history-dirty* #t)
+      (flush-state!))
+
+    (let ([count (length stale-paths)])
+      (set-status!
+        (if (= count 0)
+            "Cursor history: no stale entries"
+            (string-append
+              "Cursor history: removed "
+              (number->string count)
+              (if (= count 1)
+                  " stale entry"
+                  " stale entries")))))))
 
 
 ;; ---------------------------------------------------------------------------
