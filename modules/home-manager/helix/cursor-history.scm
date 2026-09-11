@@ -3,64 +3,50 @@
 (require (prefix-in helix.static. "helix/static.scm"))
 (require-builtin helix/core/text as text.)
 
+(#%require-dylib "libcursor_history_lock"
+  (only-in
+    cursor-history-lock-try-acquire
+    cursor-history-lock-release))
+
 (provide cursor-history-install!)
 
 ;; ---------------------------------------------------------------------------
-;; State
+;; Runtime state
 ;; ---------------------------------------------------------------------------
 
-(define *cursor-history* '())
-
-(define *cursor-history-state-dir* #f)
-(define *cursor-history-state-file* #f)
-
-(define *cursor-history-active-path* #f)
-(define *cursor-history-restoring* #f)
-
-(define *cursor-history-dirty* #f)
-(define *cursor-history-save-generation* 0)
-
-(define *cursor-history-dirty-paths* '())
-
-(define *cursor-history-lock-file* #f)
-(define *cursor-history-temp-file* #f)
-
-
-(define (mark-path-dirty! path)
-  (unless (member path *cursor-history-dirty-paths*)
-    (set! *cursor-history-dirty-paths*
-          (cons path *cursor-history-dirty-paths*))))
-
-
-(define (try-acquire-lock!)
-  (call/cc
-    (lambda (k)
-      (call-with-exception-handler
-        (lambda (_)
-          (k #f))
-        (lambda ()
-          (call-with-port
-            (open-output-file
-              *cursor-history-lock-file*
-              #:exists 'error)
-            (lambda (_)
-              #t))
-          #t)))))
-
-
-(define (release-lock!)
-  (when (path-exists? *cursor-history-lock-file*)
-    (delete-file! *cursor-history-lock-file*)))
-
-;; ---------------------------------------------------------------------------
-;; In-memory database
-;;
-;; Format:
+;; Entries are stored as:
 ;;
 ;;   (("/absolute/path/a" 42 17)
 ;;    ("/absolute/path/b" 3 5))
 ;;
 ;; Line and column are zero-based character coordinates.
+(define *cursor-history* '())
+
+(define *cursor-history-state-dir* #f)
+(define *cursor-history-state-file* #f)
+(define *cursor-history-lock-file* #f)
+(define *cursor-history-temp-file* #f)
+
+;; Path of the currently active document/view. This lets us distinguish
+;; opening/switching to a document from ordinary cursor movement.
+(define *cursor-history-active-path* #f)
+
+;; Prevent selection hooks triggered by restore-position! from immediately
+;; writing the restored position back as a user movement.
+(define *cursor-history-restoring* #f)
+
+;; Only paths changed by this Helix process are merged into the latest state
+;; read from disk. This avoids lost updates when multiple Helix processes are
+;; open at the same time.
+(define *cursor-history-dirty-paths* '())
+(define *cursor-history-dirty* #f)
+
+;; Generation counter used by the 300 ms save debounce.
+(define *cursor-history-save-generation* 0)
+
+
+;; ---------------------------------------------------------------------------
+;; In-memory state
 ;; ---------------------------------------------------------------------------
 
 (define (saved-location path)
@@ -69,32 +55,42 @@
         (cdr entry)
         #f)))
 
+
 (define (remove-path path entries)
   (filter
     (lambda (entry)
       (not (equal? (car entry) path)))
     entries))
 
+
+(define (mark-path-dirty! path)
+  (unless (member path *cursor-history-dirty-paths*)
+    (set! *cursor-history-dirty-paths*
+          (cons path *cursor-history-dirty-paths*))))
+
+
 (define (remember-location! path location)
-  (let ([old-location (saved-location path)])
-    (unless (equal? old-location location)
-      (set! *cursor-history*
-            (cons
-              (cons path location)
-              (remove-path path *cursor-history*)))
+  (unless (equal? (saved-location path) location)
+    (set! *cursor-history*
+          (cons
+            (cons path location)
+            (remove-path path *cursor-history*)))
 
-      (mark-path-dirty! path)
-      (set! *cursor-history-dirty* #t)
-      (schedule-save!))))
+    (mark-path-dirty! path)
+    (set! *cursor-history-dirty* #t)
+    (schedule-save!)))
 
 
+;; Merge only paths changed by this process into a freshly read disk state.
+;; A dirty path missing from *cursor-history* represents a deletion; this is
+;; useful for operations such as pruning stale entries.
 (define (merge-dirty-paths disk-state)
   (foldl
     (lambda (path state)
       (let ([entry (assoc path *cursor-history*)])
         (if entry
             (cons entry (remove-path path state))
-            state)))
+            (remove-path path state))))
     disk-state
     *cursor-history-dirty-paths*))
 
@@ -103,75 +99,86 @@
 ;; Persistence
 ;; ---------------------------------------------------------------------------
 
+(define (read-state-file)
+  (if (path-exists? *cursor-history-state-file*)
+      (let ([state
+             (call-with-input-file
+               *cursor-history-state-file*
+               (lambda (input)
+                 (read input)))])
+        (if (list? state)
+            state
+            '()))
+      '()))
+
+
 (define (load-state!)
-  (when (path-exists? *cursor-history-state-file*)
-    (let ([state
-           (call-with-input-file
-             *cursor-history-state-file*
-             (lambda (input)
-               (read input)))])
-      (when (list? state)
-        (set! *cursor-history* state)))))
+  (set! *cursor-history* (read-state-file)))
+
+
+;; The native module keeps a stable lock file open and uses an OS-level file
+;; lock. The file itself may remain on disk permanently; lock ownership is tied
+;; to the open file descriptor, so the kernel releases it automatically if a
+;; Helix process exits or is killed.
+(define (try-acquire-lock!)
+  (cursor-history-lock-try-acquire *cursor-history-lock-file*))
+
+
+(define (release-lock!)
+  (cursor-history-lock-release *cursor-history-lock-file*))
+
+
+(define (write-state-atomically! state)
+  ;; Write the complete new state first, then atomically replace the state
+  ;; file. Both files live in the same directory/filesystem.
+  (call-with-port
+    (open-output-file
+      *cursor-history-temp-file*
+      #:exists 'truncate)
+    (lambda (output)
+      (write state output)
+      (newline output)))
+
+  (rename-file-or-directory!
+    *cursor-history-temp-file*
+    *cursor-history-state-file*))
 
 
 (define (flush-state!)
   (when *cursor-history-dirty*
-
     (unless (path-exists? *cursor-history-state-dir*)
       (create-directory! *cursor-history-state-dir*))
 
     (if (try-acquire-lock!)
-
         (dynamic-wind
-
-          ;; Lock is already acquired.
-          (lambda ()
-            #t)
+          ;; The lock was acquired before entering dynamic-wind.
+          (lambda () #t)
 
           (lambda ()
-            (let* ([disk-state
-                    (if (path-exists? *cursor-history-state-file*)
-                        (call-with-input-file
-                          *cursor-history-state-file*
-                          (lambda (input)
-                            (read input)))
-                        '())]
+            ;; Re-read the shared state only after acquiring the lock, then
+            ;; merge this process's changes into that newest version.
+            (let* ([disk-state (read-state-file)]
+                   [merged-state (merge-dirty-paths disk-state)])
+              (write-state-atomically! merged-state)
 
-                   [merged-state
-                    (merge-dirty-paths disk-state)])
-
-              ;; Write a complete new file first.
-              (call-with-port
-                (open-output-file
-                  *cursor-history-temp-file*
-                  #:exists 'truncate)
-                (lambda (output)
-                  (write merged-state output)
-                  (newline output)))
-
-              ;; Atomic replacement on the same filesystem.
-              (rename-file-or-directory!
-                *cursor-history-temp-file*
-                *cursor-history-state-file*)
-
-              ;; Synchronize our in-memory view with what we just wrote.
+              ;; Our in-memory state now matches the state we wrote.
               (set! *cursor-history* merged-state)
               (set! *cursor-history-dirty-paths* '())
               (set! *cursor-history-dirty* #f)))
 
-          ;; Runs on normal return AND Scheme exceptions.
+          ;; Also runs if the body raises a Scheme exception.
           (lambda ()
             (release-lock!)))
 
-        ;; Another Helix process currently writes.
-        ;; Keep everything dirty and simply retry shortly.
+        ;; Another Helix process currently owns the kernel lock. Keep the
+        ;; local changes dirty and retry shortly.
         (enqueue-thread-local-callback-with-delay
           50
           flush-state!))))
 
 
-;; Don't write the cache file for every cursor movement.
-;; Save 300 ms after the last change.
+;; Cursor movement can generate many updates. Persist 300 ms after the most
+;; recent change instead of writing once per movement.
 (define (schedule-save!)
   (set! *cursor-history-save-generation*
         (+ *cursor-history-save-generation* 1))
@@ -209,50 +216,43 @@
   (let* ([line-count (text.rope-len-lines rope)]
          [max-line (max 0 (- line-count 1))]
 
-         ;; Clamp if lines were removed.
+         ;; Clamp locations if the file changed outside this Helix process.
          [line (min (car location) max-line)]
-
          [line-start (text.rope-line->char rope line)]
          [line-rope (text.rope->line rope line)]
          [line-length (text.rope-len-chars line-rope)]
 
-         ;; Non-final lines include the newline.
+         ;; Non-final lines include the newline character in their rope slice.
          [max-column
            (if (= line max-line)
                line-length
                (max 0 (- line-length 1)))]
-
-         ;; Clamp if the line became shorter.
          [column (min (cadr location) max-column)])
 
     (+ line-start column)))
 
 
 ;; ---------------------------------------------------------------------------
-;; Restore
+;; Restore and tracking
 ;; ---------------------------------------------------------------------------
 
 (define (restore-position! rope path)
   (let ([location (saved-location path)])
-
     (when (location? location)
-      (let ([position
-             (location->position rope location)])
+      (let ([position (location->position rope location)])
+        (dynamic-wind
+          (lambda ()
+            (set! *cursor-history-restoring* #t))
 
-        (set! *cursor-history-restoring* #t)
+          (lambda ()
+            (helix.static.set-current-selection-object!
+              (helix.static.range->selection
+                (helix.static.range position position)))
+            (helix.static.align_view_center))
 
-        (helix.static.set-current-selection-object!
-          (helix.static.range->selection
-            (helix.static.range position position)))
+          (lambda ()
+            (set! *cursor-history-restoring* #f)))))))
 
-        (helix.static.align_view_center)
-
-        (set! *cursor-history-restoring* #f)))))
-
-
-;; ---------------------------------------------------------------------------
-;; Synchronisation
-;; ---------------------------------------------------------------------------
 
 (define (sync-current-position!)
   (unless *cursor-history-restoring*
@@ -263,25 +263,21 @@
            [position (cursor-position)])
 
       (when (string? path)
-
         (if (not (equal? path *cursor-history-active-path*))
-
-            ;; A different document/view became active.
             (begin
               (set! *cursor-history-active-path* path)
 
-              ;; Position zero means Helix has not supplied a meaningful
-              ;; position. Restore our persisted location if available.
-              ;;
-              ;; A non-zero position wins over the cache, e.g.
-              ;; `hx file:4:1` or an existing Helix view.
+              ;; When Helix reports position 0 for a newly active document,
+              ;; restore the persisted location. A non-zero position wins,
+              ;; which preserves explicit CLI positions such as `hx file:4:1`
+              ;; and per-view cursor positions already maintained by Helix.
               (if (= position 0)
                   (restore-position! rope path)
                   (remember-location!
                     path
                     (position->location rope position))))
 
-            ;; Same document: normal cursor movement.
+            ;; Same active document: ordinary cursor movement.
             (remember-location!
               path
               (position->location rope position)))))))
@@ -295,28 +291,31 @@
   (set! *cursor-history-state-dir* state-dir)
   (set! *cursor-history-state-file* state-file)
 
+  ;; Stable lock target for the native OS-level lock. Do not delete this file.
   (set! *cursor-history-lock-file*
         (string-append state-file ".lock"))
 
+  ;; Same-directory temporary file used for atomic replacement.
   (set! *cursor-history-temp-file*
         (string-append state-file ".tmp"))
 
   (load-state!)
 
-  ;; Normal-mode movement and other commands.
+  ;; Covers normal cursor movement, including insert-mode typing.
   (register-hook
     'selection-did-change
     (lambda (_)
       (sync-current-position!)))
 
-  ;; Persist before changing away from a document.
+  ;; On a view/document switch, the hook observes the newly focused view.
+  ;; Synchronize it immediately and persist pending changes.
   (register-hook
     'document-focus-lost
     (lambda (_)
       (sync-current-position!)
       (flush-state!)))
 
-  ;; Known safe point for persistence.
+  ;; Saving is another useful persistence point in addition to the debounce.
   (register-hook
     'document-saved
     (lambda (_)
