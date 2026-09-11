@@ -37,7 +37,6 @@
   ];
 
   nix.settings.trusted-users = [
-    "root"
     "bleau"
   ];
 
