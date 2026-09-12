@@ -10,6 +10,7 @@
     ../../modules/home-manager/tmux.nix
     ../../modules/home-manager/vim.nix
     ../../modules/home-manager/helix.nix
+    ../../modules/home-manager/zk.nix
   ];
 
   donner.helix = {

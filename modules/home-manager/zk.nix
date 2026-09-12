@@ -1,0 +1,7 @@
+{ ... }:
+
+{
+  programs.zk = {
+    enable = true;
+  };
+}

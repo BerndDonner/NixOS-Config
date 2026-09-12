@@ -5,6 +5,8 @@
     enable = true;
     package = pkgs.gitFull;
 
+    lfs.enable = true;
+
     settings = {
       user.name  = "Bernd Donner";
       user.email = "bernd.donner@sabel.com";

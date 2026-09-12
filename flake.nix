@@ -167,6 +167,7 @@
 
             ./modules/nixos/bash.nix
             ./modules/nixos/starship.nix
+            ./modules/nixos/forgejo.nix
 
             home-manager.nixosModules.home-manager
 
