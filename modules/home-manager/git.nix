@@ -20,8 +20,11 @@
       merge.ff = "only";
 
       lfs = {
-        "ssh.autoMultiplex" = false;
         sshtransfer = "never";
+      };
+
+      "lfs \"ssh\"" = {
+        autoMultiplex = false;
       };
 
       alias = {
