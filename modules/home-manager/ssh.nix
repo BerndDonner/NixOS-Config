@@ -34,6 +34,16 @@
         StrictHostKeyChecking = "accept-new";
       };
 
+      "ssh.the-darkroom.org" = {
+        User = "forgejo";
+        IdentityFile = "~/.ssh/bernds-desktop";
+        IdentitiesOnly = true;
+
+        ControlMaster = "auto";
+        ControlPath = "~/.ssh/control-%C";
+        ControlPersist = "5m";
+      };
+
       "lenzi" = {
         User = "levi";
         IdentityFile = "~/.ssh/bernd_tracy";

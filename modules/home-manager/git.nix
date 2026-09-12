@@ -19,6 +19,11 @@
       rerere.enabled = true;
       merge.ff = "only";
 
+      lfs = {
+        "ssh.autoMultiplex" = false;
+        sshtransfer = "never";
+      };
+
       alias = {
         st = "status -sb";
         lg = "log --oneline --graph --decorate --all";
