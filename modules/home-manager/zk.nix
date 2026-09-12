@@ -1,23 +1,31 @@
-{ ... }:
+{ config, pkgs, ... }:
 
-{
-  programs = {
-    zk.enable = true;
+let
+  notebookDir = "${config.home.homeDirectory}/zk-notes";
 
-    # Required for `zk edit --interactive`
-    fzf.enable = true;
+  zkWrapped = pkgs.writeShellApplication {
+    name = "zk";
 
-    # Pretty preview of Markdown notes inside fzf
-    bat.enable = true;
-
-    bash.initExtra = ''
-      zk() {
-        if [ "$#" -eq 0 ]; then
-          command zk edit --interactive
-        else
-          command zk "$@"
-        fi
-      }
+    text = ''
+      if [ "$#" -eq 0 ]; then
+        exec ${pkgs.zk}/bin/zk \
+          --notebook-dir "${notebookDir}" \
+          edit --interactive
+      else
+        exec ${pkgs.zk}/bin/zk \
+          --notebook-dir "${notebookDir}" \
+          "$@"
+      fi
     '';
+  };
+in
+{
+  home.packages = [
+    zkWrapped
+  ];
+
+  programs = {
+    fzf.enable = true;
+    bat.enable = true;
   };
 }
