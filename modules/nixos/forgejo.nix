@@ -4,6 +4,64 @@ let
   webDomain = "git.the-darkroom.org";
   sshDomain = "ssh.the-darkroom.org";
   forgejoPackage = pkgs.forgejo-lts;
+
+  identityHook = pkgs.writeShellScript "forgejo-check-commit-identity" ''
+    set -euo pipefail
+
+    readonly allowed_name='bleau'
+    readonly allowed_email='bleau@noreply.git.the-darkroom.org'
+
+    failed=0
+    declare -A checked=()
+
+    while read -r _oldrev newrev _refname; do
+      # Ref deletion
+      [[ "$newrev" =~ ^0+$ ]] && continue
+
+      # Ignore refs that do not ultimately point to a commit.
+      ${pkgs.git}/bin/git cat-file -e "$newrev^{commit}" 2>/dev/null || continue
+
+      # Check commits newly introduced to this Forgejo repository.
+      while read -r commit; do
+        [[ -n "''${checked[$commit]:-}" ]] && continue
+        checked["$commit"]=1
+
+        mapfile -t ident < <(
+          ${pkgs.git}/bin/git show -s \
+            --format='%an%n%ae%n%cn%n%ce' \
+            "$commit"
+        )
+
+        author_name="''${ident[0]-}"
+        author_email="''${ident[1]-}"
+        committer_name="''${ident[2]-}"
+        committer_email="''${ident[3]-}"
+
+        if [[ "$author_name" != "$allowed_name" ||
+              "$author_email" != "$allowed_email" ||
+              "$committer_name" != "$allowed_name" ||
+              "$committer_email" != "$allowed_email" ]]; then
+
+          short="$(${pkgs.git}/bin/git rev-parse --short "$commit")"
+
+          echo >&2
+          echo "ERROR: commit $short has an invalid Git identity:" >&2
+          echo "  Author:    $author_name <$author_email>" >&2
+          echo "  Committer: $committer_name <$committer_email>" >&2
+          echo >&2
+          echo "Required identity:" >&2
+          echo "  bleau <bleau@noreply.git.the-darkroom.org>" >&2
+          echo >&2
+
+          failed=1
+        fi
+      done < <(
+        ${pkgs.git}/bin/git rev-list "$newrev" --not --all
+      )
+    done
+
+    exit "$failed"
+  '';
 in
 {
   environment.systemPackages = [
@@ -84,6 +142,52 @@ in
       Persistent = true;
       Unit = "forgejo-offsite-backup.service";
     };
+  };
+
+  systemd.services.forgejo-identity-hooks = {
+    description = "Install Forgejo commit identity hooks";
+
+    after = [ "forgejo.service" ];
+    requires = [ "forgejo.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig.Type = "oneshot";
+
+    script = ''
+      set -euo pipefail
+
+      repoRoot="/var/lib/forgejo/data/forgejo-repositories/bleau"
+
+      # The account may not have repositories yet.
+      [[ -d "$repoRoot" ]] || exit 0
+
+      shopt -s nullglob
+
+      for repo in "$repoRoot"/*.git; do
+        hookDir="$repo/hooks/pre-receive.d"
+
+        ${pkgs.coreutils}/bin/install \
+          -d \
+          -o forgejo \
+          -g forgejo \
+          -m 0750 \
+          "$hookDir"
+
+        ${pkgs.coreutils}/bin/ln \
+          -sfn \
+          ${identityHook} \
+          "$hookDir/10-identity"
+      done
+    '';
+  };
+
+  systemd.paths.forgejo-identity-hooks = {
+    description = "Watch for new Forgejo repositories";
+
+    wantedBy = [ "multi-user.target" ];
+
+    pathConfig.PathChanged =
+      "/var/lib/forgejo/data/forgejo-repositories/bleau";
   };
 
   
@@ -175,6 +279,10 @@ in
       openid = {
         ENABLE_OPENID_SIGNIN = false;
         ENABLE_OPENID_SIGNUP = false;
+      };
+
+      security = {
+        DISABLE_GIT_HOOKS = true;
       };
     };
   };

@@ -7,6 +7,20 @@
 
     lfs.enable = true;
 
+    includes = [
+      {
+        condition =
+          "hasconfig:remote.*.url:ssh://forgejo@ssh.the-darkroom.org/**";
+
+        contents = {
+          user = {
+            name = "bleau";
+            email = "bleau@noreply.git.the-darkroom.org";
+          };
+        };
+      }
+    ];
+
     settings = {
       user.name  = "Bernd Donner";
       user.email = "bernd.donner@sabel.com";

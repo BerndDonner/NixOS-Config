@@ -14,6 +14,7 @@
 
       export EDITOR=hx
       export VISUAL=hx
+      export SUDO_EDITOR=hx
 
       ble-bind -m vi_imap -f 'C-x C-e' edit-and-execute-command
       ble-bind -m vi_nmap -f 'C-x C-e' edit-and-execute-command
