@@ -70,3 +70,66 @@ fc-cache -r
 ---
 
 Feel free to explore, adapt, and reuse any part of this configuration for your own NixOS setup.
+---
+
+## Arduino Uno USB passthrough with QEMU/KVM on `kitty`
+
+`kitty` is the KVM-enabled host in this repository. For the MCT Bunny VMs,
+the Arduino Uno R3 is passed through as the **real USB device** with QEMU, for
+example:
+
+```bash
+-device usb-host,vendorid=0x2341,productid=0x0043
+```
+
+QEMU opens the raw host USB node under `/dev/bus/usb/...`. By default that
+node is typically `root:root` with mode `0664`, so an unprivileged QEMU process
+can read it but cannot write to or claim the device. A one-off `setfacl` works,
+but the ACL disappears when the Arduino is unplugged because udev creates a
+new device node on the next plug-in.
+
+The KVM module therefore creates the host-only group `kvm-arduino`, adds
+`bernd` to it, and installs a narrowly scoped udev rule for the official Uno R3
+USB ID `2341:0043`:
+
+```nix
+users.groups."kvm-arduino" = { };
+users.users.bernd.extraGroups = [ "libvirtd" "kvm" "kvm-arduino" ];
+
+services.udev.extraRules = ''
+  SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", \
+    ATTR{idVendor}=="2341", ATTR{idProduct}=="0043", \
+    GROUP="kvm-arduino", MODE="0660"
+'';
+```
+
+This is intentionally **host-side only**. The Bunny guest does not contain or
+need the `kvm-arduino` group. After passthrough, the guest sees the real Arduino
+as usual (normally `/dev/ttyACM0`), and guest access remains controlled by the
+normal `dialout` group. Converting the Bunny image to VMware therefore does not
+carry any `kvm-arduino` configuration into the student VM.
+
+After changing this configuration on `kitty`:
+
+```bash
+sudo nixos-rebuild switch --flake .#kitty
+```
+
+Log out and back in once so the current login session picks up the new group,
+then unplug/replug the Uno. Verify on the host:
+
+```bash
+id -nG | tr ' ' '\n' | grep '^kvm-arduino$'
+
+DEV=$(
+  lsusb -d 2341:0043 |
+  awk '{gsub(":", "", $4); printf "/dev/bus/usb/%s/%s\n", $2, $4}'
+)
+
+ls -l "$DEV"
+getfacl "$DEV"
+```
+
+The raw USB node should be owned by group `kvm-arduino` and be writable by the
+group. This rule is intentionally limited to `2341:0043`; Arduino clones or
+other boards with different USB vendor/product IDs need their own explicit rule.
