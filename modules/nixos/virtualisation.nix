@@ -1,6 +1,11 @@
 { config, pkgs, ... }:
 {
   virtualisation.libvirtd.enable = true;
+
+  # Use QEMU from the pinned unstable package set for newer display features
+  # while keeping the rest of the host on the stable NixOS release.
+  virtualisation.libvirtd.qemu.package = pkgs.unstable.qemu_kvm;
+
   programs.virt-manager.enable = true;
 
   # Optional, aber sinnvoll:
