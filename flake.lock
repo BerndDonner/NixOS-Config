@@ -138,6 +138,7 @@
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
+        "scope-rs-src": "scope-rs-src",
         "steel": "steel"
       }
     },
@@ -159,6 +160,23 @@
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "scope-rs-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785417002,
+        "narHash": "sha256-7ezgqsJih7QwHZS4rGiDmEX3+nlHYcOJM6D5M2hSWHw=",
+        "owner": "matheuswhite",
+        "repo": "scope-rs",
+        "rev": "752aef0763746a804f345e4c535ba9614cfdede9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "matheuswhite",
+        "ref": "v0.6.0",
+        "repo": "scope-rs",
         "type": "github"
       }
     },

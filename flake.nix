@@ -20,6 +20,14 @@
     nixpkgs-unstable.url =
       "github:nixos/nixpkgs/nixpkgs-unstable";
 
+    # Scope serial monitor source. Scope currently requires a newer Rust than
+    # the stable package set, so it is built with nixpkgs-unstable below while
+    # the source itself is pinned independently in flake.lock.
+    scope-rs-src = {
+      url = "github:matheuswhite/scope-rs/v0.6.0";
+      flake = false;
+    };
+
     # -------------------------------------------------------------------------
     # External modules / applications
     # -------------------------------------------------------------------------
@@ -67,6 +75,14 @@
       overlayPygameAvx2 =
         import ./overlays/pygame-avx2.nix;
 
+      # Scope needs Rust >= 1.92, therefore build only this package from the
+      # unstable package set. The rest of the machines stays on NixOS 26.05.
+      overlayScopeRs = final: prev: {
+        scope-rs = prev.unstable.callPackage ./pkgs/scope-rs/scope-rs.nix {
+          scopeRsSrc = inputs.scope-rs-src;
+        };
+      };
+
       # Package set used by this flake's own packages and devShells.
       pkgs = import nixpkgs {
         inherit system;
@@ -74,6 +90,7 @@
         overlays = [
           overlayUnstable
           overlayPygameAvx2
+          overlayScopeRs
         ];
       };
 
@@ -103,6 +120,7 @@
               nixpkgs.overlays = [
                 overlayUnstable
                 overlayPygameAvx2
+                overlayScopeRs
               ];
 
               home-manager.useGlobalPkgs = true;
@@ -136,6 +154,7 @@
               nixpkgs.overlays = [
                 overlayUnstable
                 overlayPygameAvx2
+                overlayScopeRs
               ];
 
               home-manager.useGlobalPkgs = true;
@@ -198,6 +217,7 @@
       #   nixos-config.packages.x86_64-linux.bootdev-cli
       #   nixos-config.packages.x86_64-linux.context
       #   nixos-config.packages.x86_64-linux.nordvpn
+      #   nixos-config.packages.x86_64-linux.scope-rs
       # -----------------------------------------------------------------------
       packages.${system} = {
         bootdev-cli =
@@ -208,6 +228,8 @@
 
         nordvpn =
           pkgs.callPackage ./pkgs/nordvpn/nordvpn.nix { };
+
+        scope-rs = pkgs.scope-rs;
       };
 
       # -----------------------------------------------------------------------
