@@ -1,5 +1,9 @@
 { config, pkgs, ... }:
 {
+  # Allow this x86_64 host to build/run aarch64-linux derivations through
+  # binfmt + QEMU user emulation (used for the ARM Bunny image).
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
   virtualisation.libvirtd.enable = true;
 
   # Use QEMU from the pinned unstable package set for newer display features
