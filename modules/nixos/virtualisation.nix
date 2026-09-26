@@ -16,9 +16,6 @@
     OVMF
   ];
 
-  # Für AMD:
-  boot.kernelModules = [ "kvm-amd" ];
-
   # User darf VMs managen.
   #
   # kvm-arduino is deliberately a HOST-only group. It grants QEMU access to

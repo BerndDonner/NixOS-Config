@@ -147,6 +147,7 @@
             ./modules/nixos/bash.nix
             ./modules/nixos/starship.nix
             ./modules/nixos/nordvpn.nix
+            ./modules/nixos/virtualisation.nix
 
             home-manager.nixosModules.home-manager
 
