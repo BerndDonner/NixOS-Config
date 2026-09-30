@@ -21,11 +21,7 @@
   # networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
 
   # Set your time zone.
-  time.timeZone = "Europe/Amsterdam";
-
-  # Configure network proxy if necessary
-  # networking.proxy.default = "http://user:password@proxy:port/";
-  networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
+  time.timeZone = "Europe/Berlin";
 
   # Select internationalisation properties.
   i18n.defaultLocale = "en_US.UTF-8";
@@ -136,12 +132,12 @@
   environment.systemPackages = with pkgs; [
     wget
     w3m
-    gpm
     git
     fd
     bc
     zip
     unzip
+    exfatprogs
     blesh
     starship
     unzip

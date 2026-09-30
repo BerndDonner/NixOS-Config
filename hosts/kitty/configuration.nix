@@ -62,6 +62,7 @@
   services.gpm.enable = true;
 
   # GUI: Plasma 6
+  hardware.graphics.enable = true;
   services.xserver.enable = true;
 
   services.displayManager.sddm.enable = true;
