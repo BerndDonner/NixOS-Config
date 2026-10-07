@@ -3,9 +3,13 @@
 , pythonVersion ? pkgs.python3
 , requirementsFile ? ./requirements.txt  # optional path to requirements.txt
 , message ? "🐍 Python venv environment ready (use pip to install packages)"
+, secretSets ? [ ]
+, extraShellHook ? ""
 }:
 
 let
+  secretHook = import ./secret-shell-hook.nix { inherit pkgs secretSets; };
+
   promptHook = import ./prompt-hook.nix { inherit symbol; };
 in
 pkgs.mkShell {
@@ -21,6 +25,7 @@ pkgs.mkShell {
   venvDir = "./.venv";
 
   shellHook = ''
+    ${secretHook}
     ${promptHook}
 
     echo "${message}"
@@ -39,6 +44,8 @@ pkgs.mkShell {
 
     echo "💡 Use 'pip install <package>' to add more libraries."
     echo "🐍 Python: $(python --version)"
+
+    ${extraShellHook}
   '';
 }
 

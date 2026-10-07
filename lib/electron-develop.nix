@@ -9,10 +9,13 @@
 , extraPackages ? [ ]
 , extraNativeBuildInputs ? [ ]
 , extraBuildInputs ? [ ]
+, secretSets ? [ ]
 , extraShellHook ? ""
 }:
 
 let
+  secretHook = import ./secret-shell-hook.nix { inherit pkgs secretSets; };
+
   lib = pkgs.lib;
 
   nativeBuildInputs = with pkgs; [
@@ -52,6 +55,7 @@ pkgs.mkShell {
   CXXFLAGS = "-std=c++17";
 
   shellHook = ''
+    ${secretHook}
     mkdir -p "$NPM_CONFIG_PREFIX/bin"
     export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
 

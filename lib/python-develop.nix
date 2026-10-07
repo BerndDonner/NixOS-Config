@@ -8,10 +8,13 @@
 , message ? "🐍 Python development environment ready"
 , inputs ? null             # optional flake inputs
 , checkInputs ? [ ]         # optional inputs to verify
+, secretSets ? [ ]
 , extraShellHook ? ""
 }:
 
 let
+  secretHook = import ./secret-shell-hook.nix { inherit pkgs secretSets; };
+
   promptHook = import ./prompt-hook.nix { inherit symbol; };
 
   updateWarningHook =
@@ -42,6 +45,7 @@ pkgs.mkShell {
   ] ++ extraPackages;
 
   shellHook = ''
+    ${secretHook}
     export SHELL=${pkgs.bashInteractive}/bin/bash
     export PATH=${pkgs.bashInteractive}/bin:$PATH
     ${promptHook}

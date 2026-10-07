@@ -260,6 +260,9 @@
       #   nixos-config.lib.mkPythonDevShell
       # -----------------------------------------------------------------------
       lib = {
+        mkSecretShellHook =
+          import ./lib/secret-shell-hook.nix;
+
         mkPythonDevShell =
           import ./lib/python-develop.nix;
 

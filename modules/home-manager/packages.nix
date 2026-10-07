@@ -33,6 +33,8 @@
       nodejs
       wl-clipboard
       rclone
+      age
+      sops
       krita
       xinput_calibrator
       scope-rs

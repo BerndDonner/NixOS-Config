@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   imports = [
@@ -17,6 +17,11 @@
     developmentTools = true;
     steelForge = true;
   };
+
+  # Keep the private age identity inside kitty's LUKS-backed /secrets vault,
+  # while retaining the standard path expected by SOPS.
+  home.file.".config/sops/age/keys.txt".source =
+    config.lib.file.mkOutOfStoreSymlink "/secrets/sops/age/keys.txt";
 
   home.stateVersion = "25.11";
 
