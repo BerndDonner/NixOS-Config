@@ -4,7 +4,8 @@
 , flakeLockPath ? ./flake.lock   # fallback for same-directory usage
 , symbol ? "🐍"
 , pythonVersion ? pkgs.python3
-, extraPackages ? [ ]
+, pythonPackages ? (_: [ ])  # importable Python packages, e.g. ps: [ ps.pyyaml ]
+, extraPackages ? [ ]          # non-Python tools/programs added to the shell
 , message ? "🐍 Python development environment ready"
 , inputs ? null             # optional flake inputs
 , checkInputs ? [ ]         # optional inputs to verify
@@ -13,6 +14,18 @@
 }:
 
 let
+  pythonEnv = pythonVersion.withPackages (ps:
+    [
+      ps.pip
+      ps.setuptools
+      ps.wheel
+      ps.ipython
+      ps.black
+      ps.isort
+    ]
+    ++ pythonPackages ps
+  );
+
   secretHook = import ./secret-shell-hook.nix { inherit pkgs secretSets; };
 
   promptHook = import ./prompt-hook.nix { inherit symbol; };
@@ -33,15 +46,9 @@ pkgs.mkShell {
 
   shell = pkgs.bashInteractive;
 
-  packages = with pkgs; [
-    pythonVersion
-    pythonVersion.pkgs.pip
-    pythonVersion.pkgs.setuptools
-    pythonVersion.pkgs.wheel
-    pythonVersion.pkgs.ipython
-    pythonVersion.pkgs.black
-    pythonVersion.pkgs.isort
-    jq
+  packages = [
+    pythonEnv
+    pkgs.jq
   ] ++ extraPackages;
 
   shellHook = ''
