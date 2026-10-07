@@ -1,7 +1,9 @@
 keys:
   - &kitty age1dkuzy6x4sqfw3mn43vzjvsd5ynf0l82mshaaznearj9apn7frs4su5f6d6
+  - &tracy age19v0jhupchtpjg2v36aqg7nnr7kej60npsdx84t7s2p6c3urtgqjqefdeuq
 
 creation_rules:
   - path_regex: ^secrets/.*\.sops\.env$
     age:
       - *kitty
+      - *tracy
