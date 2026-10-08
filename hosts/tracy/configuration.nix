@@ -9,6 +9,7 @@
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ./nvidia/vaapi.nix
+      ./vault.nix
     ];
 
   # Use the systemd-boot EFI boot loader.
@@ -130,6 +131,8 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
+    cryptsetup
+    e2fsprogs
     wget
     w3m
     git
