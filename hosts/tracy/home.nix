@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   imports = [
@@ -17,6 +17,11 @@
     developmentTools = true;
     steelForge = true;
   };
+
+  # Keep tracy's own private age identity inside the LUKS-backed vault.
+  # Home Manager exposes it at the standard path without copying it to the Nix store.
+  home.file.".config/sops/age/keys.txt".source =
+    config.lib.file.mkOutOfStoreSymlink "/secrets/sops/age/keys.txt";
 
   home.stateVersion = "23.11";
 

@@ -102,24 +102,34 @@ und darf niemals ins Git-Repository gelangen.
 
 ## age-Key auf tracy
 
-Auf `tracy` liegt der private Key zunächst direkt am SOPS-Standardpfad:
+Auch auf `tracy` liegt der private age-Key im eigenen LUKS-Vault:
 
-```bash
-install -d -m 0700 ~/.config/sops/age
-
-age-keygen -o ~/.config/sops/age/keys.txt
-chmod 0600 ~/.config/sops/age/keys.txt
+```text
+/secrets/sops/age/keys.txt
 ```
 
-Öffentlichen Recipient anzeigen:
+Home Manager stellt `~/.config/sops/age/keys.txt` als Symlink auf diesen Pfad bereit,
+analog zu `kitty`. Die beiden Rechner behalten unterschiedliche private Keys.
+
+Bei der Ersteinrichtung wurde tracys Key unter dem SOPS-Standardpfad erzeugt und
+anschließend in den Vault kopiert. Bei einer Neuinstallation den **vorhandenen**
+tracy-Key aus dem sicheren Backup in den Vault zurückspielen, statt einen neuen zu
+erzeugen (sonst müssen die SOPS-Recipients angepasst werden).
+
+Den öffentlichen Recipient anzeigen:
 
 ```bash
-age-keygen -y ~/.config/sops/age/keys.txt
+age-keygen -y /secrets/sops/age/keys.txt
 ```
 
-Auch hier wird nur der ausgegebene `age1...`-Wert in `.sops.yaml` eingetragen.
+Prüfen, ob SOPS damit entschlüsselt:
 
-`kitty` und `tracy` besitzen unterschiedliche private Keys.
+```bash
+SOPS_AGE_KEY_FILE=/secrets/sops/age/keys.txt \
+  sops -d secrets/openai.sops.env >/dev/null
+```
+
+Diesen Test aus dem Wurzelverzeichnis von `NixOS-Config` ausführen.
 
 ---
 
