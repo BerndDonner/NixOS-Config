@@ -1,6 +1,8 @@
 { config, lib, pkgs, ... }:
 
 {
+  imports = [ ../../modules/nixos/vault-directories.nix ];
+
   boot.initrd.luks.devices."vault" = {
     device = "/dev/disk/by-partlabel/NIXOS_VAULT";
     allowDiscards = true;

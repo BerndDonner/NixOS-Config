@@ -5,6 +5,7 @@
     ../../modules/home-manager/basics.nix
     ../../modules/home-manager/packages.nix
     ../../modules/home-manager/ssh.nix
+    ../../modules/home-manager/vault-links.nix
     ../../modules/home-manager/git.nix
     ../../modules/home-manager/git-desktop.nix
     ../../modules/home-manager/tmux.nix
