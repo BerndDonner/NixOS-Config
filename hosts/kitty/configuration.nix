@@ -48,6 +48,12 @@
 
   networking.hostName = "kitty";
   networking.networkmanager.enable = true;
+  networking.networkmanager.settings.keyfile.path = "/secrets/nm";
+
+  systemd.services.NetworkManager.unitConfig.RequiresMountsFor = [
+    "/secrets/nm"
+  ];
+
 
   hardware.bluetooth.enable = true;
 
