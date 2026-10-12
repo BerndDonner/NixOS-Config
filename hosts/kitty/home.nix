@@ -29,17 +29,6 @@
   home.file.".local/share/kwalletd".source =
     config.lib.file.mkOutOfStoreSymlink "/secrets/kwallet";
 
-  # On the first switch, safely hand over the existing direct link to
-  # Home Manager without touching the wallet contents inside /secrets.
-  home.activation.adoptManualKWalletLink =
-    lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-      existing="$HOME/.local/share/kwalletd"
-      if [ -L "$existing" ] &&
-         [ "$(readlink "$existing")" = "/secrets/kwallet" ]; then
-        rm -- "$existing"
-      fi
-    '';
-
   home.stateVersion = "25.11";
 
   home.packages = with pkgs; [

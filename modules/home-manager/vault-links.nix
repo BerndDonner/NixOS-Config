@@ -23,24 +23,4 @@ in
     ".config/rclone/rclone.conf".source =
       config.lib.file.mkOutOfStoreSymlink "/secrets/rclone/rclone.conf";
   };
-
-  # Adopt only the manual symlinks created during the vault migration.
-  # Any regular file or unexpected link is left for Home Manager's normal
-  # collision check (we deliberately do not use `force = true`).
-  home.activation.adoptManualVaultLinks =
-    lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-      for name in ${lib.escapeShellArgs sshFiles}; do
-        existing="$HOME/.ssh/$name"
-        if [ -L "$existing" ] &&
-           [ "$(readlink "$existing")" = "/secrets/ssh/keys/$name" ]; then
-          rm -- "$existing"
-        fi
-      done
-
-      existing="$HOME/.config/rclone/rclone.conf"
-      if [ -L "$existing" ] &&
-         [ "$(readlink "$existing")" = "/secrets/rclone/rclone.conf" ]; then
-        rm -- "$existing"
-      fi
-    '';
 }
