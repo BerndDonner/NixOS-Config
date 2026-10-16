@@ -118,7 +118,10 @@
       nodejs = {
         style = "fg:#000000 bg:#FCF392";
         format = "[ $symbol$version ]($style)";
-        detect_files = [ "package.json" ".node-version" "!bunfig.toml" "!bun.lockb" ];
+        # JavaScript files alone do not imply a Node.js project.
+        detect_extensions = [];
+        detect_files = [ "package.json" ".node-version" ".nvmrc" "!bunfig.toml" "!bun.lockb" ];
+        detect_folders = [ "node_modules" ];
       };
       bun  = { style = "fg:#000000 bg:#FCF392"; format = "[ $symbol$version ]($style)"; };
       deno = { style = "fg:#000000 bg:#FCF392"; format = "[ $symbol$version ]($style)"; };
