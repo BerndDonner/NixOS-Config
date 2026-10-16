@@ -36,10 +36,7 @@ let
     ++ lib.optionals includeCode [ codePackage ]
     ++ extraPackages;
 
-  promptHook =
-    if builtins.pathExists ../prompt-hook.nix
-    then import ../prompt-hook.nix { inherit symbol; }
-    else "";
+  promptHook = import ./prompt-hook.nix { inherit symbol; };
 in
 pkgs.mkShell {
   name = "electron-development";
