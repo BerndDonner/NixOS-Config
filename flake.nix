@@ -258,10 +258,22 @@
       # external flakes can use:
       #
       #   nixos-config.lib.mkPythonDevShell
+      #   nixos-config.lib.mkArduinoDevShell
+      #   nixos-config.lib.mkCDevShell
+      #   nixos-config.lib.mkElectronDevShell
       # -----------------------------------------------------------------------
       lib = {
         mkSecretShellHook =
           import ./lib/secret-shell-hook.nix;
+
+        mkArduinoDevShell =
+          import ./lib/arduino-develop.nix;
+
+        mkCDevShell =
+          import ./lib/c-develop.nix;
+
+        mkElectronDevShell =
+          import ./lib/electron-develop.nix;
 
         mkPythonDevShell =
           import ./lib/python-develop.nix;

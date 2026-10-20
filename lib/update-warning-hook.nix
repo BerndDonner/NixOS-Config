@@ -93,7 +93,7 @@ in
       if [ -n "$latest_rev" ] && [ "$latest_rev" != "$rev" ]; then
         printf "%b\n" "''${YELLOW}${symbol}  Notice:''${RESET} newer upstream revision detected!"
         printf "%b\n" "        → Latest upstream: $latest_rev"
-        printf "%b\n" "        → Run: nix flake lock --update-input $inputName"
+        printf "%b\n" "        → Run: nix flake update $inputName"
       fi
     else
       # For non-GitHub inputs, do a simple ls-remote check if possible
