@@ -1,7 +1,7 @@
 
 # python-base-shell.nix
 { pkgs
-, flakeLockPath ? ./flake.lock   # fallback for same-directory usage
+, flakeLockPath ? null  # Required when checkInputs is non-empty
 , symbol ? "🐍"
 , pythonVersion ? pkgs.python3
 , pythonPackages ? (_: [ ])  # importable Python packages, e.g. ps: [ ps.pyyaml ]
@@ -31,15 +31,19 @@ let
   promptHook = import ./prompt-hook.nix { inherit symbol; };
 
   updateWarningHook =
-    if inputs != null && checkInputs != [ ] then
+    if checkInputs == [ ] then
+      ""
+    else if inputs == null then
+      throw "mkPythonDevShell: checkInputs requires inputs to be provided."
+    else if flakeLockPath == null then
+      throw "mkPythonDevShell: checkInputs requires flakeLockPath (e.g. flakeLockPath = ./flake.lock; in the calling flake)."
+    else
       import ./update-warning-hook.nix {
         inherit inputs;
         inherit checkInputs;
         inherit flakeLockPath;
         symbol = "⚠️";
-      }
-    else
-      ""; # no-op if not provided
+      };
 in
 pkgs.mkShell {
   name = "python-env";

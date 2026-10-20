@@ -1,6 +1,6 @@
 # arduino-base-shell.nix
 { pkgs
-, flakeLockPath ? ./flake.lock   # fallback for same-directory usage
+, flakeLockPath ? null  # Required when checkInputs is non-empty
 , symbol ? "📟"
 , message ? "📟 Arduino development environment ready"
 , inputs ? null             # optional flake inputs
@@ -17,15 +17,19 @@ let
 
   # Update warning hook (optional)
   updateWarningHook =
-    if inputs != null && checkInputs != [ ] then
+    if checkInputs == [ ] then
+      ""
+    else if inputs == null then
+      throw "mkArduinoDevShell: checkInputs requires inputs to be provided."
+    else if flakeLockPath == null then
+      throw "mkArduinoDevShell: checkInputs requires flakeLockPath (e.g. flakeLockPath = ./flake.lock; in the calling flake)."
+    else
       import ./update-warning-hook.nix {
         inherit inputs;
         inherit checkInputs;
         inherit flakeLockPath;
         symbol = "⚠";
-      }
-    else
-      ""; # no-op if not provided
+      };
 in
 pkgs.mkShell {
   name = "arduino-env";

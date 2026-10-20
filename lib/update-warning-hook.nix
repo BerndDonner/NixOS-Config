@@ -1,13 +1,16 @@
 { inputs
 , checkInputs ? [ ]
-, flakeLockPath ? ./flake.lock   # fallback for same-directory usage
+, flakeLockPath
 , symbol ? "⚠️"
 }:
 
 let
-  # Read the lock file (relative to where this module lives)
+  # Always read the consuming flake's explicit lock file.
   flakeLock =
-    builtins.fromJSON (builtins.readFile flakeLockPath);
+    if builtins.pathExists flakeLockPath then
+      builtins.fromJSON (builtins.readFile flakeLockPath)
+    else
+      throw "update-warning-hook: flakeLockPath does not exist: ${toString flakeLockPath}";
 
   sanitize = name: builtins.replaceStrings [ "-" ] [ "_" ] name;
 

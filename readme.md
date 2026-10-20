@@ -133,3 +133,24 @@ getfacl "$DEV"
 The raw USB node should be owned by group `kvm-arduino` and be writable by the
 group. This rule is intentionally limited to `2341:0043`; Arduino clones or
 other boards with different USB vendor/product IDs need their own explicit rule.
+
+---
+
+## Shared development shells
+
+The public `lib` exports include `mkPythonDevShell`, `mkArduinoDevShell`,
+`mkCDevShell`, and `mkElectronDevShell`. For shells that check flake input
+revisions, the consuming flake **must** supply its own lockfile path:
+
+```nix
+devShells.${system}.default = nixos-config.lib.mkPythonDevShell {
+  inherit pkgs;
+  inputs = { inherit nixos-config nixpkgs; };
+  checkInputs = [ "nixos-config" ];
+  flakeLockPath = ./flake.lock;
+};
+```
+
+The lock path is relative to the **calling flake**, not this repository's
+`lib/` directory. A nested flake therefore uses its own `./flake.lock`.
+For shells without `checkInputs`, `inputs` and `flakeLockPath` are optional.
