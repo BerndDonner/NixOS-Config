@@ -14,9 +14,9 @@ final: prev: {
               setup.py
           '';
 
-          preConfigure = ''
+          preConfigure = (old.preConfigure or "") + ''
             export PYGAME_DETECT_AVX2=1
-            ${old.python.pythonOnBuildForHost.interpreter} \
+            ${pyfinal.python.pythonOnBuildForHost.interpreter} \
               buildconfig/config.py
           '';
 
