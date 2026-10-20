@@ -113,6 +113,7 @@
             ./modules/nixos/starship.nix
             ./modules/nixos/nordvpn.nix
             ./modules/nixos/virtualisation.nix
+            ./modules/nixos/brother-hl2140.nix
 
             home-manager.nixosModules.home-manager
 
@@ -148,6 +149,7 @@
             ./modules/nixos/starship.nix
             ./modules/nixos/nordvpn.nix
             ./modules/nixos/virtualisation.nix
+            ./modules/nixos/brother-hl2140.nix
 
             home-manager.nixosModules.home-manager
 

@@ -81,9 +81,6 @@
     layout = "eu";
   };
 
-  # Printing
-  services.printing.enable = true;
-
   # Audio (PipeWire)
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
