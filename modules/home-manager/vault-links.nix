@@ -20,7 +20,11 @@ in
     name = ".ssh/${name}";
     value.source = config.lib.file.mkOutOfStoreSymlink "/secrets/ssh/keys/${name}";
   }) sshFiles) // {
-    ".config/rclone/rclone.conf".source =
-      config.lib.file.mkOutOfStoreSymlink "/secrets/rclone/rclone.conf";
+    # Link the entire directory, not the config file.
+    # rclone must create temporary files here when refreshing OAuth tokens.
+    ".config/rclone" = {
+      source = config.lib.file.mkOutOfStoreSymlink "/secrets/rclone";
+      recursive = false;
+    };
   };
 }
