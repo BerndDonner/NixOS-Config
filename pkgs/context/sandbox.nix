@@ -167,6 +167,10 @@ PY
       )
     done
 
+    # A mocked engine tests cache contention, marker reuse and cleanup after
+    # an initialization failure. No additional runtime tool is bundled.
+    bash ${./tests/check-portable-cache-lock.sh} ${./context-local.sh}
+
     # Remove Nix-store interpreter paths from the portable launchers. In the
     # final archive, /usr/bin/env resolves bash on the target Linux machine.
     # mtxrun and context remain symlinks to the same portable engine wrapper.

@@ -9,6 +9,7 @@
 , runtimeShell
 , vim
 , patch
+, util-linux
 , contextSource
 , contextRevision
 }:
@@ -102,15 +103,49 @@ EOF
     cat >> "$out/bin/context-init-cache" <<EOF
 MTXRUN="$out/tex/texmf-linux-64/bin/mtxrun"
 CONTEXT="$out/tex/texmf-linux-64/bin/context"
+FLOCK="${util-linux}/bin/flock"
+CACHE_MARKER="\$CACHE_ROOT/.context-ready-$(basename "$out")"
+LOCK_FILE="\$CACHE_ROOT/.context-init-$(basename "$out").lock"
 
-echo "Initializing ConTeXt cache in \$CACHE_ROOT/luametatex-cache ..." >&2
+# Explicit invocation without arguments still forces a rebuild.
+# The context wrapper uses --if-needed and rechecks under the lock.
+mode=--force
+if [ "\$#" -gt 0 ]; then
+  if [ "\$#" -ne 1 ]; then
+    echo 'Usage: context-init-cache [--force|--if-needed]' >&2
+    exit 2
+  fi
+  mode="\$1"
+fi
+case "\$mode" in
+  --force|--if-needed) ;;
+  *) echo 'Usage: context-init-cache [--force|--if-needed]' >&2; exit 2 ;;
+esac
 
 mkdir -p "\$CACHE_ROOT"
+# An open file descriptor holds a kernel-managed lock. It is released on
+# exit, including when initialization fails or the process is killed.
+exec 9>"\$LOCK_FILE"
+"\$FLOCK" -x 9
+
+if [ "\$mode" = --if-needed ] && [ -f "\$CACHE_MARKER" ]; then
+  exit 0
+fi
+
+# Invalidate even a formerly valid marker before an explicit rebuild.
+rm -f "\$CACHE_MARKER"
+echo "Initializing ConTeXt cache in \$CACHE_ROOT/luametatex-cache ..." >&2
 "\$MTXRUN" --generate
 "\$MTXRUN" --script fonts --reload
 "\$CONTEXT" --make
-# The marker is written only after generate, font reload and format build.
-touch "\$CACHE_ROOT/.context-ready-$(basename "$out")"
+
+# Publish only a completely generated cache. A crash while writing the
+# temporary file cannot leave a successful-looking readiness marker.
+marker_tmp="\$CACHE_MARKER.tmp.\$\$"
+trap 'rm -f "\$marker_tmp"' EXIT
+printf '%s\\n' '$(basename "$out")' > "\$marker_tmp"
+mv -f "\$marker_tmp" "\$CACHE_MARKER"
+trap - EXIT
 EOF
 
     # ----------------------------------------------------------------------
@@ -146,7 +181,7 @@ CACHE_MARKER="\$CACHE_ROOT/.context-ready-$(basename "$out")"
 # A directory can exist after a failed partial initialization. The marker is
 # written only by context-init-cache once all initialization steps succeed.
 if [ ! -f "\$CACHE_MARKER" ]; then
-  "$out/bin/context-init-cache"
+  "$out/bin/context-init-cache" --if-needed
 fi
 
 exec "$out/tex/texmf-linux-64/bin/context" "\$@"
@@ -250,6 +285,8 @@ EOF
         fi
       )
     done
+    # Exercise two simultaneous first starts and forced reinitialization.
+    bash ${./tests/check-native-cache-lock.sh} "$out/bin/context"
   '';
 
   meta = with lib; {

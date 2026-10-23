@@ -50,3 +50,27 @@ CARLITO_TEST_FONTDIR=/path/to/fonts \
 
 This optional override tests font loading, **not** the NixOS wrapper's default
 `OSFONTDIR` behavior. It is not part of either derivation's build checks.
+
+## Cache synchronization regression
+
+`check-native-cache-lock.sh` runs during the local package build. It starts
+two real ConTeXt documents concurrently with an empty shared cache, checks
+that initialization occurs only once, verifies subsequent reuse and a forced
+rebuild, and checks that an invalid cache directory fails cleanly. It can
+also be run against an already built package:
+
+```bash
+bash pkgs/context/tests/check-native-cache-lock.sh ./result-context/bin/context
+```
+
+`check-portable-cache-lock.sh` runs during the portable bundle build and can
+also be run independently without the ConTeXt engine:
+
+```bash
+bash pkgs/context/tests/check-portable-cache-lock.sh pkgs/context/context-local.sh
+```
+
+It uses fake engine entrypoints to deterministically test four parallel
+first starts, no unnecessary rerun, an error during format creation,
+removal of the lock, and successful recovery on the next invocation.
+The real bundle still runs its regular PDF/filter/Vim smoke tests separately.

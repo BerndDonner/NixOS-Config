@@ -65,6 +65,42 @@ checks the exact system font paths in ConTeXt's log. It requires Carlito to
 be present system-wide and cannot run inside a pure Nix build sandbox.
 For details and a portable debug override, see `tests/README.md`.
 
+## Cache synchronization
+
+The local `context` wrapper initializes its per-user cache on demand. The
+`context-init-cache` helper now serializes initialization with an advisory
+**kernel `flock`** on a lock file in `TEXMFCACHE`. It checks the readiness
+marker again *after* taking the lock, so simultaneous first starts run
+`mtxrun --generate`, `mtxrun --script fonts --reload` and `context --make`
+only once. The lock is automatically released on process exit, including
+failed initialization. The readiness marker is published with an atomic
+rename only after all three steps succeed.
+
+To rebuild deliberately (e.g. after changing system font configuration):
+
+```bash
+./result-context/bin/context-init-cache --force
+```
+
+An explicit invocation without options also forces initialization, as before.
+`--if-needed` is for the `context` wrapper and skips a valid cache. A failed
+forced rebuild removes the old ready marker; the next normal `context` call
+will retry. Locking protects cache *initialization*, not running documents
+against an administrator explicitly forcing a cache rebuild at the same time.
+
+The **portable launcher** uses an atomic `mkdir` lock instead of requiring
+`flock` in the target environment. It rechecks the marker after acquiring
+the lock, cleans up on normal errors/signals, and gives up after five minutes
+rather than hanging forever. Only an abrupt SIGKILL/power loss can leave the
+`.context-init-<bundle-hash>.lock` directory behind; after checking no
+initializer is active, remove that *directory* manually to recover. The
+ready marker is similarly published atomically.
+
+Build-time integration tests now cover simultaneous first starts, reuse of
+existing cache state, forced native reinitialization, and error handling.
+Portable lock behavior is also verified using a mocked engine so failure
+paths can be exercised deterministically.
+
 ## Sandbox archive
 
 `nix build .#context-sandbox -o result-sandbox` yields a **regular `.tar.xz`
