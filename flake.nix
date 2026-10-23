@@ -241,6 +241,7 @@
       #
       #   nixos-config.packages.x86_64-linux.bootdev-cli
       #   nixos-config.packages.x86_64-linux.context
+      #   nixos-config.packages.x86_64-linux.context-docs
       #   nixos-config.packages.x86_64-linux.nordvpn
       #   nixos-config.packages.x86_64-linux.scope-rs
       # -----------------------------------------------------------------------
@@ -252,6 +253,13 @@
 
         context-sandbox = pkgs.callPackage ./pkgs/context/sandbox.nix {
           contextPackage = pkgs.contextLmtx;
+        };
+
+        # Optional LMTX/MkIV documentation sources, kept separate from the
+        # executable sandbox. Both use the same pinned ConTeXt package.
+        context-docs = pkgs.callPackage ./pkgs/context/docs.nix {
+          contextPackage = pkgs.contextLmtx;
+          contextRevision = inputs.context-src.rev or "unknown";
         };
 
         nordvpn =

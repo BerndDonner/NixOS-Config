@@ -125,6 +125,39 @@ Keep `.tar.xz` for now. `context-agent` currently unpacks the payload using
 `tar -xJf` in its bootstrap script. Changing to `.tar.zst` requires updating
 that script and its bundle transport too; zstd on the host alone is not enough.
 
+## Optional documentation source archive
+
+`nix build .#context-docs -o result-docs` produces a separate **`.tar.xz`
+file** from the *same* `pkgs.contextLmtx` derivation as `.#context` and
+`.#context-sandbox`. The local NixOS package still has the complete upstream
+`texmf-context/doc` directory. Neither the local `installPhase` nor the
+runtime sandbox changes.
+
+Inside the archive, `context-lmtx-docs/doc/` preserves the upstream
+`doc/context/` structure with source manuals, examples, MkXL/LMTX **and MkIV**
+reference material, and associated images/other assets. All `.pdf` files,
+legacy `mkii` directories and stand-alone `.mkii` files are omitted. As a
+source/reference collection, the archive is **not guaranteed to be
+self-contained for compiling every manual**, since some examples may refer to
+excluded PDF assets or external libraries.
+
+A `manifest.json` records the pinned ConTeXt revision, package version, the
+SHA-256 of the original complete documentation tree and the SHA-256 and file
+count of the retained sources. To build and compare against `.#context`:
+
+```bash
+git add flake.nix pkgs/context/docs.nix \
+  pkgs/context/make-docs-manifest.py pkgs/context/verify-docs.py
+nix build .#context-docs -o result-docs --show-trace
+nix develop .#context -c python3 \
+  pkgs/context/verify-docs.py result-context result-docs
+```
+
+The documentation archive is **optional** for `context-agent`: upload it
+separately when reference sources are useful. Do not replace the runtime
+`context-lmtx-ready.tar.xz` with it. Prefer MkXL material for current LMTX
+usage and consult MkIV material only with compatibility checks.
+
 The sandbox builder does **not** fetch, compile or install a second ConTeXt.
 It runs three separate regression documents: fonts/units/MetaPost, a real
 external copy filter creating new input and output files, and Python code
