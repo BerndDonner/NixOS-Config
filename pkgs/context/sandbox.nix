@@ -8,6 +8,7 @@
 , gawk
 , gnugrep
 , python3
+, vim
 }:
 
 # Portable x86_64-linux artifact from the EXACT package used by Home Manager.
@@ -20,7 +21,9 @@ stdenvNoCC.mkDerivation {
   dontConfigure = true;
   dontBuild = true;
 
-  nativeBuildInputs = [ coreutils gnutar xz gawk gnugrep python3 ];
+  # Needed only to exercise the external syntax highlighter in the build.
+  # It is intentionally not copied into the portable archive.
+  nativeBuildInputs = [ coreutils gnutar xz gawk gnugrep python3 vim ];
 
   installPhase = ''
     runHook preInstall
@@ -127,7 +130,7 @@ PY
     # Do not patch the host ConTeXt installPhase or the installed TeX tree.
     patchShebangs --host "$bin/luametatex" "$root/context-local.sh"
 
-    # Regression gate inside the Nix build: loader, fonts, MetaPost, modules.
+    # Regression gate: loader, fonts, MetaPost, real copy filter and Vim.
     test -f "$root/tex/texmf-context/tex/context/third/filter/t-filter.mkxl"
     test -f "$root/tex/texmf-context/tex/context/third/vim/t-syntax-highlight.mkxl"
     "$bin/luametatex" --version > "$TMPDIR/engine-version.txt"
@@ -135,21 +138,34 @@ PY
     export HOME="$TMPDIR/home"
     export TEXMFCACHE="$TMPDIR/cache"
     mkdir -p "$HOME" "$TMPDIR/smoke"
-    cp ${./tests/smoke.tex} "$TMPDIR/smoke/smoke.tex"
-    cp ${./tests/modules.tex} "$TMPDIR/smoke/modules.tex"
-    (
-      cd "$TMPDIR/smoke"
-      "$root/context-local.sh" --once smoke.tex > "$TMPDIR/smoke.log" 2>&1 || {
-        cat "$TMPDIR/smoke.log" >&2
-        exit 1
-      }
-      test -s smoke.pdf
-      "$root/context-local.sh" --once modules.tex > "$TMPDIR/modules.log" 2>&1 || {
-        cat "$TMPDIR/modules.log" >&2
-        exit 1
-      }
-      test -s modules.pdf
-    )
+    for test_name in smoke filter vim; do
+      mkdir -p "$TMPDIR/smoke/$test_name"
+      cp "${./tests}/$test_name.tex" "$TMPDIR/smoke/$test_name/$test_name.tex"
+      (
+        cd "$TMPDIR/smoke/$test_name"
+        "$root/context-local.sh" --once "$test_name.tex" > "$TMPDIR/$test_name.log" 2>&1 || {
+          cat "$TMPDIR/$test_name.log" >&2
+          exit 1
+        }
+        test -s "$test_name.pdf" || {
+          echo "Missing or empty PDF for $test_name" >&2
+          exit 1
+        }
+        if [ "$test_name" = filter ]; then
+          grep -Fq 'The external filter created its temporary files.' \
+            filter-temp-copy.tex || {
+              echo 'Copy filter did not generate its output' >&2
+              exit 1
+            }
+        fi
+        if [ "$test_name" = vim ]; then
+          grep -Fq '\SYN[' vim-temp-PYTHON-0.vimout || {
+            echo 'Vim did not generate ConTeXt highlighting tokens' >&2
+            exit 1
+          }
+        fi
+      )
+    done
 
     # Remove Nix-store interpreter paths from the portable launchers. In the
     # final archive, /usr/bin/env resolves bash on the target Linux machine.

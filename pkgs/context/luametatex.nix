@@ -7,24 +7,17 @@
 , gnumake
 , ninja
 , runtimeShell
-, contextSource ? null
-, contextRevision ? null
+, vim
+, patch
+, contextSource
+, contextRevision
 }:
 
 stdenv.mkDerivation rec {
   pname = "luametatex";
-  # When called from the main flake, the locked context-src input is used.
-  # Keep the old fixed-output source as a backwards-compatible fallback for
-  # users of the standalone package definition.
-  version = if contextSource == null then "2.11.07"
-            else "unstable-${builtins.substring 0 12 (if contextRevision == null then "unknown" else contextRevision)}";
-
-  src = if contextSource != null then contextSource else fetchFromGitHub {
-    owner = "contextgarden";
-    repo  = "context";
-    rev   = "41a8e614f633b55052f2087ee9400130eb432b54";
-    hash  = "sha256-8yuhTSsnb5ud62CpKgHa+qNZWSJZi9tR8wvSGu4oJ08=";
-  };
+  # The source is pinned exclusively by the root flake.lock.
+  version = "unstable-${builtins.substring 0 12 contextRevision}";
+  src = contextSource;
 
   # Retain the proven filter/vim release; it is used by teaching documents.
   moduleFilter = fetchFromGitHub {
@@ -41,7 +34,9 @@ stdenv.mkDerivation rec {
     sha256 = "sha256-S3kCPJqB+0+CD7S7ai6yalOQihzhHy6XS1krFdWhdVc=";
   };
 
-  nativeBuildInputs = [ cmake gnumake ninja coreutils ];
+  # Real filter/Vim tests run during the build; these tools are not
+  # runtime dependencies of the installed NixOS ConTeXt package.
+  nativeBuildInputs = [ cmake gnumake ninja coreutils vim patch ];
 
   # Use the upstream default LuaMetaTeX build (without LuaSocket).
   # ConTeXt 2026 launches through mtxrun.lmt/context.lmt, not mtxrun.lua.
@@ -198,6 +193,12 @@ EOF
   # mtx-context.lua or an unusable TeX tree already in the local package.
   # Keep all caches, including format files, outside the read-only Nix store.
   postInstall = ''
+    # Temporary compatibility fix for adityam/filter (LMTX only).
+    # Keep MkIV unchanged; upstream ConTeXt bugs remain upstream.
+    # Fail rather than silently ignore upstream changes to this module.
+    filter_dir="$out/tex/texmf-context/tex/context/third/filter"
+    patch --batch --fuzz=0 -d "$filter_dir" -p0 < ${./patches/filter-lmtx-writable.patch}
+
     export HOME="$TMPDIR/context-smoke-home"
     export TEXMFCACHE="$TMPDIR/context-smoke-cache"
     mkdir -p "$HOME" "$TMPDIR/context-smoke-doc"
@@ -213,14 +214,37 @@ EOF
     "$out/bin/context" --make > "$TMPDIR/ctx-make.log" 2>&1 || {
       cat "$TMPDIR/ctx-make.log" >&2; exit 1;
     }
-    cp ${./tests/smoke.tex} "$TMPDIR/context-smoke-doc/smoke.tex"
-    (
-      cd "$TMPDIR/context-smoke-doc"
-      "$out/bin/context" --once smoke.tex > "$TMPDIR/ctx-smoke.log" 2>&1 || {
-        cat "$TMPDIR/ctx-smoke.log" >&2; exit 1;
-      }
-      test -s smoke.pdf
-    )
+    for test_name in smoke filter vim; do
+      # New temporary files are essential to reproduce the LMTX bug.
+      test_dir="$TMPDIR/context-smoke-doc/$test_name"
+      mkdir -p "$test_dir"
+      cp "${./tests}/$test_name.tex" "$test_dir/$test_name.tex"
+      (
+        cd "$test_dir"
+        "$out/bin/context" --once "$test_name.tex" > "$TMPDIR/ctx-$test_name.log" 2>&1 || {
+          cat "$TMPDIR/ctx-$test_name.log" >&2; exit 1;
+        }
+        test -s "$test_name.pdf" || {
+          echo "Missing or empty PDF for $test_name" >&2; exit 1;
+        }
+        if [ "$test_name" = filter ]; then
+          grep -Fq 'The external filter created its temporary files.' \
+            filter-temp-copy.tex || {
+              echo 'The external copy filter did not produce its output' >&2
+              exit 1
+            }
+        fi
+        if [ "$test_name" = vim ]; then
+          # A PDF can still be created if highlighting silently fails.
+          # Inspect Vim's intermediate TeX instead of only checking the PDF.
+          if ! grep -Fq '\SYN[' vim-temp-PYTHON-0.vimout; then
+            echo 'Vim returned no ConTeXt highlighting tokens' >&2
+            ls -la >&2
+            exit 1
+          fi
+        fi
+      )
+    done
   '';
 
   meta = with lib; {
@@ -233,7 +257,7 @@ EOF
 
   passthru = {
     # Evaluated metadata; used by the independent sandbox archive derivation.
-    contextRevision = if contextRevision == null then "legacy" else contextRevision;
+    inherit contextRevision;
     tests.smoke = ''
       $out/bin/luametatex --version
     '';

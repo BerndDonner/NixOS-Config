@@ -1,0 +1,10 @@
+% Regression: the external filter must create new input and output files.
+\usemodule[filter]
+\defineexternalfilter
+  [copy]
+  [filtercommand={cp \externalfilterinputfile\space \externalfilteroutputfile}]
+\starttext
+\startcopy
+The external filter created its temporary files.
+\stopcopy
+\stoptext

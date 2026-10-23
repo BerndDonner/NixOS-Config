@@ -260,6 +260,12 @@
         scope-rs = pkgs.scope-rs;
       };
 
+      # Python is only needed for the bundle integrity verifier, not as a
+      # system runtime dependency of ConTeXt.
+      devShells.${system}.context = pkgs.mkShellNoCC {
+        packages = [ pkgs.python3 ];
+      };
+
       # -----------------------------------------------------------------------
       # Reusable overlays
       #

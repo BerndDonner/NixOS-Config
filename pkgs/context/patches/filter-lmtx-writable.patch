@@ -1,0 +1,11 @@
+--- t-filter.mkxl
++++ t-filter.mkxl
+@@ -346,4 +346,7 @@
+-    \ctxcommand{doifnot(file.is_writable("#1"))}
++    % Current LMTX only considers existing files in file.is_writable.
++    % Filter input/output files may not exist yet; check their directory.
++    % Prefix bare filenames with ./ for compatibility with file.canbewritten.
++    \ctxcommand{doifnot(file.canbewritten(file.pathpart("#1") == "" and "./#1" or "#1"))}
+         {\showmessage\m!externalfilter{unwriteable}{#1}
+          \batchmode
+          \errmessage{}
