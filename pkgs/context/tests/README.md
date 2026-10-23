@@ -22,3 +22,31 @@ Do not change `t-filter.mkiv`: its writeability check has different semantics.
 
 These checks do not establish full typographic correctness of `\unit` or
 `\digits`. Those will be tested separately after upstream fixes land.
+
+## NixOS system-font integration (manual)
+
+A derivation sandbox cannot inspect the fonts installed in the *host* NixOS
+system. Run this regression check on kitty/tracy after building `.#context`
+(and before switching your system):
+
+```bash
+pkgs/context/tests/check-system-carlito.sh ./result-context/bin/context
+```
+
+The script creates an isolated temporary home/cache, **unsets `OSFONTDIR`**
+so that the installed NixOS wrapper must populate its default paths, compiles
+`system-carlito.tex` and requires that both Carlito Regular and Bold were
+loaded from `/run/current-system/sw/share/{X11/fonts,fonts}`. The test fails
+rather than silently accepting a bundled font or a Latin Modern fallback.
+It requires system-wide Carlito to be installed; it does not install it.
+
+For debugging the same test with a portable ConTeXt installation on a
+non-NixOS host, you can explicitly provide an alternate font directory:
+
+```bash
+CARLITO_TEST_FONTDIR=/path/to/fonts \
+  pkgs/context/tests/check-system-carlito.sh /path/to/context-local.sh
+```
+
+This optional override tests font loading, **not** the NixOS wrapper's default
+`OSFONTDIR` behavior. It is not part of either derivation's build checks.

@@ -164,8 +164,12 @@ EOF
       cp -r "$src/$d" "$out/tex/texmf-context/"
     done
 
-    # Allow modifications while adding third-party modules
-    chmod -R u+w "$out"
+    # The copied Git tree may contain read-only directories (Nix store).
+    # Only these parents must be writable to add third-party modules;
+    # do not recursively chmod the entire TeX tree.
+    chmod u+w \
+      "$out/tex/texmf-context/tex/context" \
+      "$out/tex/texmf-context/doc/context"
 
     # Third-party modules (filter + vim)
     mkdir -p \
@@ -197,6 +201,7 @@ EOF
     # Keep MkIV unchanged; upstream ConTeXt bugs remain upstream.
     # Fail rather than silently ignore upstream changes to this module.
     filter_dir="$out/tex/texmf-context/tex/context/third/filter"
+    chmod u+w "$filter_dir/t-filter.mkxl"
     patch --batch --fuzz=0 -d "$filter_dir" -p0 < ${./patches/filter-lmtx-writable.patch}
 
     export HOME="$TMPDIR/context-smoke-home"
@@ -251,7 +256,7 @@ EOF
     description = "LuaMetaTeX engine (ConTeXt LMTX) – integrates TeX and MetaPost with Lua";
     homepage    = "https://wiki.contextgarden.net";
     license     = licenses.gpl2;
-    platforms   = platforms.unix;
+    platforms   = [ "x86_64-linux" ];
     maintainers = [ ];
   };
 

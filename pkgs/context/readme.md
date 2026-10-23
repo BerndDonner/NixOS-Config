@@ -50,6 +50,21 @@ Python is not installed system-wide by this development shell.
 Home Manager on `kitty` and `tracy` installs the same `pkgs.contextLmtx`.
 Use your normal NixOS rebuild workflow only after the builds pass.
 
+### Host font regression (Carlito)
+
+After `nix build .#context` and before switching your NixOS system, verify
+that the **installed wrapper** still discovers Carlito from the system font
+paths (not only the fonts bundled in the TeX tree):
+
+```bash
+pkgs/context/tests/check-system-carlito.sh ./result-context/bin/context
+```
+
+The test uses a new temporary cache, loads Carlito Regular and Bold and
+checks the exact system font paths in ConTeXt's log. It requires Carlito to
+be present system-wide and cannot run inside a pure Nix build sandbox.
+For details and a portable debug override, see `tests/README.md`.
+
 ## Sandbox archive
 
 `nix build .#context-sandbox -o result-sandbox` yields a **regular `.tar.xz`

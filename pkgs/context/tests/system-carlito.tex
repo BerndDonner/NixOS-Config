@@ -1,0 +1,9 @@
+% Integration test: fonts must come from the HOST system, not texmf.zip.
+% Use direct font names to test both Carlito faces independently of a typescript.
+\starttext
+\definedfont[name:carlito-regular*default at 12pt]
+Carlito Regular 12345.
+\par
+\definedfont[name:carlito-bold*default at 12pt]
+Carlito Bold 67890.
+\stoptext
