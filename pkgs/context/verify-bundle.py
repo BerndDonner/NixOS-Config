@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Verify exact ConTeXt engine and TeX tree identity in a portable archive.
+"""Verify engine identity and LMTX runtime assets in a portable archive.
 
 Run after building both derivations:
   python3 pkgs/context/verify-bundle.py result-context result-sandbox
 
 The bundles may contain different wrappers and dynamic library paths. This
-verifies the engine and all shipped TeX assets, including filter and vim.
+verifies the engine and the complete retained TeX assets, including filter and vim.
 """
 from __future__ import annotations
 
@@ -25,10 +25,28 @@ def sha_file(path: Path) -> str:
     return hasher.hexdigest()
 
 
-def sha_tree(path: Path) -> str:
+EXCLUDED = [
+    'texmf-context/doc',
+    'texmf-context/tex/context/**/mkii',
+    'texmf-context/tex/context/**/*.mkii',
+]
+
+
+def is_excluded(relative: str) -> bool:
+    parts = relative.split('/')
+    if parts[:2] == ['texmf-context', 'doc']:
+        return True
+    if parts[:3] == ['texmf-context', 'tex', 'context']:
+        return 'mkii' in parts[3:-1] or relative.endswith('.mkii')
+    return False
+
+
+def sha_tree(path: Path, *, prune: bool = False) -> str:
     hasher = hashlib.sha256()
     for child in sorted(p for p in path.rglob("*") if p.is_file()):
         relative = child.relative_to(path).as_posix()
+        if prune and is_excluded(relative):
+            continue
         if relative in ("texmf-linux-64/bin/luametatex",
                         "texmf-linux-64/bin/luametatex.bin",
                         "texmf-linux-64/bin/mtxrun",
@@ -52,6 +70,8 @@ def verify(context_package: Path, archive: Path) -> None:
             source.extractall(destination, filter="data")
         bundled = destination / "context-lmtx-ready"
         manifest = json.loads((bundled / "manifest.json").read_text())
+        assert manifest['schema_version'] == 2, 'Unexpected manifest schema'
+        assert manifest['excluded'] == EXCLUDED, 'Unexpected pruning policy'
         local_engine = context_package / "tex/texmf-linux-64/bin/luametatex"
         bundled_engine = bundled / "tex/texmf-linux-64/bin/luametatex.bin"
         for name in ("mtxrun", "context"):
@@ -62,15 +82,19 @@ def verify(context_package: Path, archive: Path) -> None:
             assert portable_link.is_symlink() and portable_link.readlink() == Path("luametatex"), \
                 f"Unexpected portable entrypoint: {name}"
         expected_engine = sha_file(local_engine)
-        expected_tree = sha_tree(context_package / "tex")
+        source_tex = context_package / 'tex'
+        expected_source_tree = sha_tree(source_tex)
+        expected_runtime_tree = sha_tree(source_tex, prune=True)
         assert expected_engine == sha_file(bundled_engine) == manifest["engine_sha256"], \
             "LuaMetaTeX engine differs"
-        assert expected_tree == sha_tree(bundled / "tex") == manifest["tex_tree_sha256"], \
-            "ConTeXt TeX/font tree differs"
-        print("OK: identical LuaMetaTeX engine and full TeX tree")
+        assert expected_source_tree == manifest['source_tex_tree_sha256'], \
+            'Original desktop TeX tree differs'
+        assert expected_runtime_tree == sha_tree(bundled / 'tex') == manifest['tex_tree_sha256'], \
+            'Retained LMTX runtime assets differ'
+        print("OK: identical LuaMetaTeX engine and retained LMTX runtime assets")
         print("ConTeXt revision:", manifest["context_revision"])
         print("Engine SHA-256:", expected_engine)
-        print("TeX tree SHA-256:", expected_tree)
+        print("Portable TeX tree SHA-256:", expected_runtime_tree)
 
 
 def main() -> None:

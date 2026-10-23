@@ -35,6 +35,15 @@ stdenvNoCC.mkDerivation {
     cp -aL ${contextPackage}/tex/. "$root/tex/"
     chmod -R u+w "$root"
 
+    # Keep the desktop package complete, but ship only runtime material in
+    # the portable LMTX bundle. LMTX still imports Lua code from mkiv, so
+    # never remove mkiv directories or their scripts.
+    rm -rf "$root/tex/texmf-context/doc"
+    find "$root/tex/texmf-context/tex/context" \
+      -type d -name mkii -prune -exec rm -rf -- '{}' +
+    find "$root/tex/texmf-context/tex/context" \
+      -type f -name '*.mkii' -delete
+
     bin="$root/tex/texmf-linux-64/bin"
     mv "$bin/luametatex" "$bin/luametatex.bin"
     # The NixOS package has engine aliases. Replace any dereferenced ELF
@@ -79,9 +88,11 @@ stdenvNoCC.mkDerivation {
     cp ${./context-local.sh} "$root/context-local.sh"
     chmod 755 "$root/context-local.sh"
 
-    # Checksums of the installed engine and complete TeX tree. The resulting
-    # manifest is embedded in the archive and travels with each Hosted run.
+    # Verify provenance against the complete desktop tree, but hash the
+    # explicitly pruned portable tree separately. This allows the verifier
+    # to detect missing *runtime* assets without requiring bundled manuals.
     export CTX_BUNDLE_ROOT="$root"
+    export CTX_SOURCE_TEX='${contextPackage}/tex'
     export CTX_REVISION='${contextPackage.contextRevision or "unknown"}'
     export CTX_VERSION='${contextPackage.version}'
     ${python3}/bin/python3 - <<'PY'
@@ -111,7 +122,10 @@ def sha_tree(path):
         h.update(bytes.fromhex(sha_file(child)))
     return h.hexdigest()
 manifest = dict(
-    schema_version=1,
+    schema_version=2,
+    source_tex_tree_sha256=sha_tree(Path(os.environ['CTX_SOURCE_TEX'])),
+    excluded=['texmf-context/doc', 'texmf-context/tex/context/**/mkii',
+              'texmf-context/tex/context/**/*.mkii'],
     context_revision=os.environ['CTX_REVISION'],
     package_version=os.environ['CTX_VERSION'],
     architecture='x86_64-linux',
@@ -129,6 +143,15 @@ PY
     # for build-time smoke tests; restore portable ones before archiving.
     # Do not patch the host ConTeXt installPhase or the installed TeX tree.
     patchShebangs --host "$bin/luametatex" "$root/context-local.sh"
+
+    # Fail immediately if obsolete material accidentally re-enters the bundle.
+    test ! -e "$root/tex/texmf-context/doc"
+    if find "$root/tex/texmf-context/tex/context" \
+        \( -type d -name mkii -o -type f -name '*.mkii' \) \
+        -print -quit | grep -q .; then
+      echo 'Legacy MkII files still present in LMTX sandbox' >&2
+      exit 1
+    fi
 
     # Regression gate: loader, fonts, MetaPost, real copy filter and Vim.
     test -f "$root/tex/texmf-context/tex/context/third/filter/t-filter.mkxl"

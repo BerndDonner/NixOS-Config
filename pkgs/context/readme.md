@@ -107,11 +107,23 @@ paths can be exercised deterministically.
 file**, with the same root layout as the previous
 `context-lmtx-ready.tar.xz`. The archive includes:
 
-- exactly the installed engine and ConTeXt tree from `packages.context`;
-- the pinned `texmf.zip` files, fonts, `filter` and `vim` modules;
+- exactly the installed LuaMetaTeX engine from `packages.context`;
+- all required LMTX runtime files, fonts, `filter` and `vim` modules;
 - the ELF loader and the dynamically resolved shared libraries (without Nix);
-- `context-local.sh` and `manifest.json` with source revision, engine SHA256
-  and a deterministic SHA256 over the complete TeX tree.
+- `context-local.sh` and `manifest.json` with the source revision, engine
+  SHA256, a checksum of the **complete original** TeX tree, and another
+  checksum of the **retained portable** TeX tree.
+
+The desktop package stays complete. The portable bundle omits upstream
+reference/documentation files under `texmf-context/doc`, legacy `mkii`
+directories, and stand-alone `*.mkii` files. It deliberately **keeps `mkiv`**:
+LMTX loads many shared Lua files from that directory. The verifier compares
+the portable tree against precisely this projection of the desktop tree,
+so missing runtime files still fail verification.
+
+Keep `.tar.xz` for now. `context-agent` currently unpacks the payload using
+`tar -xJf` in its bootstrap script. Changing to `.tar.zst` requires updating
+that script and its bundle transport too; zstd on the host alone is not enough.
 
 The sandbox builder does **not** fetch, compile or install a second ConTeXt.
 It runs three separate regression documents: fonts/units/MetaPost, a real
@@ -147,7 +159,9 @@ printf '\\starttext ConTeXt test \\stoptext\n' > test.tex
 
 ### Font consistency and limitations
 
-The **engine and bundled TeX/font tree** are built identically. Both NixOS and
+The **engine and all retained TeX/font runtime assets** are identical to the
+corresponding files in the NixOS package, excluding only the documented
+reference and MkII paths above. Both NixOS and
 the portable bundle use the upstream `.lmt` runners; LuaSocket is not enabled. Your original
 NixOS wrapper deliberately also finds Nix-managed fonts under
 `/run/current-system/sw/share/{X11/fonts,fonts}` and user fonts. These are not
