@@ -29,6 +29,17 @@
     };
 
     # -------------------------------------------------------------------------
+    # ConTeXt source is pinned by the main flake.lock. To update only ConTeXt:
+    #   nix flake update context-src
+    # Nix fetches the upstream repository and records its exact rev/narHash.
+    # Keeping this separate from texmf.zip is intentional: the Git tree
+    # does not contain the bootstrap/font texmf tree needed by ConTeXt.
+    context-src = {
+      url = "github:contextgarden/context";
+      flake = false;
+    };
+
+    # -------------------------------------------------------------------------
     # External modules / applications
     # -------------------------------------------------------------------------
     disko.url =
@@ -83,6 +94,14 @@
         };
       };
 
+      # One ConTeXt package for local NixOS, Home Manager and portable sandbox.
+      overlayContext = final: prev: {
+        contextLmtx = final.callPackage ./pkgs/context/luametatex.nix {
+          contextSource = inputs.context-src;
+          contextRevision = inputs.context-src.rev or "unknown";
+        };
+      };
+
       # Package set used by this flake's own packages and devShells.
       pkgs = import nixpkgs {
         inherit system;
@@ -91,6 +110,7 @@
           overlayUnstable
           overlayPygameAvx2
           overlayScopeRs
+          overlayContext
         ];
       };
 
@@ -122,6 +142,7 @@
                 overlayUnstable
                 overlayPygameAvx2
                 overlayScopeRs
+                overlayContext
               ];
 
               home-manager.useGlobalPkgs = true;
@@ -158,6 +179,7 @@
                 overlayUnstable
                 overlayPygameAvx2
                 overlayScopeRs
+                overlayContext
               ];
 
               home-manager.useGlobalPkgs = true;
@@ -226,8 +248,11 @@
         bootdev-cli =
           pkgs.callPackage ./pkgs/bootdev-cli/bootdev-cli.nix { };
 
-        context =
-          pkgs.callPackage ./pkgs/context/luametatex.nix { };
+        context = pkgs.contextLmtx;
+
+        context-sandbox = pkgs.callPackage ./pkgs/context/sandbox.nix {
+          contextPackage = pkgs.contextLmtx;
+        };
 
         nordvpn =
           pkgs.callPackage ./pkgs/nordvpn/nordvpn.nix { };
@@ -246,6 +271,7 @@
       overlays = {
         unstable = overlayUnstable;
         pygame-avx2 = overlayPygameAvx2;
+        context = overlayContext;
       };
 
       # -----------------------------------------------------------------------

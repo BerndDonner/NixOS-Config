@@ -7,19 +7,26 @@
 , gnumake
 , ninja
 , runtimeShell
+, contextSource ? null
+, contextRevision ? null
 }:
 
 stdenv.mkDerivation rec {
   pname = "luametatex";
-  version = "2.11.07";
+  # When called from the main flake, the locked context-src input is used.
+  # Keep the old fixed-output source as a backwards-compatible fallback for
+  # users of the standalone package definition.
+  version = if contextSource == null then "2.11.07"
+            else "unstable-${builtins.substring 0 12 (if contextRevision == null then "unknown" else contextRevision)}";
 
-  src = fetchFromGitHub {
+  src = if contextSource != null then contextSource else fetchFromGitHub {
     owner = "contextgarden";
     repo  = "context";
     rev   = "41a8e614f633b55052f2087ee9400130eb432b54";
     hash  = "sha256-8yuhTSsnb5ud62CpKgHa+qNZWSJZi9tR8wvSGu4oJ08=";
   };
 
+  # Retain the proven filter/vim release; it is used by teaching documents.
   moduleFilter = fetchFromGitHub {
     owner = "adityam";
     repo  = "filter";
@@ -27,6 +34,8 @@ stdenv.mkDerivation rec {
     hash  = "sha256-/9uvk3+RC0PGyWNfaZP0mss8UXMs+GBlXhGmHr7dQp4=";
   };
 
+  # ConTeXt's Git repository omits this bootstrap/font TeX tree.
+  # It is intentionally retained with the original fixed-output hash.
   texmf = fetchzip {
     url    = "http://lmtx.pragma-ade.nl/install-lmtx/texmf.zip";
     sha256 = "sha256-S3kCPJqB+0+CD7S7ai6yalOQihzhHy6XS1krFdWhdVc=";
@@ -187,7 +196,11 @@ EOF
     maintainers = [ ];
   };
 
-  passthru.tests.smoke = ''
-    $out/bin/luametatex --version
-  '';
+  passthru = {
+    # Evaluated metadata; used by the independent sandbox archive derivation.
+    contextRevision = if contextRevision == null then "legacy" else contextRevision;
+    tests.smoke = ''
+      $out/bin/luametatex --version
+    '';
+  };
 }

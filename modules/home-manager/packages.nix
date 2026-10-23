@@ -56,6 +56,6 @@
       wayland
     ])
     ++ [
-      (pkgs.callPackage ../../pkgs/context/luametatex.nix {})
+      pkgs.contextLmtx
     ];
 }
