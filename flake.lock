@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "context-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792712067,
+        "narHash": "sha256-j5h181PJW+8BKtkGy7nrIxaZvaKhUym2pBZiaSx0aAQ=",
+        "owner": "contextgarden",
+        "repo": "context",
+        "rev": "96298b969a9964e468d1abf4a8edab0194a4df6c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "contextgarden",
+        "repo": "context",
+        "type": "github"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -133,6 +149,7 @@
     },
     "root": {
       "inputs": {
+        "context-src": "context-src",
         "disko": "disko",
         "helix": "helix",
         "home-manager": "home-manager",

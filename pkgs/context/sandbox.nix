@@ -112,6 +112,12 @@ manifest = dict(
     (root/'context-local.sh').read_text().replace('@BUNDLE_HASH@', manifest['tex_tree_sha256'][:16]))
 PY
 
+    # Both portable scripts intentionally use #!/usr/bin/env bash, which is
+    # absent inside an isolated Nix builder. Rewrite JUST those two shebangs
+    # for build-time smoke tests; restore portable ones before archiving.
+    # Do not patch the host ConTeXt installPhase or the installed TeX tree.
+    patchShebangs --host "$bin/luametatex" "$root/context-local.sh"
+
     # Regression gate inside the Nix build: loader, fonts, MetaPost, modules.
     test -f "$root/tex/texmf-context/tex/context/third/filter/t-filter.mkxl"
     test -f "$root/tex/texmf-context/tex/context/third/vim/t-syntax-highlight.mkxl"
@@ -135,11 +141,19 @@ PY
       test -s modules.pdf
     )
 
+    # Remove Nix-store interpreter paths from the portable launchers. In the
+    # final archive, /usr/bin/env resolves bash on the target Linux machine.
+    sed -i '1c#!/usr/bin/env bash' "$bin/luametatex" "$root/context-local.sh"
+    test "$(head -n 1 "$bin/luametatex")" = '#!/usr/bin/env bash'
+    test "$(head -n 1 "$root/context-local.sh")" = '#!/usr/bin/env bash'
+
     # $out is an actual .tar.xz FILE, compatible with context-agent's archive
     # uploader. GNU tar reproducibility flags keep rebuilds stable.
     tar --sort=name --mtime='@1' --owner=0 --group=0 --numeric-owner \
         -C "$TMPDIR" -cJf "$out" context-lmtx-ready
-    tar -tJf "$out" | grep -q '^context-lmtx-ready/context-local.sh$'
+    # Avoid tar receiving SIGPIPE under pipefail from an early grep -q exit.
+    tar -tJf "$out" > "$TMPDIR/archive-contents.txt"
+    grep -Fxq 'context-lmtx-ready/context-local.sh' "$TMPDIR/archive-contents.txt"
     runHook postInstall
   '';
 
