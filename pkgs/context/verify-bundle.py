@@ -30,7 +30,9 @@ def sha_tree(path: Path) -> str:
     for child in sorted(p for p in path.rglob("*") if p.is_file()):
         relative = child.relative_to(path).as_posix()
         if relative in ("texmf-linux-64/bin/luametatex",
-                        "texmf-linux-64/bin/luametatex.bin"):
+                        "texmf-linux-64/bin/luametatex.bin",
+                        "texmf-linux-64/bin/mtxrun",
+                        "texmf-linux-64/bin/context"):
             continue
         name = relative.encode()
         hasher.update(len(name).to_bytes(8, "big"))
@@ -52,6 +54,13 @@ def verify(context_package: Path, archive: Path) -> None:
         manifest = json.loads((bundled / "manifest.json").read_text())
         local_engine = context_package / "tex/texmf-linux-64/bin/luametatex"
         bundled_engine = bundled / "tex/texmf-linux-64/bin/luametatex.bin"
+        for name in ("mtxrun", "context"):
+            local_link = context_package / "tex/texmf-linux-64/bin" / name
+            portable_link = bundled / "tex/texmf-linux-64/bin" / name
+            assert local_link.is_symlink() and local_link.readlink() == Path("luametatex"), \
+                f"Unexpected local entrypoint: {name}"
+            assert portable_link.is_symlink() and portable_link.readlink() == Path("luametatex"), \
+                f"Unexpected portable entrypoint: {name}"
         expected_engine = sha_file(local_engine)
         expected_tree = sha_tree(context_package / "tex")
         assert expected_engine == sha_file(bundled_engine) == manifest["engine_sha256"], \

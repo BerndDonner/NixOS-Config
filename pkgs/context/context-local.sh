@@ -1,25 +1,29 @@
 #!/usr/bin/env bash
-# Portable ConTeXt launcher. This is NOT the NixOS launcher.
+# Portable ConTeXt launcher using the official LMTX .lmt entrypoints.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN="$HERE/tex/texmf-linux-64/bin"
 
-# Cache must be writable even when the archive was extracted read-only.
+# Writable cache, separate for each immutable bundled ConTeXt tree.
 export TEXMFCACHE="${TEXMFCACHE:-${XDG_CACHE_HOME:-${HOME:-/tmp}/.cache}/context-lmtx-@BUNDLE_HASH@}"
 export TEXROOT="$HERE/tex"
 export SELFAUTOPARENT="$HERE/tex"
 
-# Allow an explicit caller-supplied OSFONTDIR; supply bundled fonts by default.
-# Unlike the NixOS wrapper, this cannot search /run/current-system/sw.
+# Preserve caller-supplied fonts; use portable system/bundled paths otherwise.
 if [ -z "${OSFONTDIR:-}" ]; then
   export OSFONTDIR="$HERE/tex/texmf/fonts:${HOME:-/tmp}/.local/share/fonts:/usr/share/fonts"
 fi
 
-CACHE_MARKER="$TEXMFCACHE/luametatex-cache"
-if [ ! -d "$CACHE_MARKER" ]; then
+# A successful format build is the cache readiness criterion, NOT merely the
+# existence of the luametatex-cache directory (which can be partial/stale).
+MARKER="$TEXMFCACHE/.context-ready-@BUNDLE_HASH@"
+if [ ! -f "$MARKER" ]; then
   mkdir -p "$TEXMFCACHE"
-  "$BIN/luametatex" --luaonly "$BIN/mtxrun.lua" --generate
+  "$BIN/mtxrun" --generate
+  "$BIN/mtxrun" --script fonts --reload
+  "$BIN/context" --make
+  touch "$MARKER"
 fi
 
-exec "$BIN/luametatex" --luaonly "$BIN/mtxrun.lua" --script context "$@"
+exec "$BIN/context" "$@"

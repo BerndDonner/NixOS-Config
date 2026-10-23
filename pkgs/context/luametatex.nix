@@ -43,6 +43,8 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ cmake gnumake ninja coreutils ];
 
+  # Use the upstream default LuaMetaTeX build (without LuaSocket).
+  # ConTeXt 2026 launches through mtxrun.lmt/context.lmt, not mtxrun.lua.
   configurePhase = ''
     cmake -B build -S "$src/source/luametatex" -DCMAKE_BUILD_TYPE=Release
   '';
@@ -57,10 +59,14 @@ stdenv.mkDerivation rec {
     echo "Installing LuaMetaTeX / ConTeXt tree"
     mkdir -p "$out/bin" "$out/tex/texmf-linux-64/bin" "$out/tex/texmf-context"
 
-    # Engine + Lua frontends
+    # Official ConTeXt LMTX 2026 entrypoints: all three executable names
+    # resolve to the same LuaMetaTeX engine, with a companion .lmt script.
+    # The deprecated .lua runner needs LuaSocket and must not be invoked.
     cp build/luametatex "$out/tex/texmf-linux-64/bin/"
-    cp "$src/scripts/context/lua/"{mtxrun.lua,context.lua} \
+    cp "$src/scripts/context/lua/"{mtxrun.lmt,context.lmt} \
        "$out/tex/texmf-linux-64/bin/"
+    ln -s luametatex "$out/tex/texmf-linux-64/bin/mtxrun"
+    ln -s luametatex "$out/tex/texmf-linux-64/bin/context"
 
     # ----------------------------------------------------------------------
     # init environment helper
@@ -99,16 +105,17 @@ EOF
     initEnvironment context-init-cache
 
     cat >> "$out/bin/context-init-cache" <<EOF
-ENGINE="$out/tex/texmf-linux-64/bin/luametatex"
-MTXRUN_LUA="$out/tex/texmf-linux-64/bin/mtxrun.lua"
-CONTEXT_LUA="$out/tex/texmf-linux-64/bin/context.lua"
+MTXRUN="$out/tex/texmf-linux-64/bin/mtxrun"
+CONTEXT="$out/tex/texmf-linux-64/bin/context"
 
 echo "Initializing ConTeXt cache in \$CACHE_ROOT/luametatex-cache ..." >&2
 
 mkdir -p "\$CACHE_ROOT"
-"\$ENGINE" --luaonly "\$MTXRUN_LUA" --generate
-"\$ENGINE" --luaonly "\$MTXRUN_LUA" --script fonts --reload
-"\$ENGINE" --luaonly "\$CONTEXT_LUA" --make
+"\$MTXRUN" --generate
+"\$MTXRUN" --script fonts --reload
+"\$CONTEXT" --make
+# The marker is written only after generate, font reload and format build.
+touch "\$CACHE_ROOT/.context-ready-$(basename "$out")"
 EOF
 
     # ----------------------------------------------------------------------
@@ -129,8 +136,7 @@ EOF
     initEnvironment mtxrun
 
     cat >> "$out/bin/mtxrun" <<EOF
-exec "$out/tex/texmf-linux-64/bin/luametatex" --luaonly \
-  "$out/tex/texmf-linux-64/bin/mtxrun.lua" "\$@"
+exec "$out/tex/texmf-linux-64/bin/mtxrun" "\$@"
 EOF
 
     # ----------------------------------------------------------------------
@@ -140,15 +146,15 @@ EOF
     initEnvironment context
 
     cat >> "$out/bin/context" <<EOF
-CACHE_CONTEXT_DIR="\$CACHE_ROOT/luametatex-cache/context"
+CACHE_MARKER="\$CACHE_ROOT/.context-ready-$(basename "$out")"
 
-# One-time initialization of cache + formats + font DB
-if [ ! -d "\$CACHE_CONTEXT_DIR" ]; then
+# A directory can exist after a failed partial initialization. The marker is
+# written only by context-init-cache once all initialization steps succeed.
+if [ ! -f "\$CACHE_MARKER" ]; then
   "$out/bin/context-init-cache"
 fi
 
-exec "$out/tex/texmf-linux-64/bin/luametatex" --luaonly \
-  "$out/tex/texmf-linux-64/bin/context.lua" "\$@"
+exec "$out/tex/texmf-linux-64/bin/context" "\$@"
 EOF
 
     chmod +x "$out/bin/context-init-cache"
@@ -186,6 +192,35 @@ EOF
     # Per-user cache and fonts DB are initialized on first use.
 
     runHook postInstall
+  '';
+
+  # Regression test: catch a missing .lmt launcher, an unresolvable
+  # mtx-context.lua or an unusable TeX tree already in the local package.
+  # Keep all caches, including format files, outside the read-only Nix store.
+  postInstall = ''
+    export HOME="$TMPDIR/context-smoke-home"
+    export TEXMFCACHE="$TMPDIR/context-smoke-cache"
+    mkdir -p "$HOME" "$TMPDIR/context-smoke-doc"
+    "$out/bin/mtxrun" --generate > "$TMPDIR/ctx-generate.log" 2>&1 || {
+      cat "$TMPDIR/ctx-generate.log" >&2; exit 1;
+    }
+    located=$("$out/bin/mtxrun" --locate --first mtx-context.lua) || {
+      echo "ConTeXt resolver could not locate mtx-context.lua" >&2; exit 1;
+    }
+    test -f "$located" || {
+      echo "ConTeXt resolver returned a missing script: $located" >&2; exit 1;
+    }
+    "$out/bin/context" --make > "$TMPDIR/ctx-make.log" 2>&1 || {
+      cat "$TMPDIR/ctx-make.log" >&2; exit 1;
+    }
+    cp ${./tests/smoke.tex} "$TMPDIR/context-smoke-doc/smoke.tex"
+    (
+      cd "$TMPDIR/context-smoke-doc"
+      "$out/bin/context" --once smoke.tex > "$TMPDIR/ctx-smoke.log" 2>&1 || {
+        cat "$TMPDIR/ctx-smoke.log" >&2; exit 1;
+      }
+      test -s smoke.pdf
+    )
   '';
 
   meta = with lib; {

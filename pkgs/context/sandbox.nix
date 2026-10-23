@@ -34,8 +34,15 @@ stdenvNoCC.mkDerivation {
 
     bin="$root/tex/texmf-linux-64/bin"
     mv "$bin/luametatex" "$bin/luametatex.bin"
+    # The NixOS package has engine aliases. Replace any dereferenced ELF
+    # copies with the portable wrapper aliases of the same names.
+    rm -f "$bin/mtxrun" "$bin/context"
     cp ${./portable-engine.sh} "$bin/luametatex"
     chmod 755 "$bin/luametatex"
+    ln -s luametatex "$bin/mtxrun"
+    ln -s luametatex "$bin/context"
+    test -f "$bin/mtxrun.lmt"
+    test -f "$bin/context.lmt"
 
     # Discover the actual ELF dependencies of this *specific* build rather
     # than copying the whole glibc closure (including unused gconv modules).
@@ -91,7 +98,9 @@ def sha_tree(path):
         # The portable engine is renamed and wrapped. Verify its binary
         # separately, not as part of the otherwise identical TeX tree.
         if relative in ('texmf-linux-64/bin/luametatex',
-                        'texmf-linux-64/bin/luametatex.bin'):
+                        'texmf-linux-64/bin/luametatex.bin',
+                        'texmf-linux-64/bin/mtxrun',
+                        'texmf-linux-64/bin/context'):
             continue
         name = relative.encode()
         h.update(len(name).to_bytes(8, 'big'))
@@ -122,6 +131,7 @@ PY
     test -f "$root/tex/texmf-context/tex/context/third/filter/t-filter.mkxl"
     test -f "$root/tex/texmf-context/tex/context/third/vim/t-syntax-highlight.mkxl"
     "$bin/luametatex" --version > "$TMPDIR/engine-version.txt"
+    "$bin/mtxrun" --version > "$TMPDIR/mtxrun-version.txt"
     export HOME="$TMPDIR/home"
     export TEXMFCACHE="$TMPDIR/cache"
     mkdir -p "$HOME" "$TMPDIR/smoke"
@@ -143,6 +153,7 @@ PY
 
     # Remove Nix-store interpreter paths from the portable launchers. In the
     # final archive, /usr/bin/env resolves bash on the target Linux machine.
+    # mtxrun and context remain symlinks to the same portable engine wrapper.
     sed -i '1c#!/usr/bin/env bash' "$bin/luametatex" "$root/context-local.sh"
     test "$(head -n 1 "$bin/luametatex")" = '#!/usr/bin/env bash'
     test "$(head -n 1 "$root/context-local.sh")" = '#!/usr/bin/env bash'
