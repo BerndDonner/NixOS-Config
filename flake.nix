@@ -314,6 +314,9 @@
         mkCDevShell =
           import ./lib/c-develop.nix;
 
+        mkContextDevShell =
+          import ./lib/context-dev.nix;
+
         mkElectronDevShell =
           import ./lib/electron-develop.nix;
 

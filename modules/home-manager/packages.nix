@@ -54,8 +54,5 @@
       kwallet
       kwalletmanager
       wayland
-    ])
-    ++ [
-      pkgs.contextLmtx
     ];
 }
