@@ -54,5 +54,5 @@
       kwallet
       kwalletmanager
       wayland
-    ];
+    ]);
 }
