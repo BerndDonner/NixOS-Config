@@ -102,8 +102,9 @@
         };
       };
 
-      # Regular, unmodified LuaMetaTeX for NixOS, Home Manager and sandbox.
-      # Experimental engine patches are selected explicitly in packages.
+      # Unpatched LuaMetaTeX derivation, used by the public .#context output.
+      # Not installed by the NixOS/Home Manager host configurations. Engine
+      # patches are explicitly selected for .#context-patched below.
       overlayContext = final: prev: {
         contextLmtx = final.callPackage ./pkgs/context/luametatex.nix {
           contextSource = inputs.context-src;
@@ -132,7 +133,9 @@
         ];
       };
 
-      # Same pinned source; no experimental C patch in pkgs.contextLmtx.
+      # Both package variants use the same pinned source revision. Keep the
+      # engine patch explicit: the independent context-testsuite checks the
+      # intended behavior when requested, not as part of a normal build.
       contextPatched = pkgs.contextLmtx.override {
         enginePatches = [
           ./pkgs/context/patches/luametatex-math-glue-noautobreak.patch
@@ -277,7 +280,9 @@
         bootdev-cli =
           pkgs.callPackage ./pkgs/bootdev-cli/bootdev-cli.nix { };
 
-        # Production/default stays on the unpatched upstream engine.
+        # These are explicit package variants, not system-wide installations.
+        # Consuming projects choose their own devShell default. In particular,
+        # a devShell can select .#context-patched without changing .#context.
         context = pkgs.contextLmtx;
         context-patched = contextPatched;
 
@@ -301,39 +306,6 @@
         scope-rs = pkgs.scope-rs;
         tio-fork = pkgs.tio-fork;
         devflake-update = import ./lib/devflake-update.nix { inherit pkgs; };
-      };
-
-      # Cross-variant regression gates are independent of package and
-      # sandbox installation tests. Both versions use one context-src pin.
-      checks.${system} = {
-        context-math-nobreak = pkgs.runCommand
-          "context-math-nobreak-regression"
-          {
-            nativeBuildInputs = [ pkgs.coreutils pkgs.poppler-utils pkgs.python3 ];
-          }
-          ''
-            CONTEXT_TEST_CACHE_ROOT="$TMPDIR" \
-              bash ${./pkgs/context/tests/math-nobreak}/compare.sh \
-                ${pkgs.contextLmtx}/bin/context \
-                ${contextPatched}/bin/context \
-                "$out"
-          '';
-
-        # Broader behavioral gate for math penalties and glue option combinations.
-        # Kept separate from the package builds and from the narrow 12-case check.
-        context-math-nobreak-extended = pkgs.runCommand
-          "context-math-nobreak-extended-regression"
-          {
-            nativeBuildInputs = [ pkgs.coreutils pkgs.poppler-utils pkgs.python3 ];
-          }
-          ''
-            CONTEXT_TEST_CACHE_ROOT="$TMPDIR" \
-              bash ${./pkgs/context/tests/math-nobreak/extended}/compare.sh \
-                ${pkgs.contextLmtx}/bin/context \
-                ${contextPatched}/bin/context \
-                "$out"
-          '';
-
       };
 
       # Python is only needed for the bundle integrity verifier, not as a

@@ -41,7 +41,10 @@ nix build .#context --show-trace
 ```
 
 ConTeXt is built **exclusively through the root flake**. There is no
-`default.nix` or separate flake under `pkgs/context/`.
+`default.nix` or separate flake under `pkgs/context/`. `.#context` is the
+unpatched variant, and `.#context-patched` includes the local Math/Glue fix.
+Neither ConTeXt variant is installed globally or by Home Manager on
+`kitty`/`tracy`; development shells select the required package explicitly.
 
 ### 🔄 Updating ConTeXt without updating NixOS
 
@@ -66,37 +69,43 @@ nix flake update context-src
 # Verify the intended change in the shared lock file.
 git diff -- flake.lock
 
-# Build and inspect the new package.
-nix build .#context -o result-context -L
-./result-context/bin/context --version
+# Build and inspect both package variants (their build-time smoke tests run).
+nix build .#context -o result-context-unpatched -L
+nix build .#context-patched -o result-context-patched -L
+./result-context-patched/bin/context --version
 
-# Build the matching portable archive and check that it uses the same tree.
-nix build .#context-sandbox -o result-sandbox -L
+# Build and verify a matching portable archive if you need one.
+nix build .#context-sandbox-patched -o result-sandbox-patched -L
 nix develop .#context -c python3 \
-  pkgs/context/verify-bundle.py result-context result-sandbox
+  pkgs/context/verify-bundle.py result-context-patched result-sandbox-patched
 
-# On kitty/tracy, also test finding the system Carlito fonts.
-pkgs/context/tests/check-system-carlito.sh ./result-context/bin/context
+# MANUAL host integration check on kitty/tracy; NOT part of a Nix build:
+pkgs/context/tests/check-system-carlito.sh \
+  ./result-context-patched/bin/context
 ```
 
-**Check document output before deployment.** A successful Nix build checks
-that the engine works, but does not guarantee correct typesetting. Compile a
-representative document using `./result-context/bin/context`, then inspect
-SI prefixes (notably `\unit{micro Volt}`), formulas and line breaks. For
-teaching documents, use the PDF regression comparison in `unterrichts-texte`.
+**Check document output before choosing an update.** A successful Nix build
+checks that ConTeXt runs but does not guarantee correct typesetting. The
+independent `context-testsuite` repository owns the migrated 12-case and
+76-case Math/Glue/Penalty tests and the PDF comparison tools. Run it
+**deliberately** against the two build outputs; there is no testsuite
+integration or automatic cross-version check in this flake. See
+[`pkgs/context/tests/README.md`](./pkgs/context/tests/README.md) for the
+commands and expected separation of tests.
 
-Once satisfied, commit the pin and switch **only the intended machine**:
+After validation, commit the pin:
 
 ```bash
 git add flake.lock
 git commit -m "build(context): update pinned ConTeXt source"
-sudo nixos-rebuild switch --flake .#kitty   # or .#tracy
 ```
 
-A `nix build` alone does **not** install ConTeXt on the host. Conversely,
-updating `context-src` does **not** update the locked `nixpkgs` revision or
-Home Manager. Avoid plain `nix flake update` when you only want ConTeXt: that
-updates **all** inputs.
+**A NixOS system rebuild is not needed to use this ConTeXt update:** the
+package is accessed through development shells, not installed as a host
+package. Projects such as `unterrichts-texte` update their own locked
+`nixos-config` input when they decide to adopt it. Updating `context-src`
+does **not** update the locked `nixpkgs` revision or Home Manager. Avoid plain
+`nix flake update` when you only want ConTeXt: that updates **all** inputs.
 
 For an unsuccessful, **uncommitted** update, restore the old pin with
 `git restore flake.lock` (only if you do not have other lock-file edits to

@@ -1,107 +1,123 @@
-# ConTeXt LMTX build tests
+# ConTeXt LMTX: package and host tests
 
-Both modern package and sandbox derivations exercise these three documents
-while being built:
+This directory contains **package-integrity tests**, not the general ConTeXt
+regression suite. The independent `context-testsuite` repository owns the
+12 basic and 76 extended Math/Glue/Penalty cases, their expected behavior,
+and the PDF comparison tools. None of those tests is run by `nix build` or
+`nix flake check` in this repository.
 
-- `smoke.tex`: a real PDF using the bundled fonts, `\unit` and MetaPost.
-- `filter.tex`: executes an external `cp` filter on newly created temporary
-  files; asserts the filter actually wrote the expected content.
-- `vim.tex`: calls the external Vim highlighter on a Python code block;
-  asserts Vim generated `\SYN[` tokens, not merely a PDF.
+## Which tests run when?
 
-Historical `.lua`-runner sources run only `smoke.tex`, since the modern
-filter/Vim integration is not a historical ConTeXt compatibility target.
+| Test | File / implementation | Trigger | Purpose |
+| --- | --- | --- | --- |
+| Basic PDF | `smoke.tex` | Building `.#context` or `.#context-patched` (also sandboxes) | Bundled fonts, `\unit`, MetaPost, output PDF |
+| External filter | `filter.tex` | Same builds for modern `.lmt` runners | External filter really writes its temporary output |
+| Vim highlighting | `vim.tex` | Same builds for modern `.lmt` runners | Generated `\SYN[` highlighting tokens, not only a PDF |
+| Native cache lock | `check-native-cache-lock.sh` | Building local ConTeXt packages | Concurrent starts, cache reuse, force rebuild, invalid cache directory |
+| Portable cache lock | `check-portable-cache-lock.sh` | Building `.#context-sandbox` variants | Locking and failure recovery using fake engine entrypoints |
+| **Host Carlito** | **`check-system-carlito.sh`, `system-carlito.tex`** | **Manual; never part of a Nix build** | **Find host system fonts via the ConTeXt wrapper** |
 
-Every test runs in its own newly created working directory. A PDF alone is
-insufficient evidence that the external filter actually ran successfully.
+`luametatex.nix` and `sandbox.nix` run their respective tests in isolated
+build working directories. The historical `.lua`-runner variant runs only
+`smoke.tex`, because the modern filter/Vim integration is not a historical
+compatibility target. Vim is a build-time tool: it is not packaged into the
+portable archive and must be on `PATH` if a document uses Vim highlighting at
+runtime. Merely producing a PDF does not prove that the filter/Vim tests
+succeeded: both inspect the generated intermediate files.
 
-Vim is supplied as a **build-time tool**, not copied into the portable bundle.
-Users who want Vim highlighting at runtime must supply Vim in `PATH` in the
-execution environment (including `context-agent`). The portable engine and
-bundled TeX tree remain self-contained for normal ConTeXt documents.
+The filter compatibility patch is `../patches/filter-lmtx-writable.patch`.
+It applies to LMTX's `t-filter.mkxl`; it must not be applied to `t-filter.mkiv`,
+whose writeability check has different semantics.
 
-The patched LMTX writeability check is kept in
-`../patches/filter-lmtx-writable.patch` until the filter upstream PR is merged.
-Do not change `t-filter.mkiv`: its writeability check has different semantics.
+## Host font regression: Carlito (MANUAL)
 
-These checks do not establish full typographic correctness of `\unit` or
-`\digits`. Those will be tested separately after upstream fixes land.
-
-## NixOS system-font integration (manual)
-
-A derivation sandbox cannot inspect the fonts installed in the *host* NixOS
-system. Run this regression check on kitty/tracy after building `.#context`
-(and before switching your system):
+**This test is intentionally not automatic.** A derivation's Nix sandbox
+cannot inspect fonts installed on the running host. From the root of
+`NixOS-Config`, on `kitty` or `tracy`:
 
 ```bash
+nix build .#context-patched -o result-context-patched -L
+pkgs/context/tests/check-system-carlito.sh \
+  ./result-context-patched/bin/context
+```
+
+To test the upstream variant instead:
+
+```bash
+nix build .#context -o result-context -L
 pkgs/context/tests/check-system-carlito.sh ./result-context/bin/context
 ```
 
-The script creates an isolated temporary home/cache, **unsets `OSFONTDIR`**
-so that the installed NixOS wrapper must populate its default paths, compiles
-`system-carlito.tex` and requires that both Carlito Regular and Bold were
-loaded from `/run/current-system/sw/share/{X11/fonts,fonts}`. The test fails
-rather than silently accepting a bundled font or a Latin Modern fallback.
-It requires system-wide Carlito to be installed; it does not install it.
+Requirements and expectations:
 
-For debugging the same test with a portable ConTeXt installation on a
-non-NixOS host, you can explicitly provide an alternate font directory:
+- Carlito **Regular** and **Bold** must already be installed system-wide under
+  `/run/current-system/sw/share/X11/fonts` or
+  `/run/current-system/sw/share/fonts` (with the filenames expected by the
+  script). The test does not install the fonts.
+- The script deliberately **unsets `OSFONTDIR`**, so the installed ConTeXt
+  wrapper must set its default NixOS font paths.
+- It creates temporary home/cache/work directories, compiles
+  `system-carlito.tex` and verifies the log loaded *both exact host font
+  files*, rather than bundled fonts or a fallback.
+- It exits nonzero if the fonts cannot be found or loaded. The script does
+  not require any ConTeXt package to be installed globally; the `nix build`
+  output is passed as an argument.
+
+For portable troubleshooting on another host, override the search location:
 
 ```bash
 CARLITO_TEST_FONTDIR=/path/to/fonts \
   pkgs/context/tests/check-system-carlito.sh /path/to/context-local.sh
 ```
 
-This optional override tests font loading, **not** the NixOS wrapper's default
-`OSFONTDIR` behavior. It is not part of either derivation's build checks.
+**Caution:** This checks explicit font loading, **not** the NixOS wrapper's
+default `OSFONTDIR` behavior. This override is never used in the standard
+host test.
 
-## Cache synchronization regression
+## Cache synchronization (manually repeatable)
 
-`check-native-cache-lock.sh` runs during the local package build. It starts
-two real ConTeXt documents concurrently with an empty shared cache, checks
-that initialization occurs only once, verifies subsequent reuse and a forced
-rebuild, and checks that an invalid cache directory fails cleanly. It can
-also be run against an already built package:
+The native test runs during the local package build and can be repeated with:
 
 ```bash
-bash pkgs/context/tests/check-native-cache-lock.sh ./result-context/bin/context
+bash pkgs/context/tests/check-native-cache-lock.sh \
+  ./result-context-patched/bin/context
 ```
 
-`check-portable-cache-lock.sh` runs during the portable bundle build and can
-also be run independently without the ConTeXt engine:
+It checks two simultaneous initializations, reuse, forced regeneration and
+clean failure for an unusable cache directory.
+
+The portable cache test runs during the portable bundle build and can also
+be run without ConTeXt installed:
 
 ```bash
-bash pkgs/context/tests/check-portable-cache-lock.sh pkgs/context/context-local.sh
+bash pkgs/context/tests/check-portable-cache-lock.sh \
+  pkgs/context/context-local.sh
 ```
 
-It uses fake engine entrypoints to deterministically test four parallel
-first starts, no unnecessary rerun, an error during format creation,
-removal of the lock, and successful recovery on the next invocation.
-The real bundle still runs its regular PDF/filter/Vim smoke tests separately.
+Its fake engine entrypoints exercise concurrent starts, failure and recovery.
+The real portable bundle additionally runs its own PDF/filter/Vim smoke tests.
 
-## Cross-variant math line-break regression
+## Behavioral and visual regression tests (separate repository)
 
-The pinned regular `.#context` package and explicit `.#context-patched`
-package are compared by the separate flake check:
+The independent `context-testsuite` repository contains the migrated
+Math/Glue/Penalty tests and the PDF comparison CLI. To run it, build the two
+variants here and pass their executable paths **directly**, without
+exporters, manifests, or a dependency between the repositories:
 
 ```bash
-nix build .#checks.x86_64-linux.context-math-nobreak \
-  -o result-context-math-nobreak -L
+# In NixOS-Config:
+nix build .#context -o result-context-unpatched -L
+nix build .#context-patched -o result-context-patched -L
+
+# In context-testsuite (after `nix develop` there):
+context-testsuite run \
+  --baseline ../NixOS-Config/result-context-unpatched/bin/context \
+  --context ../NixOS-Config/result-context-patched/bin/context \
+  --suite all \
+  --output results/lmtx-patch-validation
 ```
 
-See `math-nobreak/README.md` for the 12 cases and optional manual comparison.
-
-The optional broader 74-case gate is separate:
-
-```bash
-nix build .#checks.x86_64-linux.context-math-nobreak-extended \
-  -o result-context-math-nobreak-extended -L
-```
-
-It covers Math-Penalties, math-surround settings, and combinations of Glue
-options (including directly injected Lua glue). Five contradictory forced
-break/no-break cases are **reported for manual review**; they do not make the
-check fail automatically. See `math-nobreak/extended/README.md`.
-This check is deliberately not part of `luametatex.nix`'s `postInstall`:
-it depends on **two distinct package outputs** rather than validating
-one package in isolation.
+Adjust the relative paths to suit where you keep the two clones. This is an
+explicit manual run; neither `NixOS-Config` nor `unterrichts-texte` imports
+`context-testsuite`. Run `python -m pytest -q` in the testsuite repository to
+check its Python implementation independently of a real ConTeXt engine.

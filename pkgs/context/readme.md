@@ -2,10 +2,12 @@
 
 ## Variants, source revisions and checks
 
-The root `flake.lock` pins the ConTeXt source. The main package is deliberately
-**unpatched at the LuaMetaTeX engine level**, and remains the version installed
-on kitty/tracy through `pkgs.contextLmtx`. The temporary filter-module fix is
-part of both modern variants; it is not an engine patch.
+The root `flake.lock` pins the ConTeXt source. `.#context` is the **unpatched
+engine variant**; `.#context-patched` explicitly includes the local LuaMetaTeX
+Math/Glue patch. **Neither package is installed globally or by Home Manager**
+on `kitty` or `tracy`: consumers select a variant in their own development
+shells. The temporary filter-module fix is part of both modern variants; it
+is not an engine patch.
 
 | Output | Purpose |
 | --- | --- |
@@ -14,7 +16,6 @@ part of both modern variants; it is not an engine patch.
 | `.#context-sandbox` | Portable archive made from `.#context` |
 | `.#context-sandbox-patched` | Portable archive made from `.#context-patched` |
 | `.#context-docs` | Optional documentation archive from the regular package |
-| `.#checks.x86_64-linux.context-math-nobreak` | Reproducible comparison of both local builds |
 
 The package derivation (`luametatex.nix`) accepts an explicit `enginePatches`
 list (empty by default). The flake selects the patch for `context-patched`;
@@ -22,20 +23,20 @@ no commit-hash heuristic enables experimental fixes. Changing `context-src`
 changes the source for **both** modern variants; an incompatible patch causes
 the patched build to fail explicitly rather than silently doing nothing.
 
-To build and compare without changing any system package:
+To build both versions **without installing either on the system**:
 
 ```bash
-nix build .#context -o result-context -L
+nix build .#context -o result-context-unpatched -L
 nix build .#context-patched -o result-context-patched -L
-nix build .#checks.x86_64-linux.context-math-nobreak \
-  -o result-context-math-nobreak -L
 ```
 
-The check preserves its `before/` and `after/` PDFs, logs and text output in
-the Nix result path. To rerun manually, see `tests/math-nobreak/README.md`.
-Passing the check does not guarantee that all typography is unchanged.
-Inspect representative teaching documents before selecting any experimental
-variant for actual use.
+Each build runs its own smoke, filter, Vim, and cache checks. The comparative
+12-case and 76-case Math/Glue/Penalty tests have moved to the independent
+`context-testsuite` repository, including their expected results and PDF
+analysis. They are **not** part of these builds and are only executed when
+explicitly requested. See [`tests/README.md`](tests/README.md) for exact
+commands and the division between build, host, and behavioral tests.
+A successful package build does not establish typographic correctness.
 
 **Historical sources:** For the precise 2024.11.01 reference, override only
 `context-src` (the `texmf.zip` hash stays pinned as usual):
@@ -78,11 +79,17 @@ The checked-in `patches/filter-lmtx-writable.patch` corrects **only**
 version-checked compatibility fix for new temporary files. The MkIV module is
 unchanged. Remove this patch after the upstream filter PR has been merged and
 our pinned filter revision has been updated, **not before** the tests pass.
-No engine patch is applied to the **regular** package; the separate
-`context-patched` output deliberately applies one experimental LuaMetaTeX
-C patch for testing.
+No engine patch is applied to the **regular** package; `context-patched`
+contains the local LuaMetaTeX C patch. It is a usable, explicitly selected
+variant, not merely a short-lived test artifact. Both variants stay pinned
+until you deliberately update `context-src`. At update time, run the independent
+behavioral suite against both versions to decide whether the patch is still
+needed; a patch that no longer applies does not by itself prove the underlying
+bug was fixed upstream.
 
-To update only ConTeXt, then test it **before switching your system**.
+To update only ConTeXt, build and test the candidate **before updating any
+consumer project's lock file**. This is a development-shell package; no NixOS
+system switch is necessary to use it.
 Because the main flake is Git-backed, **stage newly added files first** (Nix
 flakes cannot see untracked local files):
 
@@ -105,14 +112,14 @@ A successful build does not prove correct output for SI prefixes, e.g.
 PDFs before deploying. `texmf.zip` and `adityam/filter` are fixed by hashes
 in `luametatex.nix` and are **not** updated together with `context-src`.
 
-After a successful comparison, commit the new `flake.lock` and rebuild the
-intended host using `sudo nixos-rebuild switch --flake .#kitty` or `.#tracy`.
-The build itself does not install the new version system-wide. For a failed
-uncommitted update, `git restore flake.lock` restores the prior pin, provided
-no unrelated lock-file changes should be kept. Avoid plain `nix flake update`,
-which refreshes all inputs. Consumers such as `unterrichts-texte` may also
-have their own lock of the `nixos-config` input; a remote input must be updated
-there separately after committing/pushing the new revision here.
+After successful package checks and any deliberately invoked
+`context-testsuite` regression run, commit the new `flake.lock`. **Do not run
+`nixos-rebuild switch` just to install ConTeXt:** it is not installed on the
+hosts. Instead, projects such as `unterrichts-texte` pin the `nixos-config`
+input in their **own** `flake.lock` and can deliberately update that input
+after this change has been committed and pushed. A failed *uncommitted* update
+can be reverted with `git restore flake.lock` if it does not contain other
+edits. Avoid plain `nix flake update`, which refreshes all inputs.
 
 To enter the small ConTeXt verification environment interactively:
 
@@ -123,18 +130,24 @@ python3 pkgs/context/verify-bundle.py result-context result-sandbox
 
 Python is not installed system-wide by this development shell.
 
-Home Manager on `kitty` and `tracy` installs the same `pkgs.contextLmtx`.
-Use your normal NixOS rebuild workflow only after the builds pass.
+The `lib.mkContextDevShell` helper takes an explicit `contextPackage`;
+this repository does not select a global ConTeXt default for either host.
+A consumer's development shell can choose `context-patched` as its default.
 
-### Host font regression (Carlito)
+### Host font regression (Carlito, manual)
 
-After `nix build .#context` and before switching your NixOS system, verify
-that the **installed wrapper** still discovers Carlito from the system font
-paths (not only the fonts bundled in the TeX tree):
+This host test is **not run automatically** by a Nix build. To ensure that
+the wrapper finds Carlito from the running NixOS system's font paths (not
+merely the bundled fonts), run it manually on `kitty` or `tracy`:
 
 ```bash
-pkgs/context/tests/check-system-carlito.sh ./result-context/bin/context
+nix build .#context-patched -o result-context-patched -L
+pkgs/context/tests/check-system-carlito.sh \
+  ./result-context-patched/bin/context
 ```
+
+For the upstream package, build `.#context -o result-context` and pass
+`./result-context/bin/context` instead.
 
 The test uses a new temporary cache, loads Carlito Regular and Bold and
 checks the exact system font paths in ConTeXt's log. It requires Carlito to
@@ -284,10 +297,10 @@ The target must use a compatible Linux kernel and CPU for the Nix-built engine.
 Its execution outside Nix is checked by the build-time smoke tests, but the
 actual ChatGPT Hosted runtime should also be smoke-tested after uploading.
 
-The regular package deliberately **does not patch ConTeXt's units or the
-LuaMetaTeX C engine**. Further proposed engine fixes should be added to an
-explicit `enginePatches` list on a separate variant, not silently added to
-the default package.
+The upstream `.#context` variant deliberately **does not patch ConTeXt's
+units or the LuaMetaTeX C engine**. Engine changes remain explicit in the
+`enginePatches` list of the `context-patched` variant; they are not silently
+applied to the upstream variant.
 
 ## Upstream LMTX 2026 runner compatibility
 
