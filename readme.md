@@ -15,7 +15,7 @@ and has been adapted for a modern flake-based setup.
 
 ### ✨ Key Features
 
-- **Up-to-date sources** – uses the current repository from [contextgarden/context](https://github.com/contextgarden/context)  
+- **Separately pinned sources** – uses a locked revision from [contextgarden/context](https://github.com/contextgarden/context)
 - **Essential fonts** – downloads the `texmf.zip` archive from [Pragma ADE](http://lmtx.pragma-ade.nl/install-lmtx/texmf.zip)  
 - **Ready-to-use commands** – builds `luametatex`, `mtxrun`, and `context` binaries that mirror upstream behavior  
 
@@ -40,11 +40,77 @@ To show more detailed build information:
 nix build .#context --show-trace
 ```
 
-A legacy non-flake build still works for compatibility:
+ConTeXt is built **exclusively through the root flake**. There is no
+`default.nix` or separate flake under `pkgs/context/`.
+
+### 🔄 Updating ConTeXt without updating NixOS
+
+ConTeXt is a **separately pinned flake input** named `context-src`. Its Git
+revision and NAR hash are stored in the **root** `flake.lock`, next to the
+independent `nixpkgs`, `nixpkgs-unstable` and Home Manager inputs. There is no
+separate `pkgs/context/flake.lock`.
+
+| Input | Purpose | Update only this input |
+| --- | --- | --- |
+| `context-src` | ConTeXt LMTX and LuaMetaTeX source | `nix flake update context-src` |
+| `nixpkgs` | NixOS 26.05 package set / build tools | `nix flake update nixpkgs` |
+| `nixpkgs-unstable` | Selected unstable packages | `nix flake update nixpkgs-unstable` |
+
+From the **NixOS-Config repository root**, try a new ConTeXt revision without
+switching the installed NixOS system:
 
 ```bash
-nix-build -A luametatex pkgs/context
+# Update only ConTeXt's source revision.
+nix flake update context-src
+
+# Verify the intended change in the shared lock file.
+git diff -- flake.lock
+
+# Build and inspect the new package.
+nix build .#context -o result-context -L
+./result-context/bin/context --version
+
+# Build the matching portable archive and check that it uses the same tree.
+nix build .#context-sandbox -o result-sandbox -L
+nix develop .#context -c python3 \
+  pkgs/context/verify-bundle.py result-context result-sandbox
+
+# On kitty/tracy, also test finding the system Carlito fonts.
+pkgs/context/tests/check-system-carlito.sh ./result-context/bin/context
 ```
+
+**Check document output before deployment.** A successful Nix build checks
+that the engine works, but does not guarantee correct typesetting. Compile a
+representative document using `./result-context/bin/context`, then inspect
+SI prefixes (notably `\unit{micro Volt}`), formulas and line breaks. For
+teaching documents, use the PDF regression comparison in `unterrichts-texte`.
+
+Once satisfied, commit the pin and switch **only the intended machine**:
+
+```bash
+git add flake.lock
+git commit -m "build(context): update pinned ConTeXt source"
+sudo nixos-rebuild switch --flake .#kitty   # or .#tracy
+```
+
+A `nix build` alone does **not** install ConTeXt on the host. Conversely,
+updating `context-src` does **not** update the locked `nixpkgs` revision or
+Home Manager. Avoid plain `nix flake update` when you only want ConTeXt: that
+updates **all** inputs.
+
+For an unsuccessful, **uncommitted** update, restore the old pin with
+`git restore flake.lock` (only if you do not have other lock-file edits to
+keep). For committed changes, revert the specific update commit.
+
+`texmf.zip` and `adityam/filter` (including `vim`) are **separately fixed by
+hashes** in `pkgs/context/luametatex.nix`; they are not refreshed by this
+command. Projects with their own flake, such as `unterrichts-texte`, also
+have their own lock of the `nixos-config` input. After committing and pushing
+a successful update here, update `nixos-config` in the **consumer project's**
+lock file to use the new revision (when using a remote Git input).
+
+For technical details and further tests, see
+[`pkgs/context/readme.md`](./pkgs/context/readme.md).
 
 ---
 
@@ -55,10 +121,12 @@ It may not be optimal in every respect, but it reflects my current setup and cus
 
 ### 🔁 Rebuilding the System
 
-To apply changes to your system:
+To apply changes, rebuild the intended host via the root flake:
 
 ```bash
-sudo nixos-rebuild switch
+sudo nixos-rebuild switch --flake .#kitty
+# or on tracy:
+sudo nixos-rebuild switch --flake .#tracy
 ```
 
 If fonts are missing or new ones were installed:

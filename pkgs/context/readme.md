@@ -4,11 +4,14 @@
 
 **Use only the root flake** (`NixOS-Config/flake.nix`). The historical
 `pkgs/context/flake.nix` and its independent lock file have been removed:
-all ConTeXt builds are pinned by the root `flake.lock` only.
+all ConTeXt builds are pinned by the root `flake.lock` only. There is no
+`pkgs/context/default.nix`; legacy `nix-build` entrypoints are unsupported.
 
 The root flake has an independent, non-flake `context-src` input pointing to
 `contextgarden/context`. Its actual revision and NAR hash are recorded in the
-**root `flake.lock`**. `pkgs/context/luametatex.nix` consumes that source. The existing TeX-tree installation, filter/vim files and the NixOS font
+**root `flake.lock`**. Its pin is independent of `nixpkgs` and Home
+Manager: updating only `context-src` does not update NixOS. `pkgs/context/luametatex.nix`
+consumes that source. The existing TeX-tree installation, filter/vim files and the NixOS font
 setup are preserved. The launchers use the official `.lmt` entrypoints
 (`mtxrun.lmt` and `context.lmt`). The pinned `texmf.zip` provides the missing
 bootstrap and font files. The pinned `adityam/filter` source provides BOTH
@@ -26,8 +29,10 @@ Because the main flake is Git-backed, **stage newly added files first** (Nix
 flakes cannot see untracked local files):
 
 ```bash
-git add flake.nix modules/home-manager/packages.nix pkgs/context
+# Newly created, untracked Nix files must be staged before a flake build.
+# A source-only update does not require staging any source files.
 nix flake update context-src
+git diff -- flake.lock
 nix build .#context -o result-context --show-trace
 ./result-context/bin/context --version
 nix build .#context-sandbox -o result-sandbox --show-trace
@@ -37,6 +42,19 @@ nix develop .#context -c python3 pkgs/context/verify-bundle.py \
 
 Both builds use exactly the same `context-src` revision from the root
 `flake.lock`. Routine builds do **not** need `nix flake update`.
+A successful build does not prove correct output for SI prefixes, e.g.
+`\unit{micro Volt}`, or for complex layouts; check representative teaching
+PDFs before deploying. `texmf.zip` and `adityam/filter` are fixed by hashes
+in `luametatex.nix` and are **not** updated together with `context-src`.
+
+After a successful comparison, commit the new `flake.lock` and rebuild the
+intended host using `sudo nixos-rebuild switch --flake .#kitty` or `.#tracy`.
+The build itself does not install the new version system-wide. For a failed
+uncommitted update, `git restore flake.lock` restores the prior pin, provided
+no unrelated lock-file changes should be kept. Avoid plain `nix flake update`,
+which refreshes all inputs. Consumers such as `unterrichts-texte` may also
+have their own lock of the `nixos-config` input; a remote input must be updated
+there separately after committing/pushing the new revision here.
 
 To enter the small ConTeXt verification environment interactively:
 
