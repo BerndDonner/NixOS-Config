@@ -44,3 +44,33 @@ Deshalb bleibt L15 absichtlich als strenger Kontrolltest bestehen, und das
 Regression Gate meldet weiterhin einen Fehler, bis beide tatsächlichen
 PDF-Seiten verglichen wurden. Die Nix-Buildausgabe enthält keine Kopie dieser
 fehlgeschlagenen erweiterten PDFs im mitgelieferten 12-Fälle-Archiv.
+
+## Korrektur nach Prüfung der echten PDFs und der Math-Penalties
+
+Die PDF-Sichtprüfung zeigte, dass die zusätzliche Leerzeile bei `L15`
+(nach separatem `\penalty-10000`) mit dem C-Patch entfällt, während
+der erzwungene Umbruch bestehen bleibt. Der Test erlaubt ausschließlich
+diese Änderung und prüft den übrigen Text weiterhin exakt.
+
+Die fünf bisher als `conflict` bezeichneten Fälle sind keine offenen
+Prioritätsentscheidungen mehr: Die ausdrücklich erzwungene Math-Penalty
+`-10000` muss einen Umbruch erzeugen, auch wenn der folgende Glue das
+`noautobreak`-Flag trägt. Beide Pfade für `end_inline_math` wurden
+entsprechend eingeschränkt. Der erweiterte Regressionstest schlägt nun
+bei einem verschluckten erzwungenen Math-Umbruch fehl, statt ihn nur
+als `REVIEW` auszugeben. Ein erneuter Build mit dem neuen C-Patch ist
+für die Bestätigung dieser Verhaltensänderung erforderlich.
+
+### Node-Listen-Kontrolle mit ungepatchtem LMTX 2026.10.25
+
+Mit `\showlists` wurden die beiden Fälle auf Node-Ebene überprüft:
+
+- `P03`: `math[endmath], penalty -10000` ist **eine Eigenschaft des
+  Math-Nodes**; unmittelbar danach folgt `glue[userskip], options "1"`.
+- `L15`: `math[endmath]` enthält **keine** erzwungene Math-Penalty;
+  danach folgen `glue[userskip], options "1"` und ein eigener
+  `penalty[userpenalty], amount -10000`.
+
+Die C-Korrektur unterscheidet deshalb ausdrücklich die im Math-Node
+hinterlegte erzwungene Penalty von einem bloß möglichen automatischen
+Umbruch. Die separate Penalty in `L15` bleibt wirksam.

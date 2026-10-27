@@ -1,28 +1,29 @@
 --- a/source/luametatex/source/tex/texlinebreak.c
 +++ b/source/luametatex/source/tex/texlinebreak.c
-@@ -4951,7 +4951,11 @@
+@@ -4951,7 +4951,12 @@
                              case end_inline_math:
                                  {
                                      halfword penalty = math_penalty(current);
 -                                    if (node_type(node_next(current)) == glue_node) {
 +                                    halfword next = node_next(current);
-+                                    /* A protected following glue must not be bypassed by
-+                                       the implicit break at the end of inline math. */
++                                    /* Protected glue suppresses only implicit breaks.
++                                       A forced math penalty must retain priority. */
 +                                    if (next && node_type(next) == glue_node
-+                                        && ! tex_has_glue_option(next, glue_option_no_auto_break)) {
++                                        && (penalty <= -10000
++                                            || ! tex_has_glue_option(next, glue_option_no_auto_break))) {
                                          if (properties->math_penalty_factor) {
                                              penalty = tex_xn_over_d_factor(penalty, properties->math_penalty_factor);
                                          }
-@@ -4972,7 +4976,12 @@
+@@ -4972,7 +4977,12 @@
                              case end_inline_math:
                                  {
                                      halfword penalty = math_penalty(current);
 -                                    if (tex_aux_valid_glue_break(current)) {
 +                                    halfword next = node_next(current);
-+                                    /* Preserve all ordinary breakpoints; suppress only
-+                                       the one preceding protected glue. */
++                                    /* Keep forced math breaks even when the following
++                                       glue would suppress an automatic break. */
 +                                    if (tex_aux_valid_glue_break(current)
-+                                        && ! (next && node_type(next) == glue_node
++                                        && ! (penalty > -10000 && next && node_type(next) == glue_node
 +                                            && tex_has_glue_option(next, glue_option_no_auto_break))) {
                                          if (properties->math_penalty_factor) {
                                              penalty = tex_xn_over_d_factor(penalty, properties->math_penalty_factor);

@@ -53,10 +53,25 @@ def check(root: Path):
         if kind == "protected":
             if not b["joined"]:
                 reason = "protected expression is still split"
-        elif kind in ("normal", "other"):
+        elif kind == "normal":
             if changed:
                 reason = "unexpected change to unprotected/control case"
+        elif kind == "other":
+            if case["id"] == "L15":
+                # A separate explicit \penalty-10000 must still force exactly
+                # one break. Before the fix the math/glue combination produced
+                # an extra empty line; removing just that empty line is allowed.
+                expected = a["text"].replace("\n\n", "\n", 1)
+                if b["joined"] or b["text"] != expected:
+                    reason = "explicit forced break changed beyond removing one empty line"
+            elif changed:
+                reason = "unexpected change to unprotected/control case"
         elif kind == "conflict":
+            # This is not an undecidable conflict: TeX penalty -10000 forces
+            # a break. noautobreak must only inhibit an implicit breakpoint,
+            # not an explicitly forced inline-math penalty.
+            if b["joined"]:
+                reason = "forced inline-math penalty -10000 was suppressed"
             conflicts.append({"id":case["id"], "before_join":a["joined"], "after_join":b["joined"], "changed":changed})
         if reason:
             errors.append(f"{case['id']}: {reason}")
@@ -76,12 +91,11 @@ def check(root: Path):
                 print('    ' + line)
     (root / "checks.json").write_text(json.dumps({"cases":rows,"errors":errors,"conflicts":conflicts},ensure_ascii=False,indent=2)+"\n")
     for x in conflicts:
-        print(f"REVIEW: {x['id']}: explicit math penalty conflicts with noautobreak; {x['before_join']} -> {x['after_join']}")
+        print(f"FORCED: {x['id']}: math penalty -10000 must still break; {x['before_join']} -> {x['after_join']}")
     if errors:
         print(f"FAIL: {len(errors)} regression checks failed (see checks.json)")
         return 1
-    print(f"PASS: {len(rows)} cases; required protected joins and invariant controls satisfied.")
-    print("NOTE: negative math-penalty conflict cases are intentionally not judged automatically.")
+    print(f"PASS: {len(rows)} cases; protected glue, forced breaks and controls satisfied.")
     return 0
 
 

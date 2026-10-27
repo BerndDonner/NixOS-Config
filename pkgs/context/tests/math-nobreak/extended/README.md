@@ -21,9 +21,9 @@ nix build .#checks.x86_64-linux.context-math-nobreak-extended \
 ```
 
 The check produces 74-page PDFs, build logs, extracted text and `checks.json`
-in the result symlink. A passing check still reports five contradictory
-math-penalty/no-break cases as `REVIEW` rather than deciding the intended
-priority. Inspect `result-context-math-nobreak-extended/checks.json`.
+in the result symlink. The five cases combining `noautobreak` with an explicit math penalty of
+`-10000` are mandatory forced-break checks: a suppressed force break fails
+the check. Inspect `result-context-math-nobreak-extended/checks.json`.
 
 ## Manual run against real patched C engine
 
@@ -52,16 +52,17 @@ python3 pkgs/context/tests/math-nobreak/extended/check.py \
 - `normal`: unprotected glue, spaces and punctuation. The extracted body text
   must stay exactly the same between the two builds.
 - `other`: explicit penalties, kerns, boxes and other controls. Must stay
-  exactly the same. `L15` deliberately remains here: despite a forced break
-  remaining on both sides, the actual extracted paragraph differs under the
-  C patch. This is a **hard failure requiring investigation**, not something
-  to suppress by checking only `split` vs `join`. The checker prints a diff.
-  `L16` is instead `protected`: it uses `options=1` after math with
+  exactly the same, except `L15`: its explicit `\penalty-10000` must still
+  produce precisely one forced break. The pre-fix PDF contains an extra empty
+  line before the following word; the checker allows **only** the removal of
+  that empty line, checking the rest of the extracted text for equality.
+  `L16` is `protected`: it uses `options=1` after math with
   `\mathsurround=3pt`, and must change from split to join.
-- `conflict`: intentionally adversarial `\postinlinepenalty=-10000` or
-  `\postshortinlinepenalty=-10000` together with `~`. These express
-  apparently conflicting priorities (force a math break vs protect adjacent
-  glue); the checker **always reports them for manual review**, not PASS/FAIL.
+- `conflict`: retained test fixture name for the five adversarial
+  `\postinlinepenalty=-10000` / `\postshortinlinepenalty=-10000`
+  cases with protected glue. Their semantics are now checked: an explicit
+  forced break has priority over glue's `noautobreak` option. All five must
+  remain **split** or the regression check fails.
 
 The direct-glue tests exercise `noautobreak` alone and together with `isspace`,
 `nondiscardable`, `setdiscardable`, `limit`, and zero-width/stretchable glue.
@@ -112,5 +113,7 @@ nix shell nixpkgs#poppler-utils nixpkgs#python3 -c bash \
 ```
 
 The script may return exit code 1 on purpose, but the results persist.
-`L15` is on page **53** and `L16` on page **54**. Compare the two PDFs
-visually; do not decide from `pdftotext` alone.
+`L15` is on page **53** and `L16` on page **54**. The five forced-math
+checks are `P03`, `P15`, `P17`, `X02`, and `X10`.
+Compare relevant pages visually as well; PDF text extraction is not sufficient
+for a proof of all layout properties.
