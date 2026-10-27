@@ -308,7 +308,7 @@
       checks.${system}.context-math-nobreak = pkgs.runCommand
         "context-math-nobreak-regression"
         {
-          nativeBuildInputs = [ pkgs.coreutils pkgs.poppler_utils pkgs.python3 ];
+          nativeBuildInputs = [ pkgs.coreutils pkgs.poppler-utils pkgs.python3 ];
         }
         ''
           CONTEXT_TEST_CACHE_ROOT="$TMPDIR" \
