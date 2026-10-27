@@ -24,6 +24,11 @@ stdenv.mkDerivation rec {
   # Keep the normal 2026 package and its regression gates unchanged.
   legacy2024 = if lib.hasPrefix "0d2ec448a05c" contextRevision then "1" else "0";
 
+  # Experimental LuaMetaTeX fix: suppress a break after inline math when
+  # the following glue has the no_auto_break option. This patches the
+  # unpacked source, which configurePhase must actually build (see below).
+  patches = lib.optional (legacy2024 != "1") ./patches/luametatex-math-glue-noautobreak.patch;
+
   # Retain the proven filter/vim release; it is used by teaching documents.
   moduleFilter = fetchFromGitHub {
     owner = "adityam";
@@ -46,7 +51,9 @@ stdenv.mkDerivation rec {
   # Use the upstream default LuaMetaTeX build (without LuaSocket).
   # ConTeXt 2026 launches through mtxrun.lmt/context.lmt, not mtxrun.lua.
   configurePhase = ''
-    cmake -B build -S "$src/source/luametatex" -DCMAKE_BUILD_TYPE=Release
+    # IMPORTANT: $src is the unmodified store source! Use the unpacked,
+    # patchPhase-modified source tree instead.
+    cmake -B build -S "$PWD/source/luametatex" -DCMAKE_BUILD_TYPE=Release
   '';
 
   buildPhase = ''
