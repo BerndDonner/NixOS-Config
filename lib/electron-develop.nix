@@ -1,5 +1,8 @@
 { pkgs
 , symbol ? "⚛"
+, inputs ? null
+, flakeLockPath ? null
+, checkInputs ? [ "nixos-config" ]
 , message ? "Electron development environment ready"
 , nodejsPackage ? pkgs.nodejs_22
 , electronPackage ? pkgs.electron
@@ -34,9 +37,12 @@ let
   runtimePackages =
     lib.optionals includeElectron [ electronPackage ]
     ++ lib.optionals includeCode [ codePackage ]
-    ++ extraPackages;
+    ++ extraPackages ++ [ (import ./devflake-update.nix { inherit pkgs; }) ];
 
   promptHook = import ./prompt-hook.nix { inherit symbol; };
+  updateWarningHook = import ./devshell-update.nix {
+    inherit pkgs inputs flakeLockPath checkInputs;
+  };
 in
 pkgs.mkShell {
   name = "electron-development";
@@ -57,6 +63,7 @@ pkgs.mkShell {
     export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
 
     ${promptHook}
+    ${updateWarningHook}
 
     echo "${message}"
     echo "Node: $(node --version)"

@@ -40,6 +40,14 @@
     };
 
     # -------------------------------------------------------------------------
+    # Pinned serial terminal fork, independently updateable:
+    #   nix flake update tio-src
+    tio-src = {
+      url = "github:yabu76/tio/master_this_fork";
+      flake = false;
+    };
+
+    # -------------------------------------------------------------------------
     # External modules / applications
     # -------------------------------------------------------------------------
     disko.url =
@@ -102,6 +110,14 @@
         };
       };
 
+      overlayTioFork = final: prev: {
+        tio-fork = prev.tio.overrideAttrs (_old: {
+          pname = "tio-fork";
+          version = "3.9-unstable-${builtins.substring 0 8 (inputs.tio-src.rev or "unknown")}";
+          src = inputs.tio-src;
+        });
+      };
+
       # Package set used by this flake's own packages and devShells.
       pkgs = import nixpkgs {
         inherit system;
@@ -111,6 +127,7 @@
           overlayPygameAvx2
           overlayScopeRs
           overlayContext
+          overlayTioFork
         ];
       };
 
@@ -266,6 +283,8 @@
           pkgs.callPackage ./pkgs/nordvpn/nordvpn.nix { };
 
         scope-rs = pkgs.scope-rs;
+        tio-fork = pkgs.tio-fork;
+        devflake-update = import ./lib/devflake-update.nix { inherit pkgs; };
       };
 
       # Python is only needed for the bundle integrity verifier, not as a
@@ -286,6 +305,7 @@
         unstable = overlayUnstable;
         pygame-avx2 = overlayPygameAvx2;
         context = overlayContext;
+        tio-fork = overlayTioFork;
       };
 
       # -----------------------------------------------------------------------
@@ -308,8 +328,10 @@
         mkSecretShellHook =
           import ./lib/secret-shell-hook.nix;
 
-        mkArduinoDevShell =
-          import ./lib/arduino-develop.nix;
+        mkArduinoDevShell = args:
+          import ./lib/arduino-develop.nix (
+            { tioPackage = pkgs.tio-fork; } // args
+          );
 
         mkCDevShell =
           import ./lib/c-develop.nix;

@@ -4,46 +4,28 @@
 , flakeLockPath ? null  # Required when checkInputs is non-empty
 , symbol ? "🐍"
 , pythonVersion ? pkgs.python3
+, pythonTools ? (_: [ ])  # optional developer modules, e.g. ps: [ ps.ipython ]
 , pythonPackages ? (_: [ ])  # importable Python packages, e.g. ps: [ ps.pyyaml ]
 , extraPackages ? [ ]          # non-Python tools/programs added to the shell
 , message ? "🐍 Python development environment ready"
 , inputs ? null             # optional flake inputs
-, checkInputs ? [ ]         # optional inputs to verify
+, checkInputs ? [ "nixos-config" ]         # optional inputs to verify
 , secretSets ? [ ]
 , extraShellHook ? ""
 }:
 
 let
   pythonEnv = pythonVersion.withPackages (ps:
-    [
-      ps.pip
-      ps.setuptools
-      ps.wheel
-      ps.ipython
-      ps.black
-      ps.isort
-    ]
-    ++ pythonPackages ps
+    pythonPackages ps ++ pythonTools ps
   );
 
   secretHook = import ./secret-shell-hook.nix { inherit pkgs secretSets; };
 
   promptHook = import ./prompt-hook.nix { inherit symbol; };
 
-  updateWarningHook =
-    if checkInputs == [ ] then
-      ""
-    else if inputs == null then
-      throw "mkPythonDevShell: checkInputs requires inputs to be provided."
-    else if flakeLockPath == null then
-      throw "mkPythonDevShell: checkInputs requires flakeLockPath (e.g. flakeLockPath = ./flake.lock; in the calling flake)."
-    else
-      import ./update-warning-hook.nix {
-        inherit inputs;
-        inherit checkInputs;
-        inherit flakeLockPath;
-        symbol = "⚠️";
-      };
+  updateWarningHook = import ./devshell-update.nix {
+    inherit pkgs inputs flakeLockPath checkInputs;
+  };
 in
 pkgs.mkShell {
   name = "python-env";
@@ -52,7 +34,7 @@ pkgs.mkShell {
 
   packages = [
     pythonEnv
-    pkgs.jq
+    (import ./devflake-update.nix { inherit pkgs; })
   ] ++ extraPackages;
 
   shellHook = ''

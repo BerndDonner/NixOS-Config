@@ -222,3 +222,45 @@ devShells.${system}.default = nixos-config.lib.mkPythonDevShell {
 The lock path is relative to the **calling flake**, not this repository's
 `lib/` directory. A nested flake therefore uses its own `./flake.lock`.
 For shells without `checkInputs`, `inputs` and `flakeLockPath` are optional.
+
+
+## Shared development shells (flake-only)
+
+The helper functions `lib.mkPythonDevShell`, `lib.mkCDevShell`,
+`lib.mkContextDevShell`, `lib.mkArduinoDevShell`,
+`lib.mkElectronDevShell` and `lib.mkPythonVenvDevShell` are reusable in
+projects with their own locked `nixos-config` input.
+
+Every consuming project must pass `inputs = { inherit nixos-config; };`
+and `flakeLockPath = ./flake.lock;` to get the **non-blocking** update warning.
+The warning checks GitHub's current branch HEAD, respecting an explicit branch
+in the input, and caches successful remote results for six hours. If offline,
+it skips the check. To override the cache, use `DEVFLAKE_UPDATE_CHECK=force
+nix develop`; to skip checks, set `DEVFLAKE_UPDATE_CHECK=off`.
+No hook updates a lock file automatically.
+
+The optional command `devflake-update` (available inside each shared DevShell)
+updates only `nixos-config`, displays its Git diff, and evaluates the default
+DevShell without building packages:
+
+```bash
+nix develop
+devflake-update
+```
+
+**Python**: `pythonPackages = ps: [ ... ]` controls importable modules;
+`pythonTools = ps: [ ... ]` adds optional developer modules (e.g. `ipython`,
+`black`). Non-Python tools go into `extraPackages`. Bare Python is the default.
+
+**C/C++**: default build system is `make`. Add e.g.
+`buildSystems = [ "meson" "ninja" ];`, `debugTools = [ "gdb" ];`,
+`utilityTools = [ "git" ];` as needed. Libraries remain in `extraBuildInputs`.
+
+**ConTeXt**: `extraPackages` permits adding Python (e.g. PyMuPDF) without
+`overrideAttrs`.
+
+**Arduino**: the shared shell uses the independently pinned
+[`yabu76/tio`](https://github.com/yabu76/tio/tree/master_this_fork)
+package instead of picocom/minicom. Update with `nix flake update tio-src` in
+NixOS-Config, then build `nix build .#tio-fork`. Following the new template
+in dependent repositories requires `nix flake update nixos-config` there.

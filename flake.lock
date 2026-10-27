@@ -156,7 +156,8 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "scope-rs-src": "scope-rs-src",
-        "steel": "steel"
+        "steel": "steel",
+        "tio-src": "tio-src"
       }
     },
     "rust-overlay": {
@@ -233,6 +234,23 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "tio-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791592274,
+        "narHash": "sha256-MzrxQ+Clk6xsE4tw+F0XZy8W9ZGq2g3EYIuI6pN/vgs=",
+        "owner": "yabu76",
+        "repo": "tio",
+        "rev": "fa4e449318fc07f8b78671b6531f7719cdb52e0d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "yabu76",
+        "ref": "master_this_fork",
+        "repo": "tio",
         "type": "github"
       }
     },

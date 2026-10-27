@@ -3,9 +3,12 @@
 , flakeLockPath ? null  # Required when checkInputs is non-empty
 , symbol ? ""
 , compiler ? pkgs.gcc
+, buildSystems ? [ "make" ] # any of make, cmake, meson, ninja
+, debugTools ? [ ] # any of gdb, clang-tools
+, utilityTools ? [ ] # any of git, jq, curl
 , message ? " C development environment ready"
 , inputs ? null                  # optional flake inputs
-, checkInputs ? [ ]              # optional inputs to verify
+, checkInputs ? [ "nixos-config" ]              # optional inputs to verify
 , extraPackages ? [ ]
 , extraNativeBuildInputs ? [ ]
 , extraBuildInputs ? [ ]
@@ -14,24 +17,28 @@
 }:
 
 let
+  toolMap = {
+    make = pkgs.gnumake;
+    cmake = pkgs.cmake;
+    meson = pkgs.meson;
+    ninja = pkgs.ninja;
+    gdb = pkgs.gdb;
+    clang-tools = pkgs.clang-tools;
+    git = pkgs.git;
+    jq = pkgs.jq;
+    curl = pkgs.curl;
+  };
+  resolveTools = names: map (name:
+    if builtins.hasAttr name toolMap then builtins.getAttr name toolMap
+    else throw "mkCDevShell: unknown tool: ${name}"
+  ) names;
   secretHook = import ./secret-shell-hook.nix { inherit pkgs secretSets; };
 
   promptHook = import ./prompt-hook.nix { inherit symbol; };
 
-  updateWarningHook =
-    if checkInputs == [ ] then
-      ""
-    else if inputs == null then
-      throw "mkCDevShell: checkInputs requires inputs to be provided."
-    else if flakeLockPath == null then
-      throw "mkCDevShell: checkInputs requires flakeLockPath (e.g. flakeLockPath = ./flake.lock; in the calling flake)."
-    else
-      import ./update-warning-hook.nix {
-        inherit inputs;
-        inherit checkInputs;
-        inherit flakeLockPath;
-        symbol = "⚠️";
-      };
+  updateWarningHook = import ./devshell-update.nix {
+    inherit pkgs inputs flakeLockPath checkInputs;
+  };
 in
 pkgs.mkShell {
   name = "c-development";
@@ -39,27 +46,16 @@ pkgs.mkShell {
   shell = pkgs.bashInteractive;
 
   # Tools needed while configuring/building C projects.
-  nativeBuildInputs = with pkgs; [
-    compiler
-    pkg-config
-    gnumake
-    cmake
-    meson
-    ninja
-    git
-  ] ++ extraNativeBuildInputs;
+  nativeBuildInputs = [ compiler pkgs.pkg-config ]
+    ++ resolveTools buildSystems ++ extraNativeBuildInputs;
 
   # Project-specific libraries belong here so their setup hooks expose
   # include paths, library paths and pkg-config metadata.
   buildInputs = extraBuildInputs;
 
   # Interactive development/debugging tools.
-  packages = with pkgs; [
-    gdb
-    clang-tools
-    jq
-    curl
-  ] ++ extraPackages;
+  packages = resolveTools (debugTools ++ utilityTools) ++ extraPackages
+    ++ [ (import ./devflake-update.nix { inherit pkgs; }) ];
 
   shellHook = ''
     ${secretHook}

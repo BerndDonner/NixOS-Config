@@ -1,5 +1,8 @@
 { pkgs
 , symbol ? "🐍"
+, inputs ? null
+, flakeLockPath ? null
+, checkInputs ? [ "nixos-config" ]
 , pythonVersion ? pkgs.python3
 , requirementsFile ? ./requirements.txt  # optional path to requirements.txt
 , message ? "🐍 Python venv environment ready (use pip to install packages)"
@@ -11,6 +14,9 @@ let
   secretHook = import ./secret-shell-hook.nix { inherit pkgs secretSets; };
 
   promptHook = import ./prompt-hook.nix { inherit symbol; };
+  updateWarningHook = import ./devshell-update.nix {
+    inherit pkgs inputs flakeLockPath checkInputs;
+  };
 in
 pkgs.mkShell {
   name = "python-venv-env";
@@ -19,6 +25,7 @@ pkgs.mkShell {
   packages = [
     pythonVersion
     pythonVersion.pkgs.venvShellHook
+    (import ./devflake-update.nix { inherit pkgs; })
   ];
 
   # this variable tells venvShellHook where to place the environment
@@ -27,6 +34,7 @@ pkgs.mkShell {
   shellHook = ''
     ${secretHook}
     ${promptHook}
+    ${updateWarningHook}
 
     echo "${message}"
     echo

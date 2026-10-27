@@ -1,10 +1,11 @@
 # arduino-base-shell.nix
 { pkgs
 , flakeLockPath ? null  # Required when checkInputs is non-empty
+, tioPackage ? pkgs.tio  # central nixos-config passes its pinned fork
 , symbol ? "📟"
 , message ? "📟 Arduino development environment ready"
 , inputs ? null             # optional flake inputs
-, checkInputs ? [ ]         # optional inputs to verify
+, checkInputs ? [ "nixos-config" ]         # optional inputs to verify
 , extraPackages ? [ ]
 , secretSets ? [ ]
 , extraShellHook ? ""
@@ -15,21 +16,10 @@ let
 
   promptHook = import ./prompt-hook.nix { inherit symbol; };
 
-  # Update warning hook (optional)
-  updateWarningHook =
-    if checkInputs == [ ] then
-      ""
-    else if inputs == null then
-      throw "mkArduinoDevShell: checkInputs requires inputs to be provided."
-    else if flakeLockPath == null then
-      throw "mkArduinoDevShell: checkInputs requires flakeLockPath (e.g. flakeLockPath = ./flake.lock; in the calling flake)."
-    else
-      import ./update-warning-hook.nix {
-        inherit inputs;
-        inherit checkInputs;
-        inherit flakeLockPath;
-        symbol = "⚠";
-      };
+  # Non-blocking update warning (on by default for consuming projects)
+  updateWarningHook = import ./devshell-update.nix {
+    inherit pkgs inputs flakeLockPath checkInputs;
+  };
 in
 pkgs.mkShell {
   name = "arduino-env";
@@ -40,10 +30,9 @@ pkgs.mkShell {
   packages = with pkgs; [
     arduino-cli             # command-line interface for sketches & board management
     avrdude                 # upload tool for AVR boards
-    picocom                 # simple serial monitor
-    minicom                 # advanced serial terminal
+    tioPackage              # pinned yabu76/tio fork from NixOS-Config
     jq                      # useful for parsing Arduino CLI JSON output
-  ] ++ extraPackages;
+  ] ++ extraPackages ++ [ (import ./devflake-update.nix { inherit pkgs; }) ];
 
   shellHook = ''
     ${secretHook}

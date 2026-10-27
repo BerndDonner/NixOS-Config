@@ -1,111 +1,74 @@
-{ inputs
-, checkInputs ? [ ]
-, flakeLockPath
-, symbol ? "⚠️"
-}:
-
+# Evaluates the consumer's lock file, then performs a bounded, cached remote
+# check when entering a shell. Never changes the lock file, even on failure.
+{ pkgs, flakeLockPath, checkInputs ? [ "nixos-config" ] }:
 let
-  # Always read the consuming flake's explicit lock file.
-  flakeLock =
-    if builtins.pathExists flakeLockPath then
-      builtins.fromJSON (builtins.readFile flakeLockPath)
-    else
-      throw "update-warning-hook: flakeLockPath does not exist: ${toString flakeLockPath}";
-
-  sanitize = name: builtins.replaceStrings [ "-" ] [ "_" ] name;
-
-  getInfo = name:
+  lib = pkgs.lib;
+  lock = if builtins.pathExists flakeLockPath then
+    builtins.fromJSON (builtins.readFile flakeLockPath)
+    else throw "update-warning-hook: no flake.lock at ${toString flakeLockPath}";
+  # Resolve aliases from root.inputs (flake input names are not guaranteed
+  # to equal internal node ids in flake.lock).
+  nodeFor = name:
+    let target = lock.nodes.root.inputs.${name} or name;
+        nodeId = if builtins.isList target then builtins.elemAt target 0 else target;
+    in lock.nodes.${nodeId} or { };
+  mkCheck = name:
     let
-      node = flakeLock.nodes.${name}.locked or {};
-      typ  = node.type or "";
-      url  =
-        if typ == "github" then
-          "github:${node.owner or ""}/${node.repo or ""}"
-        else
-          node.url or "";
-      rev  = node.rev or "";
-    in { inherit url rev; };
-
-  revVars = builtins.concatStringsSep "\n" (
-    map (name:
-      let info = getInfo name;
-          safe = sanitize name;
-      in ''
-        declare rev_${safe}="${info.rev}"
-        declare url_${safe}="${info.url}"
-      ''
-    ) checkInputs
-  );
-
-  list = builtins.concatStringsSep " " checkInputs;
-
+      node = nodeFor name;
+      locked = node.locked or { };
+      original = node.original or { };
+      owner = locked.owner or original.owner or "";
+      repo = locked.repo or original.repo or "";
+      remote = "https://github.com/${owner}/${repo}.git";
+      # Explicit refs are respected; otherwise query the default HEAD.
+      ref = if original ? ref then "refs/heads/${original.ref}" else "HEAD";
+      rev = locked.rev or "";
+    in if (locked.type or "") != "github" || rev == "" then ""
+       else if owner == "NixOS" && repo == "nixpkgs" then ""
+       else ''
+         check_one ${lib.escapeShellArg name} ${lib.escapeShellArg remote} \
+           ${lib.escapeShellArg ref} ${lib.escapeShellArg rev}
+       '';
+  commands = builtins.concatStringsSep "\n" (map mkCheck checkInputs);
+  script = pkgs.writeShellScript "devshell-update-warning" ''
+    # This program only reports differences. Network failures never prevent
+    # entering the development shell.
+    cache_dir="''${XDG_CACHE_HOME:-$HOME/.cache}/devflake-updates"
+    cache_ttl=21600 # 6 hours
+    check_one() {
+      local name="$1" remote="$2" ref="$3" pinned="$4"
+      local key cache_file last now remote_rev
+      if [[ "''${DEVFLAKE_UPDATE_CHECK:-}" == "off" ]]; then return 0; fi
+      key=$(printf '%s\n' "$name" "$remote" "$ref" "$pinned" | ${pkgs.coreutils}/bin/sha256sum)
+      key="''${key%% *}"
+      cache_file="$cache_dir/$key"
+      if [[ "''${DEVFLAKE_UPDATE_CHECK:-}" != "force" && -f "$cache_file" ]]; then
+        last=$(${pkgs.coreutils}/bin/stat -c %Y "$cache_file" 2>/dev/null || printf 0)
+        now=$(${pkgs.coreutils}/bin/date +%s)
+        if (( now >= last && now - last < cache_ttl )); then
+          remote_rev=$(${pkgs.coreutils}/bin/cat "$cache_file" 2>/dev/null || true)
+        fi
+      fi
+      if [[ -z "''${remote_rev:-}" ]]; then
+        remote_rev=$(${pkgs.coreutils}/bin/timeout 5s \
+          ${pkgs.git}/bin/git -c credential.interactive=never \
+          ls-remote "$remote" "$ref" 2>/dev/null \
+          | ${pkgs.gawk}/bin/awk 'NR==1 {print $1}' || true)
+        if [[ -z "$remote_rev" ]]; then
+          printf '  ⚠ %s: update check skipped (offline / remote unavailable)\n' "$name"
+          return 0
+        fi
+        ${pkgs.coreutils}/bin/mkdir -p "$cache_dir" 2>/dev/null || true
+        printf '%s\n' "$remote_rev" > "$cache_file" 2>/dev/null || true
+      fi
+      if [[ "$remote_rev" != "$pinned" ]]; then
+        printf '  ⚠ %s: upstream revision differs from pinned revision\n' "$name"
+        printf '    pinned: %s\n    remote: %s\n' "$pinned" "$remote_rev"
+        printf '    To update: devflake-update (or nix flake update %s)\n' "$name"
+      fi
+    }
+    ${commands}
+    exit 0
+  '';
 in
-''
-  # === Color definitions ===
-  YELLOW="\033[1;33m"
-  CYAN="\033[1;36m"
-  RESET="\033[0m"
-
-  ${revVars}
-
-  printf "%b\n" "''${CYAN}${symbol}  Checking flake input revisions...''${RESET}"
-  printf "\n"
-
-  for inputName in ${list}; do
-    safe="''${inputName//-/_}"
-    eval "rev=\$rev_''${safe}"
-    eval "url=\$url_''${safe}"
-
-    if [ -z "$rev" ]; then
-      printf "%b\n" "    ''${CYAN}$inputName:''${RESET} (no revision info available)"
-      continue
-    fi
-
-    printf "%b\n" "    ''${CYAN}$inputName:''${RESET} $rev"
-
-    # === Remote revision check ===
-    if [[ "$url" == github:* ]]; then
-      repo=$(echo "$url" | sed -E 's|github:([^/]+/[^/]+).*|\1|')
-      branch=$(curl -s "https://api.github.com/repos/$repo" | jq -r .default_branch)
-
-      # Prepare optional token header
-      if [ -n "$GITHUB_TOKEN" ]; then
-        AUTH_HEADER="-H Authorization: Bearer $GITHUB_TOKEN"
-      else
-        AUTH_HEADER=""
-      fi
-
-      # Skip huge nixpkgs repo for speed
-      if [[ "$repo" == "NixOS/nixpkgs" ]]; then
-        printf "%b\n" "        (skipping nixpkgs remote check)"
-        continue
-      fi
-
-      # --- Fast GitHub API query ---
-      latest_rev=$(curl -s $AUTH_HEADER \
-        "https://api.github.com/repos/$repo/commits/$branch" |
-        jq -r .sha 2>/dev/null)
-
-      # --- Fallback to git ls-remote (works for any Git host) ---
-      if [ -z "$latest_rev" ] || [ "$latest_rev" = "null" ]; then
-        remote_url="https://github.com/$repo.git"
-        latest_rev=$(timeout 6s git ls-remote "$remote_url" HEAD 2>/dev/null | awk '{print $1}')
-      fi
-
-      # --- Compare and warn ---
-      if [ -n "$latest_rev" ] && [ "$latest_rev" != "$rev" ]; then
-        printf "%b\n" "''${YELLOW}${symbol}  Notice:''${RESET} newer upstream revision detected!"
-        printf "%b\n" "        → Latest upstream: $latest_rev"
-        printf "%b\n" "        → Run: nix flake update $inputName"
-      fi
-    else
-      # For non-GitHub inputs, do a simple ls-remote check if possible
-      latest_rev=$(timeout 6s git ls-remote "$url" HEAD 2>/dev/null | awk '{print $1}')
-      if [ -n "$latest_rev" ] && [ "$latest_rev" != "$rev" ]; then
-        printf "%b\n" "''${YELLOW}${symbol}  Notice:''${RESET} $inputName has newer revision $latest_rev"
-      fi
-    fi
-  done
-
-  printf "\n"
-''
+"${pkgs.bash}/bin/bash ${script}"
