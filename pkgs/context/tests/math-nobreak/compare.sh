@@ -1,32 +1,50 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: ./compare.sh /absolute/path/to/unpatched/context /absolute/path/to/patched/context [output-dir]
-if (( $# < 2 || $# > 3 )); then
-  echo "Usage: $0 UNPATCHED_CONTEXT PATCHED_CONTEXT [OUTPUT_DIR]" >&2
-  exit 2
-fi
-for exe in pdftotext python3 realpath; do
+# Usage: ./compare.sh UNPATCHED_CONTEXT PATCHED_CONTEXT [OUTPUT_DIR]
+#        ./compare.sh --check-only EXISTING_OUTPUT_DIR
+for exe in python3 realpath; do
   command -v "$exe" >/dev/null || { echo "Missing command: $exe" >&2; exit 2; }
 done
-unpatched=$(realpath "$1")
-patched=$(realpath "$2")
-[[ -x "$unpatched" && -x "$patched" ]] || { echo 'Context executables not found' >&2; exit 2; }
-outdir=${3:-$(mktemp -d "${TMPDIR:-/tmp}/math-nobreak-XXXXXX")}
-mkdir -p "$outdir"
-outdir=$(realpath "$outdir")
-scripts_dir=$(cd "$(dirname "$0")" && pwd)
+
+if [[ ${1:-} == --check-only ]]; then
+  if (( $# != 2 )); then
+    echo "Usage: $0 --check-only EXISTING_OUTPUT_DIR" >&2
+    exit 2
+  fi
+  outdir=$(realpath "$2")
+else
+  if (( $# < 2 || $# > 3 )); then
+    echo "Usage: $0 UNPATCHED_CONTEXT PATCHED_CONTEXT [OUTPUT_DIR]" >&2
+    exit 2
+  fi
+  command -v pdftotext >/dev/null || { echo 'Missing command: pdftotext' >&2; exit 2; }
+  unpatched=$(realpath "$1")
+  patched=$(realpath "$2")
+  [[ -x "$unpatched" && -x "$patched" ]] || { echo 'Context executables not found' >&2; exit 2; }
+  outdir=${3:-$(mktemp -d "${TMPDIR:-/tmp}/math-nobreak-XXXXXX")}
+  mkdir -p "$outdir"
+  outdir=$(realpath "$outdir")
+  scripts_dir=$(cd "$(dirname "$0")" && pwd)
+
+  for version in before after; do
+    mkdir -p "$outdir/$version"
+    cp "$scripts_dir/cases.tex" "$outdir/$version/cases.tex"
+    if [[ $version = before ]]; then engine=$unpatched; else engine=$patched; fi
+    ( cd "$outdir/$version"; export TEXMFCACHE="$outdir/cache-$version"; "$engine" --once cases.tex > build.log 2>&1 ) || {
+      tail -80 "$outdir/$version/build.log" >&2
+      exit 1
+    }
+    test -s "$outdir/$version/cases.pdf" || { echo "No PDF from $version" >&2; exit 1; }
+    pdftotext -layout "$outdir/$version/cases.pdf" "$outdir/$version/cases.txt"
+  done
+fi
 
 for version in before after; do
-  mkdir -p "$outdir/$version"
-  cp "$scripts_dir/cases.tex" "$outdir/$version/cases.tex"
-  if [[ $version = before ]]; then engine=$unpatched; else engine=$patched; fi
-  ( cd "$outdir/$version"; export TEXMFCACHE="$outdir/cache-$version"; "$engine" --once cases.tex > build.log 2>&1 ) || {
-    tail -80 "$outdir/$version/build.log" >&2
-    exit 1
+  [[ -s "$outdir/$version/cases.txt" ]] || {
+    echo "Missing $outdir/$version/cases.txt" >&2
+    exit 2
   }
-  test -s "$outdir/$version/cases.pdf" || { echo "No PDF from $version" >&2; exit 1; }
-  pdftotext -layout "$outdir/$version/cases.pdf" "$outdir/$version/cases.txt"
 done
 
 python3 - "$outdir" <<'PYCODE'
@@ -47,13 +65,31 @@ changes=[]
 for idx,(b,a) in enumerate(zip(bef,aft),start=1):
     if b!=a: changes.append(idx)
     print(f"C{idx:02}: {'CHANGED' if a != b else 'unchanged'}")
-# C01 and C06 alone should change, to match their explicit-penalty counterparts.
+# The patch must affect exactly the protected-space-after-math cases.
 if changes != [1,6]:
     raise SystemExit(f'FAIL: Unexpected line-layout changes: {changes}; expected only C01 and C06')
-if aft[0] != aft[1]:
-    raise SystemExit('FAIL: C01 (~) differs from C02 (explicit penalty)')
-if aft[5] != aft[7]:
-    raise SystemExit('FAIL: C06 (mathsurround + ~) differs from C08 (explicit penalty)')
+
+# pdftotext -layout does not reliably order numerator/denominator glyphs
+# in an inline fraction. In the same rendered math, it may extract
+# "3 1⁄2" on one page and "3 ⁄12" on another. Normalize ONLY these
+# two observed encodings, keeping spaces and line breaks untouched.
+def normalized_fraction(s):
+    variants = ('3 1⁄2', '3 ⁄12')
+    if sum(s.count(v) for v in variants) != 1:
+        raise SystemExit(f'FAIL: Unexpected math extraction: {s!r}')
+    return s.replace(variants[0], '<MATH>').replace(variants[1], '<MATH>')
+
+if normalized_fraction(aft[0]) != normalized_fraction(aft[1]):
+    raise SystemExit('FAIL: C01 (~) differs in line breaks from C02 (explicit penalty)')
+if normalized_fraction(aft[5]) != normalized_fraction(aft[7]):
+    raise SystemExit('FAIL: C06 (mathsurround + ~) differs in line breaks from C08 (explicit penalty)')
+
+# At the chosen line width "stel-" must remain on the math line,
+# not begin a fresh line as "stelliges" (the original regression).
+for case in (0,5):
+    first_line = aft[case].splitlines()[0]
+    if not first_line.endswith('stel\u00ad'):
+        raise SystemExit(f'FAIL: C{case+1:02} not tied to following word: {first_line!r}')
 print('PASS: protected spaces after math fixed; all 10 control cases unchanged.')
 print('Artifacts:', root)
 PYCODE
