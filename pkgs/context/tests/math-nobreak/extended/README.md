@@ -1,0 +1,94 @@
+# Extended LuaMetaTeX inline-math / noautobreak regression suite
+
+Tests the pinned ConTeXt LMTX **2026.10.25 20:06** without and with the experimental `texlinebreak.c` fix.
+
+The 74-page `cases.tex` is generated from `cases.json` with `python3 gen.py`.
+`compare.sh` validates the fixture via `gen.py --check` so the Nix check
+never writes into the read-only store or silently tests outdated cases.
+Each case is isolated in a group and a separate PDF page. `pdftotext -layout`
+is used for *line-break classification*, not as a byte-perfect mathematical
+representation. Every case prints decimal digits `12345`, avoiding the PDF
+fraction extraction problem identified in the first 12-case suite.
+
+## Automated Nix check (recommended)
+
+Run directly from the `NixOS-Config` repository root, using the pinned
+upstream and experimental C-patched package variants:
+
+```bash
+nix build .#checks.x86_64-linux.context-math-nobreak-extended \
+  -o result-context-math-nobreak-extended -L
+```
+
+The check produces 74-page PDFs, build logs, extracted text and `checks.json`
+in the result symlink. A passing check still reports five contradictory
+math-penalty/no-break cases as `REVIEW` rather than deciding the intended
+priority. Inspect `result-context-math-nobreak-extended/checks.json`.
+
+## Manual run against real patched C engine
+
+From NixOS-Config, with both builds already present:
+
+```bash
+nix shell nixpkgs#poppler-utils nixpkgs#python3 -c bash \
+  pkgs/context/tests/math-nobreak/extended/compare.sh \
+  "$PWD/result-context-unpatched/bin/context" \
+  "$PWD/result-context-patched/bin/context" \
+  "$PWD/math-nobreak-extended-results"
+```
+
+Checks only on existing results:
+
+```bash
+python3 pkgs/context/tests/math-nobreak/extended/check.py \
+  "$PWD/math-nobreak-extended-results"
+```
+
+## Categories
+
+- `protected`: `~`, `\nobreakspace`, and direct `glue.options` with the
+  `noautobreak` bit. The patched output must keep the number together with
+  the following word, even if ConTeXt chooses to hyphenate the word later.
+- `normal`: unprotected glue, spaces and punctuation. The extracted body text
+  must stay exactly the same between the two builds.
+- `other`: explicit penalties, kerns, boxes and other controls. Must stay
+  exactly the same.
+- `conflict`: intentionally adversarial `\postinlinepenalty=-10000` or
+  `\postshortinlinepenalty=-10000` together with `~`. These express
+  apparently conflicting priorities (force a math break vs protect adjacent
+  glue); the checker **always reports them for manual review**, not PASS/FAIL.
+
+The direct-glue tests exercise `noautobreak` alone and together with `isspace`,
+`nondiscardable`, `setdiscardable`, `limit`, and zero-width/stretchable glue.
+
+## Scope and limitations
+
+`check.py` is a behavioral regression gate, not a proof of engine correctness.
+It does not validate every possible LuaMetaTeX node list or user callback.
+Visual inspection of pages around modified cases is recommended.
+
+In the separate analysis archive, the baseline PDF was generated with the
+**unpatched** bundled LMTX 2026.10.25. Its `penalty-reference` PDF uses an
+**unchanged C engine**
+with the old ConTeXt `usepenalties=true` workaround. The latter is not the
+actual proposed C fix, and notably does not exercise directly written glue
+with `noautobreak`. Do not treat comparison to that reference as a test of the C fix.
+
+## What was actually executed in the assistant's sandbox (2026-10-27)
+
+- `unpatched/`: 74 pages compiled successfully using bundled LMTX 2026.10.25, **without** C fix.
+- `penalty-reference/`: 74 pages compiled successfully using the same **unpatched C engine**, with `spac-chr.lmt` switched to the historical `usepenalties=true` behavior.
+- Of 74 comparisons, 17 change their line-break category with the fallback (14 `protected` cases and three adversarial `conflict` cases); all 24 `normal` and all 12 `other` cases remain unchanged.
+- The reference intentionally does **not** fix Lua-inserted glue with `noautobreak`; the checker correctly **fails** on that reference (13 cases) instead of reporting a false PASS.
+- The actual patched-C executable was *not* available in this sandbox. A genuine positive result on the C patch must be obtained by running `compare.sh` with the user's `result-context-patched` binary.
+
+## Nix integration
+
+The test files are under `pkgs/context/tests/math-nobreak/extended/`,
+not in the LuaMetaTeX engine derivation. The standalone flake check uses
+`context` and `context-patched` package outputs without changing either.
+The Nix expression references the **whole test directory**, ensuring that
+`cases.json`, `cases.tex`, `check.py`, and `gen.py` accompany `compare.sh`.
+
+The C patch itself stays in
+`pkgs/context/patches/luametatex-math-glue-noautobreak.patch`.

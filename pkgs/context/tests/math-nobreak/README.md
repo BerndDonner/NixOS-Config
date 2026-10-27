@@ -68,3 +68,10 @@ Inspect both PDFs visually and use real documents as a final regression check.
 
 For a historical 2024 reference, override `context-src` when building the
 regular variant. Do not apply the experimental 2026 C patch to 2024 sources.
+
+## Extended tests
+
+The 74-case experiment is kept in [`extended/`](extended/README.md) and is
+run as the separate flake check `context-math-nobreak-extended`. It tests
+additional Math-Penalties, `mathsurround` settings, and combinations of
+Glue options without modifying either package derivation.

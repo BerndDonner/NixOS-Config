@@ -312,7 +312,22 @@
         }
         ''
           CONTEXT_TEST_CACHE_ROOT="$TMPDIR" \
-            bash ${./pkgs/context/tests/math-nobreak/compare.sh} \
+            bash ${./pkgs/context/tests/math-nobreak}/compare.sh \
+              ${pkgs.contextLmtx}/bin/context \
+              ${contextPatched}/bin/context \
+              "$out"
+        '';
+
+      # Broader behavioral gate for math penalties and glue option combinations.
+      # Kept separate from the package builds and from the narrow 12-case check.
+      checks.${system}.context-math-nobreak-extended = pkgs.runCommand
+        "context-math-nobreak-extended-regression"
+        {
+          nativeBuildInputs = [ pkgs.coreutils pkgs.poppler_utils pkgs.python3 ];
+        }
+        ''
+          CONTEXT_TEST_CACHE_ROOT="$TMPDIR" \
+            bash ${./pkgs/context/tests/math-nobreak/extended}/compare.sh \
               ${pkgs.contextLmtx}/bin/context \
               ${contextPatched}/bin/context \
               "$out"

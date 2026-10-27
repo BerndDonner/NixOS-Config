@@ -90,6 +90,18 @@ nix build .#checks.x86_64-linux.context-math-nobreak \
 ```
 
 See `math-nobreak/README.md` for the 12 cases and optional manual comparison.
+
+The optional broader 74-case gate is separate:
+
+```bash
+nix build .#checks.x86_64-linux.context-math-nobreak-extended \
+  -o result-context-math-nobreak-extended -L
+```
+
+It covers Math-Penalties, math-surround settings, and combinations of Glue
+options (including directly injected Lua glue). Five contradictory forced
+break/no-break cases are **reported for manual review**; they do not make the
+check fail automatically. See `math-nobreak/extended/README.md`.
 This check is deliberately not part of `luametatex.nix`'s `postInstall`:
 it depends on **two distinct package outputs** rather than validating
 one package in isolation.
