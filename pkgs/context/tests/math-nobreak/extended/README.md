@@ -2,7 +2,7 @@
 
 Tests the pinned ConTeXt LMTX **2026.10.25 20:06** without and with the experimental `texlinebreak.c` fix.
 
-The 74-page `cases.tex` is generated from `cases.json` with `python3 gen.py`.
+The 76-page `cases.tex` is generated from `cases.json` with `python3 gen.py`.
 `compare.sh` validates the fixture via `gen.py --check` so the Nix check
 never writes into the read-only store or silently tests outdated cases.
 Each case is isolated in a group and a separate PDF page. `pdftotext -layout`
@@ -20,7 +20,7 @@ nix build .#checks.x86_64-linux.context-math-nobreak-extended \
   -o result-context-math-nobreak-extended -L
 ```
 
-The check produces 74-page PDFs, build logs, extracted text and `checks.json`
+The check produces 76-page PDFs, build logs, extracted text and `checks.json`
 in the result symlink. The five cases combining `noautobreak` with an explicit math penalty of
 `-10000` are mandatory forced-break checks: a suppressed force break fails
 the check. Inspect `result-context-math-nobreak-extended/checks.json`.
@@ -101,7 +101,7 @@ The C patch itself stays in
 
 ## Capturing a failed comparison for review
 
-Nix may discard a failed derivation's `$out`. To keep the actual 74-page PDFs
+Nix may discard a failed derivation's `$out`. To keep the actual 76-page PDFs
 and text for investigation, run the standalone script with a writable output:
 
 ```bash
@@ -113,7 +113,14 @@ nix shell nixpkgs#poppler-utils nixpkgs#python3 -c bash \
 ```
 
 The script may return exit code 1 on purpose, but the results persist.
-`L15` is on page **53** and `L16` on page **54**. The five forced-math
+`L15` is on page **55** and `L16` on page **56**. The five forced-math
 checks are `P03`, `P15`, `P17`, `X02`, and `X10`.
+`P17` deliberately uses single-character inline math (`\math{1}`), because
+`\postshortinlinepenalty` applies only when LuaMetaTeX flags the math node
+as short. The former `\math{12345}` fixture was not short and did **not**
+carry a forced penalty; treating its formerly allowed implicit break as
+`-10000` was a test bug. `P19` retains that long formula with protected glue,
+and `P20` checks the short formula with ordinary breakable space.
+
 Compare relevant pages visually as well; PDF text extraction is not sufficient
 for a proof of all layout properties.

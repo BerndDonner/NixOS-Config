@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Generate the frozen 74-case ConTeXt fixture or verify it is up to date."""
+"""Generate the frozen 76-case ConTeXt fixture or verify it is up to date."""
 import json
 import pathlib
 import sys
 
 root = pathlib.Path(__file__).resolve().parent
 cases = json.loads((root / 'cases.json').read_text(encoding='utf-8'))
-expected_kinds = {'protected': 34, 'normal': 24, 'other': 11, 'conflict': 5}
-assert len(cases) == 74 and len({c['id'] for c in cases}) == 74, 'Unexpected cases / repeated IDs'
+expected_kinds = {'protected': 35, 'normal': 25, 'other': 11, 'conflict': 5}
+assert len(cases) == 76 and len({c['id'] for c in cases}) == 76, 'Unexpected cases / repeated IDs'
 assert {k: sum(c['kind'] == k for c in cases) for k in expected_kinds} == expected_kinds, 'Unexpected case kinds'
 
 out = [

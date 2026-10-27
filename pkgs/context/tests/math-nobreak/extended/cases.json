@@ -226,9 +226,10 @@
   {
     "id": "P17",
     "kind": "conflict",
-    "label": "postshortinlinepenalty -10000",
+    "label": "postshortinlinepenalty -10000, short math",
     "setup": "\\postshortinlinepenalty=-10000",
-    "expr": "\\math{12345}~stelliges"
+    "expr": "\\math{1}~stelliges",
+    "marker": "1"
   },
   {
     "id": "P18",
@@ -236,6 +237,21 @@
     "label": "postshortinlinepenalty -10000 ordinary",
     "setup": "\\postshortinlinepenalty=-10000",
     "expr": "\\math{12345} stelliges"
+  },
+  {
+    "id": "P19",
+    "kind": "protected",
+    "label": "postshortinlinepenalty -10000, long math + tilde",
+    "setup": "\\postshortinlinepenalty=-10000",
+    "expr": "\\math{12345}~stelliges"
+  },
+  {
+    "id": "P20",
+    "kind": "normal",
+    "label": "postshortinlinepenalty -10000, short math + normal space",
+    "setup": "\\postshortinlinepenalty=-10000",
+    "expr": "\\math{1} stelliges",
+    "marker": "1"
   },
   {
     "id": "T01",

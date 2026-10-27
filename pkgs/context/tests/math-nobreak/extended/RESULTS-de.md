@@ -74,3 +74,18 @@ Mit `\showlists` wurden die beiden Fälle auf Node-Ebene überprüft:
 Die C-Korrektur unterscheidet deshalb ausdrücklich die im Math-Node
 hinterlegte erzwungene Penalty von einem bloß möglichen automatischen
 Umbruch. Die separate Penalty in `L15` bleibt wirksam.
+
+## Korrektur des P17-Tests: Bedeutung von „short inline math"
+
+Der bisherige P17-Fall verwendete `\postshortinlinepenalty=-10000`, aber
+`\math{12345}`. `\showlists` zeigt in LMTX 2026.10.25 für
+`\math{12345}` am `math[endmath]` **keine** Penalty. Der Umbruch der
+ungepatchten Engine kam deshalb vom impliziten Umbruch vor dem geschützten
+Glue, nicht von einer expliziten `-10000`-Penalty.
+
+Dagegen enthält `\math{1}` unter derselben Einstellung ein
+`math[endmath]` mit `penalty -10000` und `options "1"` (kurze Formel).
+P17 wurde auf diese tatsächlich kurze Formel korrigiert und bleibt ein
+verbindlicher erzwungener Umbruchtest. Die neuen Kontrollfälle P19
+(lange Formel, geschützter Glue) und P20 (kurze Formel, normales Leerzeichen)
+sichern beide Varianten ab. Gesamtumfang jetzt **76 Fälle**.

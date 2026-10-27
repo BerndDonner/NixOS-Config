@@ -30,10 +30,12 @@ def load(root: Path, which: str):
             raise SystemExit(f"FAIL: cannot locate body in {which} case {case['id']}")
         text = "\n".join(lines[ids[0]:]).strip()
         first = lines[ids[0]]
-        if "12345" not in first:
-            raise SystemExit(f"FAIL: numeral disappeared in {which} case {case['id']}")
+        marker = case.get("marker", "12345")
+        if marker not in first:
+            raise SystemExit(f"FAIL: math marker {marker!r} disappeared in {which} case {case['id']}")
         # 'stelliges' may be hyphenated into 'stel-' + 'liges'.
-        join = "ste" in first.split("12345", 1)[1]
+        # Short math tests use the marker '1'; all existing tests use '12345'.
+        join = "ste" in first.split(marker, 1)[1]
         result.append({"joined": join, "text": text})
     return result
 
