@@ -63,7 +63,7 @@
         format = "[[($all_status$ahead_behind )](fg:#000000 bg:#FCA17D)]($style)";
 
         conflicted = "!";
-        stashed = "$";
+        stashed = "\\$";
         modified = "*";
         staged = "+";
         renamed = "»";
