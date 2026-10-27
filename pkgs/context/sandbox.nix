@@ -53,8 +53,13 @@ stdenvNoCC.mkDerivation {
     chmod 755 "$bin/luametatex"
     ln -s luametatex "$bin/mtxrun"
     ln -s luametatex "$bin/context"
-    test -f "$bin/mtxrun.lmt"
-    test -f "$bin/context.lmt"
+    if [ '${contextPackage.legacy2024 or "0"}' = 1 ]; then
+      test -f "$bin/mtxrun.lua"
+      test -f "$bin/context.lua"
+    else
+      test -f "$bin/mtxrun.lmt"
+      test -f "$bin/context.lmt"
+    fi
 
     # Discover the actual ELF dependencies of this *specific* build rather
     # than copying the whole glibc closure (including unused gconv modules).
@@ -161,7 +166,11 @@ PY
     export HOME="$TMPDIR/home"
     export TEXMFCACHE="$TMPDIR/cache"
     mkdir -p "$HOME" "$TMPDIR/smoke"
-    for test_name in smoke filter vim; do
+    test_names="smoke"
+    if [ '${contextPackage.legacy2024 or "0"}' != 1 ]; then
+      test_names="$test_names filter vim"
+    fi
+    for test_name in $test_names; do
       mkdir -p "$TMPDIR/smoke/$test_name"
       cp "${./tests}/$test_name.tex" "$TMPDIR/smoke/$test_name/$test_name.tex"
       (

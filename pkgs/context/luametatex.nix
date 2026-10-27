@@ -20,6 +20,10 @@ stdenv.mkDerivation rec {
   version = "unstable-${builtins.substring 0 12 contextRevision}";
   src = contextSource;
 
+  # Historical 2024.11.01 regression reference only.
+  # Keep the normal 2026 package and its regression gates unchanged.
+  legacy2024 = if lib.hasPrefix "0d2ec448a05c" contextRevision then "1" else "0";
+
   # Retain the proven filter/vim release; it is used by teaching documents.
   moduleFilter = fetchFromGitHub {
     owner = "adityam";
@@ -55,12 +59,18 @@ stdenv.mkDerivation rec {
     echo "Installing LuaMetaTeX / ConTeXt tree"
     mkdir -p "$out/bin" "$out/tex/texmf-linux-64/bin" "$out/tex/texmf-context"
 
-    # Official ConTeXt LMTX 2026 entrypoints: all three executable names
-    # resolve to the same LuaMetaTeX engine, with a companion .lmt script.
-    # The deprecated .lua runner needs LuaSocket and must not be invoked.
+    # In LMTX 2024 the companion scripts are .lua; in 2026 they are .lmt.
+    # Keep both launcher and engine from the SAME historical source revision.
     cp build/luametatex "$out/tex/texmf-linux-64/bin/"
-    cp "$src/scripts/context/lua/"{mtxrun.lmt,context.lmt} \
-       "$out/tex/texmf-linux-64/bin/"
+    if [ "$legacy2024" = 1 ]; then
+      suffix=lua
+    else
+      suffix=lmt
+    fi
+    for script in mtxrun context; do
+      cp "$src/scripts/context/lua/$script.$suffix" \
+         "$out/tex/texmf-linux-64/bin/"
+    done
     ln -s luametatex "$out/tex/texmf-linux-64/bin/mtxrun"
     ln -s luametatex "$out/tex/texmf-linux-64/bin/context"
 
@@ -235,9 +245,13 @@ EOF
     # Temporary compatibility fix for adityam/filter (LMTX only).
     # Keep MkIV unchanged; upstream ConTeXt bugs remain upstream.
     # Fail rather than silently ignore upstream changes to this module.
-    filter_dir="$out/tex/texmf-context/tex/context/third/filter"
-    chmod u+w "$filter_dir/t-filter.mkxl"
-    patch --batch --fuzz=0 -d "$filter_dir" -p0 < ${./patches/filter-lmtx-writable.patch}
+    # Current filter patch and its Vim regression tests target LMTX 2026.
+    # The historical archive is used only for the isolated tilde test.
+    if [ "$legacy2024" != 1 ]; then
+      filter_dir="$out/tex/texmf-context/tex/context/third/filter"
+      chmod u+w "$filter_dir/t-filter.mkxl"
+      patch --batch --fuzz=0 -d "$filter_dir" -p0 < ${./patches/filter-lmtx-writable.patch}
+    fi
 
     export HOME="$TMPDIR/context-smoke-home"
     export TEXMFCACHE="$TMPDIR/context-smoke-cache"
@@ -254,7 +268,11 @@ EOF
     "$out/bin/context" --make > "$TMPDIR/ctx-make.log" 2>&1 || {
       cat "$TMPDIR/ctx-make.log" >&2; exit 1;
     }
-    for test_name in smoke filter vim; do
+    test_names="smoke"
+    if [ "$legacy2024" != 1 ]; then
+      test_names="$test_names filter vim"
+    fi
+    for test_name in $test_names; do
       # New temporary files are essential to reproduce the LMTX bug.
       test_dir="$TMPDIR/context-smoke-doc/$test_name"
       mkdir -p "$test_dir"
