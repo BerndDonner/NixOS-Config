@@ -13,9 +13,9 @@
 
 | Klasse | Fälle | Prüfregel |
 | --- | ---: | --- |
-| protected | 33 | Nach dem C-Patch darf kein Umbruch direkt nach der Formel auftreten. |
+| protected | 34 | Nach dem C-Patch darf kein Umbruch direkt nach der Formel auftreten. |
 | normal | 24 | Exakt derselbe extrahierte Absatz in beiden Engines. |
-| other | 12 | Unverändert, insbesondere explizite Penalties oder zusätzliche Nodes. |
+| other | 11 | Unverändert, insbesondere explizite Penalties oder zusätzliche Nodes. |
 | conflict | 5 | Forcierter negativer Math-Penalty kombiniert mit geschütztem Glue; manuell bewerten. |
 
 Die Tests `X01` bis `X20` kombinieren vier Werte von `\postinlinepenalty` (`-10000`, `0`, `50`, `10000`), beide Zustände des Glue-Optionsflags und Einstellungen von `\mathsurround` bzw. `\mathsurroundmode`. `L01` bis `L16` erzeugen Glue-Nodes über `\directlua` und testen Optionskombinationen mit `noautobreak`, `isspace`, `nondiscardable`, `setdiscardable` und `limit` sowie Glue-Breite 0 und dehnbaren Glue.
@@ -27,3 +27,20 @@ Die Tests `X01` bis `X20` kombinieren vier Werte von `\postinlinepenalty` (`-100
 ## Einschränkung
 
 Die tatsächliche gepatchte C-Engine liegt hier nicht vor; es wäre falsch, die 74 Fälle als erfolgreich *gegen den Patch* zu bezeichnen. Der mitgelieferte Checker muss auf dem Rechner des Nutzers gegen `result-context-unpatched` und `result-context-patched` ausgeführt werden. Die hier mitgelieferten PDFs sind Referenzausgaben, **keine** Ausgaben der neuen C-Engine.
+
+## Erste Auswertung des tatsächlichen C-Patches (NixOS, 2026-10-27)
+
+Der Benutzer hat den erweiterten 74-Fälle-Test mit beiden echten C-Engines
+ausgeführt. Dabei sind die beiden nicht bestandenen Fälle **L15** und
+**L16** aufgetreten. Die Klassifikation von **L16** als `other` war falsch:
+der explizit erzeugte Glue enthält `options=1` (`noautobreak`), also muss
+der Fall `protected` sein. L16 wechselt erwartungsgemäß von `split` auf
+`join`.
+
+L15 enthält `\penalty-10000` **vor** einem durch `options=1` geschützten
+Glue. Der Umbruch vor `stelliges` bleibt laut Checker in beiden Versionen
+erhalten (`split -> split`); der Textunterschied ist aber nicht erklärt.
+Deshalb bleibt L15 absichtlich als strenger Kontrolltest bestehen, und das
+Regression Gate meldet weiterhin einen Fehler, bis beide tatsächlichen
+PDF-Seiten verglichen wurden. Die Nix-Buildausgabe enthält keine Kopie dieser
+fehlgeschlagenen erweiterten PDFs im mitgelieferten 12-Fälle-Archiv.

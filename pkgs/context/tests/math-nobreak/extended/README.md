@@ -52,7 +52,12 @@ python3 pkgs/context/tests/math-nobreak/extended/check.py \
 - `normal`: unprotected glue, spaces and punctuation. The extracted body text
   must stay exactly the same between the two builds.
 - `other`: explicit penalties, kerns, boxes and other controls. Must stay
-  exactly the same.
+  exactly the same. `L15` deliberately remains here: despite a forced break
+  remaining on both sides, the actual extracted paragraph differs under the
+  C patch. This is a **hard failure requiring investigation**, not something
+  to suppress by checking only `split` vs `join`. The checker prints a diff.
+  `L16` is instead `protected`: it uses `options=1` after math with
+  `\mathsurround=3pt`, and must change from split to join.
 - `conflict`: intentionally adversarial `\postinlinepenalty=-10000` or
   `\postshortinlinepenalty=-10000` together with `~`. These express
   apparently conflicting priorities (force a math break vs protect adjacent
@@ -92,3 +97,20 @@ The Nix expression references the **whole test directory**, ensuring that
 
 The C patch itself stays in
 `pkgs/context/patches/luametatex-math-glue-noautobreak.patch`.
+
+## Capturing a failed comparison for review
+
+Nix may discard a failed derivation's `$out`. To keep the actual 74-page PDFs
+and text for investigation, run the standalone script with a writable output:
+
+```bash
+nix shell nixpkgs#poppler-utils nixpkgs#python3 -c bash \
+  pkgs/context/tests/math-nobreak/extended/compare.sh \
+  "$PWD/result-context/bin/context" \
+  "$PWD/result-context-patched/bin/context" \
+  "$PWD/math-nobreak-extended-results"
+```
+
+The script may return exit code 1 on purpose, but the results persist.
+`L15` is on page **53** and `L16` on page **54**. Compare the two PDFs
+visually; do not decide from `pdftotext` alone.

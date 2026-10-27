@@ -6,7 +6,7 @@ import sys
 
 root = pathlib.Path(__file__).resolve().parent
 cases = json.loads((root / 'cases.json').read_text(encoding='utf-8'))
-expected_kinds = {'protected': 33, 'normal': 24, 'other': 12, 'conflict': 5}
+expected_kinds = {'protected': 34, 'normal': 24, 'other': 11, 'conflict': 5}
 assert len(cases) == 74 and len({c['id'] for c in cases}) == 74, 'Unexpected cases / repeated IDs'
 assert {k: sum(c['kind'] == k for c in cases) for k in expected_kinds} == expected_kinds, 'Unexpected case kinds'
 

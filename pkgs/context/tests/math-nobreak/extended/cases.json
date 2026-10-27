@@ -372,7 +372,7 @@
   },
   {
     "id": "L16",
-    "kind": "other",
+    "kind": "protected",
     "label": "zero-glue noauto and mathsurround",
     "setup": "\\mathsurround=3pt",
     "expr": "\\math{12345}\\directlua{local n=node.new(\"glue\"); n.width=0; n.options=1; node.write(n)}stelliges"

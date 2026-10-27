@@ -63,6 +63,17 @@ def check(root: Path):
         rows.append({**case, "before_join":a["joined"], "after_join":b["joined"], "changed":changed, "error":reason})
         change_label = "CHANGED" if changed else "unchanged"
         print(f"{case['id']} {kind:9s} {'join' if a['joined'] else 'split'} -> {'join' if b['joined'] else 'split'} {change_label:9s} {'FAIL '+reason if reason else ''}")
+        if reason and changed:
+            # Report precisely what differs, rather than weakening an invariant.
+            # In particular L15 has an explicit \penalty-10000 before protected glue;
+            # we cannot assume that every changed line is harmless.
+            import difflib
+            for line in difflib.unified_diff(
+                a["text"].splitlines(), b["text"].splitlines(),
+                fromfile=f"before/{case['id']}", tofile=f"after/{case['id']}",
+                lineterm="",
+            ):
+                print('    ' + line)
     (root / "checks.json").write_text(json.dumps({"cases":rows,"errors":errors,"conflicts":conflicts},ensure_ascii=False,indent=2)+"\n")
     for x in conflicts:
         print(f"REVIEW: {x['id']}: explicit math penalty conflicts with noautobreak; {x['before_join']} -> {x['after_join']}")
