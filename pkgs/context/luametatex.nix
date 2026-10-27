@@ -12,6 +12,7 @@
 , util-linux
 , contextSource
 , contextRevision
+, enginePatches ? [ ]
 }:
 
 stdenv.mkDerivation rec {
@@ -20,14 +21,9 @@ stdenv.mkDerivation rec {
   version = "unstable-${builtins.substring 0 12 contextRevision}";
   src = contextSource;
 
-  # Historical 2024.11.01 regression reference only.
-  # Keep the normal 2026 package and its regression gates unchanged.
-  legacy2024 = if lib.hasPrefix "0d2ec448a05c" contextRevision then "1" else "0";
-
-  # Experimental LuaMetaTeX fix: suppress a break after inline math when
-  # the following glue has the no_auto_break option. This patches the
-  # unpacked source, which configurePhase must actually build (see below).
-  patches = lib.optional (legacy2024 != "1") ./patches/luametatex-math-glue-noautobreak.patch;
+  # Engine patches are a property of a *variant*, not of a source revision.
+  # The standard package is upstream (with the separate filter-module fix).
+  patches = enginePatches;
 
   # Retain the proven filter/vim release; it is used by teaching documents.
   moduleFilter = fetchFromGitHub {
@@ -66,16 +62,20 @@ stdenv.mkDerivation rec {
     echo "Installing LuaMetaTeX / ConTeXt tree"
     mkdir -p "$out/bin" "$out/tex/texmf-linux-64/bin" "$out/tex/texmf-context"
 
-    # In LMTX 2024 the companion scripts are .lua; in 2026 they are .lmt.
-    # Keep both launcher and engine from the SAME historical source revision.
+    # Select the runner layout from the unpacked source, not from a fixed
+    # commit hash. Works with both the 2024 .lua and modern .lmt sources.
     cp build/luametatex "$out/tex/texmf-linux-64/bin/"
-    if [ "$legacy2024" = 1 ]; then
+    runner_dir="$PWD/scripts/context/lua"
+    if [ -f "$runner_dir/mtxrun.lmt" ] && [ -f "$runner_dir/context.lmt" ]; then
+      suffix=lmt
+    elif [ -f "$runner_dir/mtxrun.lua" ] && [ -f "$runner_dir/context.lua" ]; then
       suffix=lua
     else
-      suffix=lmt
+      echo 'Missing or inconsistent ConTeXt runner scripts' >&2
+      exit 1
     fi
     for script in mtxrun context; do
-      cp "$src/scripts/context/lua/$script.$suffix" \
+      cp "$runner_dir/$script.$suffix" \
          "$out/tex/texmf-linux-64/bin/"
     done
     ln -s luametatex "$out/tex/texmf-linux-64/bin/mtxrun"
@@ -213,10 +213,9 @@ EOF
     echo "Copying TeX trees"
     cp -r "$texmf/texmf" "$out/tex/"
     for d in colors context doc fonts metapost scripts tex web2c; do
-      cp -r "$src/$d" "$out/tex/texmf-context/"
+      cp -r "$PWD/$d" "$out/tex/texmf-context/"
     done
 
-    # The copied Git tree may contain read-only directories (Nix store).
     # Only these parents must be writable to add third-party modules;
     # do not recursively chmod the entire TeX tree.
     chmod u+w \
@@ -250,11 +249,11 @@ EOF
   # Keep all caches, including format files, outside the read-only Nix store.
   postInstall = ''
     # Temporary compatibility fix for adityam/filter (LMTX only).
-    # Keep MkIV unchanged; upstream ConTeXt bugs remain upstream.
+    # Keep MkIV and upstream ConTeXt untouched in the regular variant.
     # Fail rather than silently ignore upstream changes to this module.
-    # Current filter patch and its Vim regression tests target LMTX 2026.
-    # The historical archive is used only for the isolated tilde test.
-    if [ "$legacy2024" != 1 ]; then
+    # Filter compatibility and filter/vim tests apply to modern .lmt
+    # runners. A historical .lua runner gets only the generic smoke test.
+    if [ -f "$out/tex/texmf-linux-64/bin/mtxrun.lmt" ]; then
       filter_dir="$out/tex/texmf-context/tex/context/third/filter"
       chmod u+w "$filter_dir/t-filter.mkxl"
       patch --batch --fuzz=0 -d "$filter_dir" -p0 < ${./patches/filter-lmtx-writable.patch}
@@ -276,7 +275,7 @@ EOF
       cat "$TMPDIR/ctx-make.log" >&2; exit 1;
     }
     test_names="smoke"
-    if [ "$legacy2024" != 1 ]; then
+    if [ -f "$out/tex/texmf-linux-64/bin/mtxrun.lmt" ]; then
       test_names="$test_names filter vim"
     fi
     for test_name in $test_names; do

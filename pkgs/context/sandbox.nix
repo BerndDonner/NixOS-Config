@@ -11,8 +11,9 @@
 , vim
 }:
 
-# Portable x86_64-linux artifact from the EXACT package used by Home Manager.
-# No separate ConTeXt download, checkout, or engine build takes place here.
+# Portable x86_64-linux artifact from exactly the supplied contextPackage.
+# The regular variant is also the package used by Home Manager. No second
+# ConTeXt download, checkout or compilation takes place here.
 assert stdenvNoCC.hostPlatform.system == "x86_64-linux";
 stdenvNoCC.mkDerivation {
   pname = "context-lmtx-sandbox";
@@ -53,12 +54,11 @@ stdenvNoCC.mkDerivation {
     chmod 755 "$bin/luametatex"
     ln -s luametatex "$bin/mtxrun"
     ln -s luametatex "$bin/context"
-    if [ '${contextPackage.legacy2024 or "0"}' = 1 ]; then
+    if [ -f "$bin/mtxrun.lmt" ]; then
+      test -f "$bin/context.lmt"
+    else
       test -f "$bin/mtxrun.lua"
       test -f "$bin/context.lua"
-    else
-      test -f "$bin/mtxrun.lmt"
-      test -f "$bin/context.lmt"
     fi
 
     # Discover the actual ELF dependencies of this *specific* build rather
@@ -167,7 +167,7 @@ PY
     export TEXMFCACHE="$TMPDIR/cache"
     mkdir -p "$HOME" "$TMPDIR/smoke"
     test_names="smoke"
-    if [ '${contextPackage.legacy2024 or "0"}' != 1 ]; then
+    if [ -f "$bin/mtxrun.lmt" ]; then
       test_names="$test_names filter vim"
     fi
     for test_name in $test_names; do

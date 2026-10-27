@@ -1,4 +1,60 @@
-# ConTeXt LMTX – shared NixOS / ChatGPT Sandbox build
+# ConTeXt LMTX – shared NixOS / portable sandbox builds
+
+## Variants, source revisions and checks
+
+The root `flake.lock` pins the ConTeXt source. The main package is deliberately
+**unpatched at the LuaMetaTeX engine level**, and remains the version installed
+on kitty/tracy through `pkgs.contextLmtx`. The temporary filter-module fix is
+part of both modern variants; it is not an engine patch.
+
+| Output | Purpose |
+| --- | --- |
+| `.#context` | Normal upstream LuaMetaTeX engine, local package |
+| `.#context-patched` | Identical source with experimental math/glue C patch |
+| `.#context-sandbox` | Portable archive made from `.#context` |
+| `.#context-sandbox-patched` | Portable archive made from `.#context-patched` |
+| `.#context-docs` | Optional documentation archive from the regular package |
+| `.#checks.x86_64-linux.context-math-nobreak` | Reproducible comparison of both local builds |
+
+The package derivation (`luametatex.nix`) accepts an explicit `enginePatches`
+list (empty by default). The flake selects the patch for `context-patched`;
+no commit-hash heuristic enables experimental fixes. Changing `context-src`
+changes the source for **both** modern variants; an incompatible patch causes
+the patched build to fail explicitly rather than silently doing nothing.
+
+To build and compare without changing any system package:
+
+```bash
+nix build .#context -o result-context -L
+nix build .#context-patched -o result-context-patched -L
+nix build .#checks.x86_64-linux.context-math-nobreak \
+  -o result-context-math-nobreak -L
+```
+
+The check preserves its `before/` and `after/` PDFs, logs and text output in
+the Nix result path. To rerun manually, see `tests/math-nobreak/README.md`.
+Passing the check does not guarantee that all typography is unchanged.
+Inspect representative teaching documents before selecting any experimental
+variant for actual use.
+
+**Historical sources:** For the precise 2024.11.01 reference, override only
+`context-src` (the `texmf.zip` hash stays pinned as usual):
+
+```bash
+REV=0d2ec448a05c3cf7e83d79ad62eb485f48464872
+nix build .#context-sandbox \
+  --override-input context-src "github:contextgarden/context/$REV" \
+  -o result-sandbox-2024 -L
+```
+
+The derivation discovers the actual `.lua` or `.lmt` runner scripts in the
+unpacked source instead of checking for a particular commit hash. Only the
+basic smoke test runs for `.lua` sources; the modern filter/Vim checks run
+for `.lmt` sources. The historical build reuses the same pinned `texmf.zip` font bundle.
+Those fonts have changed little over the years; there is no reason to fetch a
+separate historical font archive just for this investigation. The external
+filter/Vim modules remain independently pinned. The experimental C patch is
+intentionally **not** requested for the historical build.
 
 ## One source and one local build
 
@@ -12,8 +68,8 @@ The root flake has an independent, non-flake `context-src` input pointing to
 **root `flake.lock`**. Its pin is independent of `nixpkgs` and Home
 Manager: updating only `context-src` does not update NixOS. `pkgs/context/luametatex.nix`
 consumes that source. The existing TeX-tree installation, filter/vim files and the NixOS font
-setup are preserved. The launchers use the official `.lmt` entrypoints
-(`mtxrun.lmt` and `context.lmt`). The pinned `texmf.zip` provides the missing
+setup are preserved. The modern launchers use the official `.lmt` entrypoints
+(`mtxrun.lmt` and `context.lmt`); historical versions use `.lua`. The pinned `texmf.zip` provides the missing
 bootstrap and font files. The pinned `adityam/filter` source provides BOTH
 `filter` and `vim`; neither is independently updated with ConTeXt.
 
@@ -22,7 +78,9 @@ The checked-in `patches/filter-lmtx-writable.patch` corrects **only**
 version-checked compatibility fix for new temporary files. The MkIV module is
 unchanged. Remove this patch after the upstream filter PR has been merged and
 our pinned filter revision has been updated, **not before** the tests pass.
-ConTeXt core changes remain upstream; no core patch is included.
+No engine patch is applied to the **regular** package; the separate
+`context-patched` output deliberately applies one experimental LuaMetaTeX
+C patch for testing.
 
 To update only ConTeXt, then test it **before switching your system**.
 Because the main flake is Git-backed, **stage newly added files first** (Nix
@@ -226,9 +284,10 @@ The target must use a compatible Linux kernel and CPU for the Nix-built engine.
 Its execution outside Nix is checked by the build-time smoke tests, but the
 actual ChatGPT Hosted runtime should also be smoke-tested after uploading.
 
-The current implementation deliberately **does not patch ConTeXt's units**.
-Those changes can later be added to the shared `luametatex.nix` via a small,
-version-checked `patches` list and will then affect both outputs.
+The regular package deliberately **does not patch ConTeXt's units or the
+LuaMetaTeX C engine**. Further proposed engine fixes should be added to an
+explicit `enginePatches` list on a separate variant, not silently added to
+the default package.
 
 ## Upstream LMTX 2026 runner compatibility
 

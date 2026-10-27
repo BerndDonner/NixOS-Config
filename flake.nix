@@ -102,7 +102,8 @@
         };
       };
 
-      # One ConTeXt package for local NixOS, Home Manager and portable sandbox.
+      # Regular, unmodified LuaMetaTeX for NixOS, Home Manager and sandbox.
+      # Experimental engine patches are selected explicitly in packages.
       overlayContext = final: prev: {
         contextLmtx = final.callPackage ./pkgs/context/luametatex.nix {
           contextSource = inputs.context-src;
@@ -128,6 +129,13 @@
           overlayScopeRs
           overlayContext
           overlayTioFork
+        ];
+      };
+
+      # Same pinned source; no experimental C patch in pkgs.contextLmtx.
+      contextPatched = pkgs.contextLmtx.override {
+        enginePatches = [
+          ./pkgs/context/patches/luametatex-math-glue-noautobreak.patch
         ];
       };
 
@@ -258,6 +266,9 @@
       #
       #   nixos-config.packages.x86_64-linux.bootdev-cli
       #   nixos-config.packages.x86_64-linux.context
+      #   nixos-config.packages.x86_64-linux.context-patched
+      #   nixos-config.packages.x86_64-linux.context-sandbox
+      #   nixos-config.packages.x86_64-linux.context-sandbox-patched
       #   nixos-config.packages.x86_64-linux.context-docs
       #   nixos-config.packages.x86_64-linux.nordvpn
       #   nixos-config.packages.x86_64-linux.scope-rs
@@ -266,10 +277,15 @@
         bootdev-cli =
           pkgs.callPackage ./pkgs/bootdev-cli/bootdev-cli.nix { };
 
+        # Production/default stays on the unpatched upstream engine.
         context = pkgs.contextLmtx;
+        context-patched = contextPatched;
 
         context-sandbox = pkgs.callPackage ./pkgs/context/sandbox.nix {
           contextPackage = pkgs.contextLmtx;
+        };
+        context-sandbox-patched = pkgs.callPackage ./pkgs/context/sandbox.nix {
+          contextPackage = contextPatched;
         };
 
         # Optional LMTX/MkIV documentation sources, kept separate from the
@@ -286,6 +302,21 @@
         tio-fork = pkgs.tio-fork;
         devflake-update = import ./lib/devflake-update.nix { inherit pkgs; };
       };
+
+      # Cross-variant regression gates are independent of package and
+      # sandbox installation tests. Both versions use one context-src pin.
+      checks.${system}.context-math-nobreak = pkgs.runCommand
+        "context-math-nobreak-regression"
+        {
+          nativeBuildInputs = [ pkgs.coreutils pkgs.poppler_utils pkgs.python3 ];
+        }
+        ''
+          CONTEXT_TEST_CACHE_ROOT="$TMPDIR" \
+            bash ${./pkgs/context/tests/math-nobreak/compare.sh} \
+              ${pkgs.contextLmtx}/bin/context \
+              ${contextPatched}/bin/context \
+              "$out"
+        '';
 
       # Python is only needed for the bundle integrity verifier, not as a
       # system runtime dependency of ConTeXt.

@@ -1,12 +1,16 @@
 # ConTeXt LMTX build tests
 
-Both Nix derivations exercise these three documents during their builds:
+Both modern package and sandbox derivations exercise these three documents
+while being built:
 
 - `smoke.tex`: a real PDF using the bundled fonts, `\unit` and MetaPost.
 - `filter.tex`: executes an external `cp` filter on newly created temporary
   files; asserts the filter actually wrote the expected content.
 - `vim.tex`: calls the external Vim highlighter on a Python code block;
   asserts Vim generated `\SYN[` tokens, not merely a PDF.
+
+Historical `.lua`-runner sources run only `smoke.tex`, since the modern
+filter/Vim integration is not a historical ConTeXt compatibility target.
 
 Every test runs in its own newly created working directory. A PDF alone is
 insufficient evidence that the external filter actually ran successfully.
@@ -74,3 +78,18 @@ It uses fake engine entrypoints to deterministically test four parallel
 first starts, no unnecessary rerun, an error during format creation,
 removal of the lock, and successful recovery on the next invocation.
 The real bundle still runs its regular PDF/filter/Vim smoke tests separately.
+
+## Cross-variant math line-break regression
+
+The pinned regular `.#context` package and explicit `.#context-patched`
+package are compared by the separate flake check:
+
+```bash
+nix build .#checks.x86_64-linux.context-math-nobreak \
+  -o result-context-math-nobreak -L
+```
+
+See `math-nobreak/README.md` for the 12 cases and optional manual comparison.
+This check is deliberately not part of `luametatex.nix`'s `postInstall`:
+it depends on **two distinct package outputs** rather than validating
+one package in isolation.

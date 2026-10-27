@@ -26,12 +26,20 @@ else
   mkdir -p "$outdir"
   outdir=$(realpath "$outdir")
   scripts_dir=$(cd "$(dirname "$0")" && pwd)
+  # Nix checks keep font/format caches outside their result to avoid storing
+  # large, host-specific temporary caches. Manual runs keep the old default.
+  cache_root=${CONTEXT_TEST_CACHE_ROOT:-$outdir}
+  mkdir -p "$cache_root"
 
   for version in before after; do
-    mkdir -p "$outdir/$version"
+    mkdir -p "$outdir/$version" "$cache_root/home-$version"
     cp "$scripts_dir/cases.tex" "$outdir/$version/cases.tex"
     if [[ $version = before ]]; then engine=$unpatched; else engine=$patched; fi
-    ( cd "$outdir/$version"; export TEXMFCACHE="$outdir/cache-$version"; "$engine" --once cases.tex > build.log 2>&1 ) || {
+    ( cd "$outdir/$version"
+      export HOME="$cache_root/home-$version"
+      export TEXMFCACHE="$cache_root/cache-$version"
+      "$engine" --once cases.tex > build.log 2>&1
+    ) || {
       tail -80 "$outdir/$version/build.log" >&2
       exit 1
     }
@@ -65,9 +73,11 @@ changes=[]
 for idx,(b,a) in enumerate(zip(bef,aft),start=1):
     if b!=a: changes.append(idx)
     print(f"C{idx:02}: {'CHANGED' if a != b else 'unchanged'}")
-# The patch must affect exactly the protected-space-after-math cases.
-if changes != [1,6]:
-    raise SystemExit(f'FAIL: Unexpected line-layout changes: {changes}; expected only C01 and C06')
+# A not-yet-fixed upstream version changes precisely C01 and C06.
+# Once upstream fixes the problem, both variants may be identical. Neither
+# outcome is a regression; any other changed case requires investigation.
+if changes not in ([], [1,6]):
+    raise SystemExit(f'FAIL: Unexpected line-layout changes: {changes}; expected [] or [1,6]')
 
 # pdftotext -layout does not reliably order numerator/denominator glyphs
 # in an inline fraction. In the same rendered math, it may extract
@@ -90,6 +100,6 @@ for case in (0,5):
     first_line = aft[case].splitlines()[0]
     if not first_line.endswith('stel\u00ad'):
         raise SystemExit(f'FAIL: C{case+1:02} not tied to following word: {first_line!r}')
-print('PASS: protected spaces after math fixed; all 10 control cases unchanged.')
+print('PASS: patched variant protects math spacing; ten controls unchanged.')
 print('Artifacts:', root)
 PYCODE
