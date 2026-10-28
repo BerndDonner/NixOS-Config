@@ -1,0 +1,49 @@
+--- a/source/luametatex/source/tex/texlinebreak.c
++++ b/source/luametatex/source/tex/texlinebreak.c
+@@ -4858,22 +4858,42 @@
+ {
+     halfword next = node_next(current);
+     *penalty = math_penalty(current);
++    /* CTS diagnostics: opt-in variant, never included in the normal engine. */
++    if (properties->tracing_paragraphs > 1) {
++        int is_glue = next && node_type(next) == glue_node;
++        printf("CTS-LB entry location=%d math=%d factor=%d glue=%d noauto=%d haspenalty=%d gluepenalty=%d\n",
++            location, *penalty, properties->math_penalty_factor, is_glue,
++            is_glue && tex_has_glue_option(next, glue_option_no_auto_break),
++            is_glue && tex_has_glue_option(next, glue_option_has_penalty),
++            is_glue ? glue_penalty(next) : 0);
++    }
+     if (node_type(next) == glue_node) {
+         if (tex_has_glue_option(next, glue_option_no_auto_break)) {
+-// printf(">> %i : 0.1 : %i\n",location,*penalty);
++            if (properties->tracing_paragraphs > 1) {
++                printf("CTS-LB decision=blocked-noauto math=%d factor=%d\n",
++                    *penalty, properties->math_penalty_factor);
++            }
+             return 0; /* wins */
+         } else if (glue_penalty(next) > *penalty) {
+-// printf(">> %i : 0.2 : %i -> %i\n",location,*penalty,glue_penalty(next));
++            if (properties->tracing_paragraphs > 1) {
++                printf("CTS-LB decision=glue-overrides math=%d gluepenalty=%d factor=%d\n",
++                    *penalty, glue_penalty(next), properties->math_penalty_factor);
++            }
+             *penalty = glue_penalty(next);
+             return 1;
+         }
+     } else if (location == 1) {
+-// printf(">> %i : 1.1\n",location);
++        if (properties->tracing_paragraphs > 1) {
++            printf("CTS-LB decision=skip-nonglue-location1\n");
++        }
+         return 0;
+     }
+-// // printf(">> %i : 1.2 : %i\n",location,*penalty);
+     if (properties->math_penalty_factor) {
+         *penalty = tex_xn_over_d_factor(*penalty, properties->math_penalty_factor);
++    }
++    if (properties->tracing_paragraphs > 1) {
++        printf("CTS-LB decision=scaled-result penalty=%d factor=%d\n",
++            *penalty, properties->math_penalty_factor);
+     }
+     return 2;
+ }

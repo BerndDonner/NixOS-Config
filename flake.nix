@@ -144,6 +144,11 @@
         hans-2026-10-28 = [
           ./pkgs/context/patches/luametatex-hans-2026-10-28.patch
         ];
+        # Extra trace output, for diagnosis only. Not used by any devShell.
+        hans-trace-2026-10-28 = [
+          ./pkgs/context/patches/luametatex-hans-2026-10-28.patch
+          ./pkgs/context/patches/luametatex-hans-trace-2026-10-28.patch
+        ];
       };
 
       contextVariants = pkgs.lib.mapAttrs
