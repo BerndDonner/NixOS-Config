@@ -24,6 +24,9 @@ stdenv.mkDerivation rec {
   # Engine patches are a property of a *variant*, not of a source revision.
   # The standard package is upstream (with the separate filter-module fix).
   patches = enginePatches;
+  # Fail on changed patch context rather than silently accepting fuzzy hunks
+  # when moving experiments to another upstream revision.
+  patchFlags = [ "-p1" "--fuzz=0" ];
 
   # Retain the proven filter/vim release; it is used by teaching documents.
   moduleFilter = fetchFromGitHub {

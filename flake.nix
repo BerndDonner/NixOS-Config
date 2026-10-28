@@ -104,7 +104,7 @@
 
       # Unpatched LuaMetaTeX derivation, used by the public .#context output.
       # Not installed by the NixOS/Home Manager host configurations. Engine
-      # patches are explicitly selected for .#context-patched below.
+      # patches are selected through the named variant registry below.
       overlayContext = final: prev: {
         contextLmtx = final.callPackage ./pkgs/context/luametatex.nix {
           contextSource = inputs.context-src;
@@ -133,14 +133,28 @@
         ];
       };
 
-      # Both package variants use the same pinned source revision. Keep the
-      # engine patch explicit: the independent context-testsuite checks the
-      # intended behavior when requested, not as part of a normal build.
-      contextPatched = pkgs.contextLmtx.override {
-        enginePatches = [
+      # Engine variants are independent builds of the SAME pinned upstream
+      # source. Each named entry defines its own patch stack; variants are
+      # never implicitly combined. Adding another experiment requires only
+      # one entry here (and the corresponding patch file).
+      contextVariantPatches = {
+        math-glue-noautobreak = [
           ./pkgs/context/patches/luametatex-math-glue-noautobreak.patch
         ];
+        hans-2026-10-28 = [
+          ./pkgs/context/patches/luametatex-hans-2026-10-28.patch
+        ];
       };
+
+      contextVariants = pkgs.lib.mapAttrs
+        (_name: enginePatches: pkgs.contextLmtx.override { inherit enginePatches; })
+        contextVariantPatches;
+
+      # Export every variant as .#context-<name> without changing the normal
+      # .#context package or putting more than one engine in a devShell.
+      contextVariantPackages = pkgs.lib.mapAttrs'
+        (name: package: pkgs.lib.nameValuePair "context-${name}" package)
+        contextVariants;
 
     in
     {
@@ -269,7 +283,9 @@
       #
       #   nixos-config.packages.x86_64-linux.bootdev-cli
       #   nixos-config.packages.x86_64-linux.context
-      #   nixos-config.packages.x86_64-linux.context-patched
+      #   nixos-config.packages.x86_64-linux.context-patched (legacy alias)
+      #   nixos-config.packages.x86_64-linux.context-math-glue-noautobreak
+      #   nixos-config.packages.x86_64-linux.context-hans-2026-10-28
       #   nixos-config.packages.x86_64-linux.context-sandbox
       #   nixos-config.packages.x86_64-linux.context-sandbox-patched
       #   nixos-config.packages.x86_64-linux.context-docs
@@ -280,17 +296,18 @@
         bootdev-cli =
           pkgs.callPackage ./pkgs/bootdev-cli/bootdev-cli.nix { };
 
-        # These are explicit package variants, not system-wide installations.
-        # Consuming projects choose their own devShell default. In particular,
-        # a devShell can select .#context-patched without changing .#context.
+        # Default engine stays unpatched. Retain the old .#context-patched
+        # name as a compatibility alias for our existing experimental fix.
+        # Individual builds can be selected by name, without changing the
+        # single `context` installed in a consuming project's devShell.
         context = pkgs.contextLmtx;
-        context-patched = contextPatched;
+        context-patched = contextVariants."math-glue-noautobreak";
 
         context-sandbox = pkgs.callPackage ./pkgs/context/sandbox.nix {
           contextPackage = pkgs.contextLmtx;
         };
         context-sandbox-patched = pkgs.callPackage ./pkgs/context/sandbox.nix {
-          contextPackage = contextPatched;
+          contextPackage = contextVariants."math-glue-noautobreak";
         };
 
         # Optional LMTX/MkIV documentation sources, kept separate from the
@@ -306,7 +323,7 @@
         scope-rs = pkgs.scope-rs;
         tio-fork = pkgs.tio-fork;
         devflake-update = import ./lib/devflake-update.nix { inherit pkgs; };
-      };
+      } // contextVariantPackages;
 
       # Python is only needed for the bundle integrity verifier, not as a
       # system runtime dependency of ConTeXt.

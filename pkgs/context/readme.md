@@ -2,33 +2,57 @@
 
 ## Variants, source revisions and checks
 
-The root `flake.lock` pins the ConTeXt source. `.#context` is the **unpatched
-engine variant**; `.#context-patched` explicitly includes the local LuaMetaTeX
-Math/Glue patch. **Neither package is installed globally or by Home Manager**
-on `kitty` or `tracy`: consumers select a variant in their own development
-shells. The temporary filter-module fix is part of both modern variants; it
+The root `flake.lock` pins the ConTeXt source for **all** engine variants.
+`.#context` is always the unpatched upstream engine. Experimental variants
+are registered by name in the root `flake.nix` as independent patch stacks;
+none is installed globally or automatically added to a development shell.
+The separate filter-module compatibility fix is shared by all variants; it
 is not an engine patch.
 
 | Output | Purpose |
 | --- | --- |
-| `.#context` | Normal upstream LuaMetaTeX engine, local package |
-| `.#context-patched` | Identical source with experimental math/glue C patch |
-| `.#context-sandbox` | Portable archive made from `.#context` |
-| `.#context-sandbox-patched` | Portable archive made from `.#context-patched` |
-| `.#context-docs` | Optional documentation archive from the regular package |
+| `.#context` | Unpatched engine (same pinned source) |
+| `.#context-math-glue-noautobreak` | Our existing experimental math/glue fix |
+| `.#context-hans-2026-10-28` | Hans Hagen's supplied `texlinebreak.c` proposal (snapshot 28 October 2026) |
+| `.#context-patched` | Compatibility alias for `.#context-math-glue-noautobreak` |
+| `.#context-sandbox` | Portable archive built from `.#context` |
+| `.#context-sandbox-patched` | Portable archive built from the existing local fix |
+| `.#context-docs` | Optional documentation archive from the upstream engine |
 
-The package derivation (`luametatex.nix`) accepts an explicit `enginePatches`
-list (empty by default). The flake selects the patch for `context-patched`;
-no commit-hash heuristic enables experimental fixes. Changing `context-src`
-changes the source for **both** modern variants; an incompatible patch causes
-the patched build to fail explicitly rather than silently doing nothing.
+`contextVariantPatches` in the root flake maps variant names to **ordered**
+engine patch lists. Each variant is built separately from `pkgs.contextLmtx`
+using the existing `enginePatches` argument; the lists are never combined by
+default. The `contextVariantPackages` mapping exports each entry automatically
+as `.#context-<variant-name>` (no additional output declaration needed).
+To add another experiment, add its patch file and a new registry entry.
+Give new proposals a dated name instead of silently replacing an old one.
 
-To build both versions **without installing either on the system**:
+The Hans patch was generated from the supplied original `texlinebreak.c` and
+Hans' emailed replacement file, without changing his implementation. The patch
+applies only to `source/luametatex/source/tex/texlinebreak.c`. Its exact base
+must match the pinned `context-src`; a rejected hunk means the upstream version
+needs to be checked, **not** that the patch should be applied with more fuzz.
+The engine derivation explicitly uses `--fuzz=0` for its patches.
+A successful build proves compilation/smoke tests, not math-penalty correctness.
+
+Build any desired variants without switching the system or altering a shell:
 
 ```bash
+# Newly added patch files must be tracked by git before nix can see them.
+git add pkgs/context/patches/luametatex-hans-2026-10-28.patch
 nix build .#context -o result-context-unpatched -L
-nix build .#context-patched -o result-context-patched -L
+nix build .#context-math-glue-noautobreak -o result-context-patched -L
+nix build .#context-hans-2026-10-28 -o result-context-hans -L
+
+# Explicit execution; only the selected binary is run.
+./result-context-hans/bin/context --version
 ```
+
+The reusable `mkContextDevShell` still accepts **one** `contextPackage` and
+puts exactly that package's `context` executable on `PATH`. Other variants
+are available via explicit result paths, without adding more than one `context`
+to any shell. The root `devShells.context` remains the small Python-only
+verification shell and is unchanged by this registry.
 
 Each build runs its own smoke, filter, Vim, and cache checks. The comparative
 12-case and 76-case Math/Glue/Penalty tests have moved to the independent
@@ -81,7 +105,7 @@ unchanged. Remove this patch after the upstream filter PR has been merged and
 our pinned filter revision has been updated, **not before** the tests pass.
 No engine patch is applied to the **regular** package; `context-patched`
 contains the local LuaMetaTeX C patch. It is a usable, explicitly selected
-variant, not merely a short-lived test artifact. Both variants stay pinned
+variant, not merely a short-lived test artifact. Every variant stays pinned
 until you deliberately update `context-src`. At update time, run the independent
 behavioral suite against both versions to decide whether the patch is still
 needed; a patch that no longer applies does not by itself prove the underlying
@@ -105,7 +129,7 @@ nix develop .#context -c python3 pkgs/context/verify-bundle.py \
   result-context result-sandbox
 ```
 
-Both builds use exactly the same `context-src` revision from the root
+All named variants use exactly the same `context-src` revision from the root
 `flake.lock`. Routine builds do **not** need `nix flake update`.
 A successful build does not prove correct output for SI prefixes, e.g.
 `\unit{micro Volt}`, or for complex layouts; check representative teaching
