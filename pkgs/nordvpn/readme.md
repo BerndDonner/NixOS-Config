@@ -1,8 +1,8 @@
 # NordVPN binary package and NixOS service
 
-Version 6.0.1, official x86_64 Debian distribution:
+Version 6.0.2, official x86_64 Debian distribution:
 
-https://repo.nordvpn.com/deb/nordvpn/debian/pool/main/n/nordvpn/nordvpn_6.0.1_amd64.deb
+https://repo.nordvpn.com/deb/nordvpn/debian/pool/main/n/nordvpn/nordvpn_6.0.2_amd64.deb
 
 This repackages the vendor binaries, not the public GPL source repository.
 The .deb metadata declares `License: Proprietary`; the Nix package retains
@@ -35,7 +35,9 @@ startup, missing seed data is copied atomically, including hidden files. Existin
 files, settings and credentials are preserved; partial initialization can be
 completed on the next start. New releases do not overwrite downloaded state.
 
-Keep upstream's `KillMode=process` and SIGUSR1 restart signal. The reverse-path
+Use `KillMode=control-group` to stop the FHS wrapper and all its daemon processes
+together. `KillMode=process` can leave an old daemon running after a restart.
+The SIGUSR1 restart signal is retained. The reverse-path
 firewall setting is retained; no inbound TCP/UDP ports are added. This module
 keeps the existing always-started daemon model, without introducing vendor
 socket activation or a new early-boot killswitch service. Early-boot leak
@@ -74,6 +76,11 @@ state is preserved; re-login only if the client requires it.
 ## Future updates
 
 Read the new .deb's dependencies, files and service units before updating.
+Check the official APT index for the latest binary package; GitHub releases
+may lag behind it:
+
+https://repo.nordvpn.com/deb/nordvpn/debian/dists/stable/main/binary-amd64/Packages.gz
+
 Change version/hash, then repeat package and host tests. Obtain the flat
 fetchurl hash using `nix store prefetch-file --json URL`. Do not use an unpacked
 NAR hash for this .deb download.

@@ -25,14 +25,14 @@
 
 let
   pname = "nordvpn";
-  version = "6.0.1";
+  version = "6.0.2";
 
   nordVPNBase = stdenvNoCC.mkDerivation {
     inherit pname version;
 
     src = fetchurl {
       url = "https://repo.nordvpn.com/deb/nordvpn/debian/pool/main/n/nordvpn/nordvpn_${version}_amd64.deb";
-      hash = "sha256-SYQ+zPNHfLapX9qXMYNcIa+Ittel0EkvuYF31vsDp3k=";
+      hash = "sha256-gd95B8qM1U4O0ItSId1r4rwqrJxHMAYlv5SUqN6pQ+E=";
     };
 
     # Runtime dependencies of the unpacked binaries
@@ -62,7 +62,7 @@ let
       runHook preInstallCheck
       export HOME="$TMPDIR/nordvpn-install-check"
       mkdir -p "$HOME"
-      "$out/bin/nordvpn" --version | grep -F '6.0.1'
+      "$out/bin/nordvpn" --version | grep -Fx 'NordVPN Version ${version}'
       test -x "$out/sbin/nordvpnd"
       test -x "$out/lib/nordvpn/norduserd"
       test -x "$out/lib/nordvpn/nordfileshare"
