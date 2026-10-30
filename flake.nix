@@ -20,14 +20,6 @@
     nixpkgs-unstable.url =
       "github:nixos/nixpkgs/nixpkgs-unstable";
 
-    # Scope serial monitor source. Scope currently requires a newer Rust than
-    # the stable package set, so it is built with nixpkgs-unstable below while
-    # the source itself is pinned independently in flake.lock.
-    scope-rs-src = {
-      url = "github:matheuswhite/scope-rs/v0.6.0";
-      flake = false;
-    };
-
     # -------------------------------------------------------------------------
     # Productive ConTeXt source is pinned by the main flake.lock.
     # Intentionally keep revision 5751e396 until the local Math/Glue patch
@@ -113,14 +105,6 @@
       overlayPygameAvx2 =
         import ./overlays/pygame-avx2.nix;
 
-      # Scope needs Rust >= 1.92, therefore build only this package from the
-      # unstable package set. The rest of the machines stays on NixOS 26.05.
-      overlayScopeRs = final: prev: {
-        scope-rs = prev.unstable.callPackage ./pkgs/scope-rs/scope-rs.nix {
-          scopeRsSrc = inputs.scope-rs-src;
-        };
-      };
-
       # One parametrized package builder; independent revisions can choose
       # their own patch stacks without changing the native/sandbox machinery.
       # The external filter/Vim modules are fixed by a separate flake input.
@@ -158,7 +142,6 @@
         overlays = [
           overlayUnstable
           overlayPygameAvx2
-          overlayScopeRs
           overlayContext
           overlayTioFork
         ];
@@ -205,7 +188,6 @@
               nixpkgs.overlays = [
                 overlayUnstable
                 overlayPygameAvx2
-                overlayScopeRs
                 overlayContext
               ];
 
@@ -242,7 +224,6 @@
               nixpkgs.overlays = [
                 overlayUnstable
                 overlayPygameAvx2
-                overlayScopeRs
                 overlayContext
               ];
 
@@ -330,7 +311,6 @@
         nordvpn =
           pkgs.callPackage ./pkgs/nordvpn/nordvpn.nix { };
 
-        scope-rs = pkgs.scope-rs;
         tio-fork = pkgs.tio-fork;
         devflake-update = import ./lib/devflake-update.nix { inherit pkgs; };
       };

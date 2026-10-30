@@ -37,7 +37,6 @@
       sops
       krita
       xinput_calibrator
-      scope-rs
     ])
     ++ (with pkgs.kdePackages; [
       akonadi
