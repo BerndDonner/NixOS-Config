@@ -139,6 +139,9 @@
       pkgs = import nixpkgs {
         inherit system;
 
+        # The standalone NordVPN output uses the official binary distribution.
+        config.allowUnfreePredicate = pkg: nixpkgs.lib.getName pkg == "nordvpn";
+
         overlays = [
           overlayUnstable
           overlayPygameAvx2

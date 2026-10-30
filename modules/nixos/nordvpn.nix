@@ -2,7 +2,11 @@
 
 let
   cfg = config.services.nordvpn;
-  nordVpnPkg = pkgs.callPackage ../../pkgs/nordvpn/nordvpn.nix { };
+  initializeState = pkgs.writeShellApplication {
+    name = "nordvpn-init-state";
+    runtimeInputs = [ pkgs.coreutils pkgs.findutils ];
+    text = builtins.readFile ../../pkgs/nordvpn/init-state.sh;
+  };
 in
 with lib; {
   options.services.nordvpn = {
@@ -10,6 +14,12 @@ with lib; {
       type = types.bool;
       default = false;
       description = "Whether to enable the NordVPN daemon.";
+    };
+
+    package = mkOption {
+      type = types.package;
+      default = pkgs.callPackage ../../pkgs/nordvpn/nordvpn.nix { };
+      description = "NordVPN package including the daemon launcher and seed data.";
     };
 
     allowedUsers = mkOption {
@@ -25,7 +35,7 @@ with lib; {
   config = mkIf cfg.enable {
     networking.firewall.checkReversePath = false;
 
-    environment.systemPackages = [ nordVpnPkg ];
+    environment.systemPackages = [ cfg.package ];
 
     users.groups.nordvpn.members = cfg.allowedUsers;
 
@@ -37,18 +47,19 @@ with lib; {
       wants    = [ "network-online.target" ];
 
       serviceConfig = {
-        ExecStart = "${nordVpnPkg}/bin/nordvpnd";
+        User = "root";
+        ExecStart = "${cfg.package}/bin/nordvpnd";
 
-        ExecStartPre = pkgs.writeShellScript "nordvpn-start" ''
-          mkdir -m 700 -p /var/lib/nordvpn
-          if [ -z "$(ls -A /var/lib/nordvpn)" ]; then
-            cp -r ${nordVpnPkg}/var/lib/nordvpn/* /var/lib/nordvpn
-          fi
-        '';
+        ExecStartPre = "${initializeState}/bin/nordvpn-init-state ${cfg.package}/var/lib/nordvpn /var/lib/nordvpn";
+        StateDirectory = "nordvpn";
+        StateDirectoryMode = "0750";
 
+        # Match the vendor's process lifecycle; child processes may survive a
+        # daemon restart. Do not change this to control-group without testing.
         KillMode = "process";
         Restart = "on-failure";
         RestartSec = 5;
+        RestartKillSignal = "SIGUSR1";
 
         RuntimeDirectory = "nordvpn";
         RuntimeDirectoryMode = "0750";

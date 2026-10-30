@@ -3,7 +3,7 @@
 , buildFHSEnvChroot
 , dpkg
 , fetchurl
-, stdenv
+, stdenvNoCC
 , sysctl
 , iptables
 , iproute2
@@ -16,29 +16,34 @@
 , libidn2
 , zlib
 , wireguard-tools
+, nftables
+, libxslt
+, systemd
+, gcc-unwrapped
 , ...
 }:
 
 let
   pname = "nordvpn";
-  version = "4.4.0";
+  version = "6.0.1";
 
-  nordVPNBase = stdenv.mkDerivation {
+  nordVPNBase = stdenvNoCC.mkDerivation {
     inherit pname version;
 
     src = fetchurl {
       url = "https://repo.nordvpn.com/deb/nordvpn/debian/pool/main/n/nordvpn/nordvpn_${version}_amd64.deb";
-      hash = "sha256-rePBEVe6o49If5dYvIUW361E7nFqngzd+XkiOeehY7w=";
+      hash = "sha256-SYQ+zPNHfLapX9qXMYNcIa+Ittel0EkvuYF31vsDp3k=";
     };
 
     # Runtime dependencies of the unpacked binaries
     buildInputs = [
       libxml2
+      zlib
       libidn2
       libnl
       sqlite
       libcap_ng
-      stdenv.cc.cc.lib
+      gcc-unwrapped.lib
     ];
 
     # Tools needed only at build/unpack time
@@ -46,6 +51,24 @@ let
       dpkg
       autoPatchelfHook
     ];
+
+    # Explicit search directory for the bundled NordVPN shared libraries.
+    preFixup = ''
+      addAutoPatchelfSearchPath "$out/lib/nordvpn"
+    '';
+
+    doInstallCheck = true;
+    installCheckPhase = ''
+      runHook preInstallCheck
+      export HOME="$TMPDIR/nordvpn-install-check"
+      mkdir -p "$HOME"
+      "$out/bin/nordvpn" --version | grep -F '6.0.1'
+      test -x "$out/sbin/nordvpnd"
+      test -x "$out/lib/nordvpn/norduserd"
+      test -x "$out/lib/nordvpn/nordfileshare"
+      test -s "$out/var/lib/nordvpn/data/ovpn_template.xslt"
+      runHook postInstallCheck
+    '';
 
     dontConfigure = true;
     dontBuild = true;
@@ -68,7 +91,7 @@ let
 
   nordVPNfhs = buildFHSEnvChroot {
     name = "nordvpnd";
-    runScript = "nordvpnd";
+    runScript = "${nordVPNBase}/sbin/nordvpnd";
 
     # Additional runtime deps in the FHS env
     targetPkgs = pkgs: [
@@ -85,10 +108,13 @@ let
       libidn2
       zlib
       wireguard-tools
+      nftables
+      libxslt # xsltproc is used to construct OpenVPN configurations in 6.x.
+      systemd # resolvectl/systemctl used by the daemon on systemd hosts.
     ];
   };
 in
-stdenv.mkDerivation {
+stdenvNoCC.mkDerivation {
   inherit pname version;
 
   dontUnpack = true;
@@ -111,8 +137,10 @@ stdenv.mkDerivation {
   meta = with lib; {
     description = "CLI client for NordVPN";
     homepage = "https://www.nordvpn.com";
+    # The distributed .deb declares License: Proprietary and bundles libraries;
+    # this is not the GPL-only source build of the public client repository.
     license = licenses.unfreeRedistributable;
-    maintainers = with lib.maintainers; [ dr460nf1r3 ];
+    mainProgram = "nordvpn";
     platforms = [ "x86_64-linux" ];
   };
 }
