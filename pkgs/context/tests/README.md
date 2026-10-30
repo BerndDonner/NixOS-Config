@@ -17,8 +17,8 @@ and the PDF comparison tools. None of those tests is run by `nix build` or
 | Portable cache lock | `check-portable-cache-lock.sh` | Building `.#context-sandbox-patched` | Locking and failure recovery using fake engine entrypoints |
 | **Host Carlito** | **`check-system-carlito.sh`, `system-carlito.tex`** | **Manual; never part of a Nix build** | **Find host system fonts via the ConTeXt wrapper** |
 
-`luametatex.nix` and `sandbox.nix` run their respective tests in isolated
-build working directories. The historical `.lua`-runner variant runs only
+`luametatex.nix` and `sandbox.nix` invoke the common `run-smoke-tests.sh`
+in isolated build working directories. The historical `.lua`-runner variant runs only
 `smoke.tex`, because the modern filter/Vim integration is not a historical
 compatibility target. Vim is a build-time tool: it is not packaged into the
 portable archive and must be on `PATH` if a document uses Vim highlighting at
@@ -119,3 +119,18 @@ Adjust the relative paths to suit where you keep the two clones. This is an
 explicit manual run; neither `NixOS-Config` nor `unterrichts-texte` imports
 `context-testsuite`. Run `python -m pytest -q` in the testsuite repository to
 check its Python implementation independently of a real ConTeXt engine.
+
+## Manifest compatibility (no engine required)
+
+```bash
+nix develop .#context -c python3 -m unittest discover \
+  -s pkgs/context/tests -p 'test_*.py' -v
+```
+
+`test_manifests.py` checks fixed pre-refactor tree hashes (including Unicode,
+symlinks and pruning), empty trees, and both manifest/archive round trips.
+A valid `2026.10.25-p1` archive must pass; false revisions/versions, changed
+content and deleted retained files must fail. These tests use Python's
+standard library and need no ConTeXt build. The full archive verifiers need
+Python with `tarfile`'s `data` extraction filter (provided by `nix develop
+.#context`) and a rebuilt native package containing `build-info.json`.

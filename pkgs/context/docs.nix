@@ -50,7 +50,7 @@ stdenvNoCC.mkDerivation {
     export CTX_SOURCE_DOC="$source_doc"
     export CTX_REVISION='${contextRevision}'
     export CTX_VERSION='${contextPackage.version}'
-    ${python3}/bin/python3 ${./make-docs-manifest.py}
+    ${python3}/bin/python3 ${./.}/make-docs-manifest.py
 
     # Deterministic archive, a .tar.xz FILE like .#context-sandbox-patched.
     tar --sort=name --mtime='@1' --owner=0 --group=0 --numeric-owner \

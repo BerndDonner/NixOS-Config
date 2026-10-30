@@ -1,3 +1,5 @@
 # Nix build outputs
 /result
 /result-*
+__pycache__/
+*.py[cod]

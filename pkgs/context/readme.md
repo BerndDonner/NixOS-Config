@@ -53,12 +53,9 @@ All sources are declared in the **root** `flake.nix` and locked in the root
 - `filter-src`: fixed `adityam/filter` revision `ca120d8` (both `filter` and
   Vim integration).
 
-**The new inputs need one initial lock operation:** after applying this patch,
-run `nix flake lock` in the repository root and include the resulting
-`flake.lock` in the commit. This only resolves the new inputs; it does not
-advance the existing `context-src` pin. Verify the changes with
-`git diff -- flake.lock`. The new input URLs already contain full commit
-IDs; no floating references are used for these three additions.
+The pins are already recorded in `flake.lock`. Script-only packaging changes
+require no lock update. When deliberately adding or changing a source input,
+run `nix flake lock` and review `git diff -- flake.lock` before committing.
 
 The filter upstream module now uses `file.canbewritten` in `t-filter.mkxl`.
 The main ConTeXt source already handles empty `pathpart` in
@@ -73,9 +70,8 @@ these builds. This package does not install ConTeXt globally on either host.
 ### Build and verify
 
 ```bash
-# Populate the newly added lock entries once after applying this patch.
-nix flake lock
-git diff -- flake.lock
+# Include new local helpers in the Git source seen by Nix.
+git add pkgs/context
 
 nix build .#context -o result-context -L
 nix build .#context-2024 -o result-context-2024 -L
@@ -120,6 +116,41 @@ pkgs/context/tests/check-system-carlito.sh ./result-context/bin/context
 ```
 
 It checks Carlito Regular/Bold from the host system font directories.
+
+## Packaging scripts
+
+- `native-environment.sh`, `native-context.sh`, `native-init-cache.sh` are
+  build templates. Nix assembles them into standalone launchers and replaces
+  explicit placeholders; unresolved placeholders fail the build.
+- `context-local.sh` and `portable-engine.sh` remain portable launchers.
+  Native `flock` and portable directory locking stay separate.
+- `manifest_common.py` owns checksum framing and the distinct runtime/docs
+  pruning policies. `make-bundle-manifest.py` and `make-docs-manifest.py`
+  write manifests; `verify-bundle.py` and `verify-docs.py` validate archives.
+  Build commands reference the containing directory so regular Python imports
+  find their sibling module in the Nix store.
+- `tests/run-smoke-tests.sh` runs the shared PDF/filter/Vim checks in fresh
+  directories. `--once` is restricted to these package smoke checks and cache
+  tests; it is not a setting for the independent regression suite.
+
+The native package includes `share/context/build-info.json` with full source
+revision, Nix package version and patch label. Both archive verifiers compare
+revision and version to this metadata, never deriving a commit from `-p1`
+or a store directory name. Rebuild the native package before using these
+verifiers: older outputs do not have that file. Archive schemas and checksum
+semantics are unchanged; neither archive needs an extra metadata file.
+
+Run the fast packaging tests without building an engine:
+
+```bash
+nix develop .#context -c python3 -m unittest discover \
+  -s pkgs/context/tests -p 'test_*.py' -v
+```
+
+They cover fixed checksums from the former implementations and actual
+manifest generation/archive verification, including altered provenance,
+changed contents and missing files. These fixture tests do not replace the
+real Nix builds and their ConTeXt integration checks.
 
 ## Cache synchronization
 
@@ -202,8 +233,7 @@ SHA-256 of the original complete documentation tree and the SHA-256 and file
 count of the retained sources. To build and compare against `.#context`:
 
 ```bash
-git add flake.nix pkgs/context/docs.nix \
-  pkgs/context/make-docs-manifest.py pkgs/context/verify-docs.py
+git add pkgs/context
 nix build .#context-docs -o result-docs --show-trace
 nix develop .#context -c python3 \
   pkgs/context/verify-docs.py result-context result-docs

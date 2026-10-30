@@ -12,11 +12,7 @@ import sys
 import tarfile
 import tempfile
 
-import runpy
-
-
-# The build and verifier share the exact same pruning/checksum policy.
-module = runpy.run_path(str(Path(__file__).with_name("make-docs-manifest.py")))
+from manifest_common import DOCS_EXCLUDED, docs_tree, verify_metadata
 
 
 def verify(context_package: Path, archive: Path) -> None:
@@ -33,10 +29,10 @@ def verify(context_package: Path, archive: Path) -> None:
         bundle = destination / "context-lmtx-docs"
         manifest = json.loads((bundle / "manifest.json").read_text())
         assert manifest["schema_version"] == 1, "Unexpected manifest schema"
-        assert manifest["excluded"] == module["EXCLUDED"], "Different pruning rules"
-        source_hash, source_count = module["sha_tree"](source)
-        expected_hash, expected_count = module["sha_tree"](source, prune=True)
-        docs_hash, docs_count = module["sha_tree"](bundle / "doc")
+        assert manifest["excluded"] == DOCS_EXCLUDED, "Different pruning rules"
+        source_hash, source_count = docs_tree(source)
+        expected_hash, expected_count = docs_tree(source, prune=True)
+        docs_hash, docs_count = docs_tree(bundle / "doc")
         assert (manifest["source_doc_tree_sha256"], manifest["source_file_count"]) == (
             source_hash, source_count
         ), "Full source document tree differs"
@@ -45,11 +41,7 @@ def verify(context_package: Path, archive: Path) -> None:
         ), "Manifest does not match expected source projection"
         assert (docs_hash, docs_count) == (expected_hash, expected_count), \
             "Archive documentation differs from local ConTeXt package"
-        assert context_package.resolve().name.endswith(manifest["package_version"]), \
-            "Archive and local package versions differ"
-        assert manifest["context_revision"].startswith(
-            manifest["package_version"].removeprefix("unstable-")
-        ), "Revision does not match the local ConTeXt package"
+        verify_metadata(context_package, manifest)
         print("OK: documentation sources and supporting assets match local ConTeXt")
         print("ConTeXt revision:", manifest["context_revision"])
         print("Document files:", docs_count)

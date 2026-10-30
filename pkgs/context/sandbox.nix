@@ -101,51 +101,16 @@ stdenvNoCC.mkDerivation {
     export CTX_REVISION='${contextPackage.contextRevision or "unknown"}'
     export CTX_VERSION='${contextPackage.version}'
     export CTX_PATCH_LABEL='${contextPackage.patchLabel or ""}'
-    ${python3}/bin/python3 - <<'PY'
-import hashlib, json, os
-from pathlib import Path
-root = Path(os.environ['CTX_BUNDLE_ROOT'])
-def sha_file(path):
-    h = hashlib.sha256()
-    with path.open('rb') as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), bytes()):
-            h.update(chunk)
-    return h.hexdigest()
-def sha_tree(path):
-    h = hashlib.sha256()
-    for child in sorted(p for p in path.rglob('*') if p.is_file()):
-        relative = child.relative_to(path).as_posix()
-        # The portable engine is renamed and wrapped. Verify its binary
-        # separately, not as part of the otherwise identical TeX tree.
-        if relative in ('texmf-linux-64/bin/luametatex',
-                        'texmf-linux-64/bin/luametatex.bin',
-                        'texmf-linux-64/bin/mtxrun',
-                        'texmf-linux-64/bin/context'):
-            continue
-        name = relative.encode()
-        h.update(len(name).to_bytes(8, 'big'))
-        h.update(name)
-        h.update(bytes.fromhex(sha_file(child)))
-    return h.hexdigest()
-manifest = dict(
-    schema_version=2,
-    source_tex_tree_sha256=sha_tree(Path(os.environ['CTX_SOURCE_TEX'])),
-    excluded=['texmf-context/doc', 'texmf-context/tex/context/**/mkii',
-              'texmf-context/tex/context/**/*.mkii'],
-    context_revision=os.environ['CTX_REVISION'],
-    package_version=os.environ['CTX_VERSION'],
-    architecture='x86_64-linux',
-    engine_sha256=sha_file(root/'tex/texmf-linux-64/bin/luametatex.bin'),
-    tex_tree_sha256=sha_tree(root/'tex'),
-    modules=['filter', 'vim'],
-)
-(root/'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-(root/'context-local.sh').write_text(
-    (root/'context-local.sh').read_text()
-    .replace('@BUNDLE_HASH@', manifest['tex_tree_sha256'][:16])
-    .replace('@LOCAL_BUILD_VERSION@', manifest['package_version'])
-    .replace('@PATCH_LABEL@', os.environ['CTX_PATCH_LABEL']))
-PY
+    bundle_hash=$(${python3}/bin/python3 ${./.}/make-bundle-manifest.py)
+    substituteInPlace "$root/context-local.sh" \
+      --replace-fail '@BUNDLE_HASH@' "$bundle_hash" \
+      --replace-fail '@LOCAL_BUILD_VERSION@' "$CTX_VERSION" \
+      --replace-fail '@PATCH_LABEL@' "$CTX_PATCH_LABEL"
+
+    if grep -En '@[A-Za-z][A-Za-z0-9_]*@' "$root/context-local.sh"; then
+      echo 'Unsubstituted portable launcher placeholder' >&2
+      exit 1
+    fi
 
     # The portable launcher must expose the same local patch version as the
     # native package; check the actual substituted artifact, not the template.
@@ -182,34 +147,8 @@ PY
     if [ -f "$bin/mtxrun.lmt" ]; then
       test_names="$test_names filter vim"
     fi
-    for test_name in $test_names; do
-      mkdir -p "$TMPDIR/smoke/$test_name"
-      cp "${./tests}/$test_name.tex" "$TMPDIR/smoke/$test_name/$test_name.tex"
-      (
-        cd "$TMPDIR/smoke/$test_name"
-        "$root/context-local.sh" --once "$test_name.tex" > "$TMPDIR/$test_name.log" 2>&1 || {
-          cat "$TMPDIR/$test_name.log" >&2
-          exit 1
-        }
-        test -s "$test_name.pdf" || {
-          echo "Missing or empty PDF for $test_name" >&2
-          exit 1
-        }
-        if [ "$test_name" = filter ]; then
-          grep -Fq 'The external filter created its temporary files.' \
-            filter-temp-copy.tex || {
-              echo 'Copy filter did not generate its output' >&2
-              exit 1
-            }
-        fi
-        if [ "$test_name" = vim ]; then
-          grep -Fq '\SYN[' vim-temp-PYTHON-0.vimout || {
-            echo 'Vim did not generate ConTeXt highlighting tokens' >&2
-            exit 1
-          }
-        fi
-      )
-    done
+    bash ${./tests}/run-smoke-tests.sh "$root/context-local.sh" \
+      "$TMPDIR/smoke" $test_names
 
     # A mocked engine tests cache contention, marker reuse and cleanup after
     # an initialization failure. No additional runtime tool is bundled.

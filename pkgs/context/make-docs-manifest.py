@@ -1,47 +1,15 @@
 #!/usr/bin/env python3
 """Write and verify the manifest for the optional ConTeXt documentation archive.
 
-Uses only Python stdlib; also imported by verify-docs.py so pruning policies
-and checksum semantics cannot silently drift between builder and verifier.
+Uses manifest_common for shared pruning policies and checksum semantics.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path
-
-
-EXCLUDED = ["**/*.pdf", "**/mkii/**", "**/*.mkii"]
-
-
-def excluded(relative: Path) -> bool:
-    return (
-        relative.suffix.lower() == ".pdf"
-        or relative.suffix == ".mkii"
-        or "mkii" in relative.parts
-    )
-
-
-def sha_tree(path: Path, *, prune: bool = False) -> tuple[str, int]:
-    """Hash relative file names + SHA256 file contents, in sorted order."""
-    hasher = hashlib.sha256()
-    count = 0
-    for child in sorted(p for p in path.rglob("*") if p.is_file()):
-        relative = child.relative_to(path)
-        if prune and excluded(relative):
-            continue
-        name = relative.as_posix().encode("utf-8")
-        hasher.update(len(name).to_bytes(8, "big"))
-        hasher.update(name)
-        file_hash = hashlib.sha256()
-        with child.open("rb") as source:
-            for chunk in iter(lambda: source.read(1024 * 1024), b""):
-                file_hash.update(chunk)
-        hasher.update(file_hash.digest())
-        count += 1
-    return hasher.hexdigest(), count
+from manifest_common import DOCS_EXCLUDED as EXCLUDED, docs_tree as sha_tree
 
 
 def main() -> None:

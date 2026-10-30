@@ -88,138 +88,48 @@ stdenv.mkDerivation rec {
     ln -s luametatex "$out/tex/texmf-linux-64/bin/mtxrun"
     ln -s luametatex "$out/tex/texmf-linux-64/bin/context"
 
-    # ----------------------------------------------------------------------
-    # init environment helper
-    # ----------------------------------------------------------------------
+    # Assemble standalone shell bodies; shared environment is embedded so
+    # installed launchers need no additional runtime shell library.
+    for name in context-init-cache context mtxrun; do
+      cp ${./native-environment.sh} "$out/bin/$name"
+      chmod u+w "$out/bin/$name"
+    done
+    cat ${./native-init-cache.sh} >> "$out/bin/context-init-cache"
+    cat ${./native-context.sh} >> "$out/bin/context"
+    printf '\nexec "%s/tex/texmf-linux-64/bin/mtxrun" "$@"\n' "$out" >> "$out/bin/mtxrun"
+    for name in context-init-cache context mtxrun; do
+      substituteInPlace "$out/bin/$name" \
+        --replace-fail '@runtimeShell@' '${runtimeShell}'
+    done
+    substituteInPlace "$out/bin/context-init-cache" \
+      --replace-fail '@out@' "$out" \
+      --replace-fail '@utilLinux@' '${util-linux}' \
+      --replace-fail '@packageId@' "$(basename "$out")"
+    substituteInPlace "$out/bin/context" \
+      --replace-fail '@out@' "$out" \
+      --replace-fail '@packageId@' "$(basename "$out")" \
+      --replace-fail '@localVersion@' ${lib.escapeShellArg (lib.escapeShellArg (if localVersion == null then "" else version))} \
+      --replace-fail '@patchLabel@' ${lib.escapeShellArg (lib.escapeShellArg patchLabel)}
 
-     initEnvironment() {
-      local name="$1"
-
-      cat > "$out/bin/$name" <<'EOF'
-#!${runtimeShell}
-set -euo pipefail
-
-# Per-user cache directory; ConTeXt will append "luametatex-cache/context/<hash>".
-if [ -z "''${TEXMFCACHE:-}" ]; then
-  TEXMFCACHE="''${XDG_CACHE_HOME:-$HOME/.cache}"
-  export TEXMFCACHE
-fi
-
-# System + user font search paths (only if not set by user)
-if [ -z "''${OSFONTDIR:-}" ]; then
-  OSFONTDIR="/run/current-system/sw/share/X11/fonts"
-  OSFONTDIR="$OSFONTDIR:/run/current-system/sw/share/fonts"
-  OSFONTDIR="$OSFONTDIR:$HOME/.local/share/fonts"
-  OSFONTDIR="$OSFONTDIR:$HOME/.fonts"
-  export OSFONTDIR
-fi
-
-CACHE_ROOT="''${TEXMFCACHE%/}"
-EOF
-    }
-
-    # ----------------------------------------------------------------------
-    # context-init-cache: one-shot cache + font DB + formats initializer
-    # ----------------------------------------------------------------------
-
-    initEnvironment context-init-cache
-
-    cat >> "$out/bin/context-init-cache" <<EOF
-MTXRUN="$out/tex/texmf-linux-64/bin/mtxrun"
-CONTEXT="$out/tex/texmf-linux-64/bin/context"
-FLOCK="${util-linux}/bin/flock"
-CACHE_MARKER="\$CACHE_ROOT/.context-ready-$(basename "$out")"
-LOCK_FILE="\$CACHE_ROOT/.context-init-$(basename "$out").lock"
-
-# Explicit invocation without arguments still forces a rebuild.
-# The context wrapper uses --if-needed and rechecks under the lock.
-mode=--force
-if [ "\$#" -gt 0 ]; then
-  if [ "\$#" -ne 1 ]; then
-    echo 'Usage: context-init-cache [--force|--if-needed]' >&2
-    exit 2
-  fi
-  mode="\$1"
-fi
-case "\$mode" in
-  --force|--if-needed) ;;
-  *) echo 'Usage: context-init-cache [--force|--if-needed]' >&2; exit 2 ;;
-esac
-
-mkdir -p "\$CACHE_ROOT"
-# An open file descriptor holds a kernel-managed lock. It is released on
-# exit, including when initialization fails or the process is killed.
-exec 9>"\$LOCK_FILE"
-"\$FLOCK" -x 9
-
-if [ "\$mode" = --if-needed ] && [ -f "\$CACHE_MARKER" ]; then
-  exit 0
-fi
-
-# Invalidate even a formerly valid marker before an explicit rebuild.
-rm -f "\$CACHE_MARKER"
-echo "Initializing ConTeXt cache in \$CACHE_ROOT/luametatex-cache ..." >&2
-"\$MTXRUN" --generate
-"\$MTXRUN" --script fonts --reload
-"\$CONTEXT" --make
-
-# Publish only a completely generated cache. A crash while writing the
-# temporary file cannot leave a successful-looking readiness marker.
-marker_tmp="\$CACHE_MARKER.tmp.\$\$"
-trap 'rm -f "\$marker_tmp"' EXIT
-printf '%s\\n' '$(basename "$out")' > "\$marker_tmp"
-mv -f "\$marker_tmp" "\$CACHE_MARKER"
-trap - EXIT
-EOF
-
-    # ----------------------------------------------------------------------
-    # luametatex wrapper
-    # ----------------------------------------------------------------------
-    
     cat > "$out/bin/luametatex" <<EOF
 #!${runtimeShell}
 set -eu
-
 exec "$out/tex/texmf-linux-64/bin/luametatex" "\$@"
 EOF
+    if grep -En '@[A-Za-z][A-Za-z0-9_]*@' "$out/bin/"*; then
+      echo 'Unsubstituted native launcher placeholder' >&2
+      exit 1
+    fi
+    chmod +x "$out/bin/"*
 
-    # ----------------------------------------------------------------------
-    # mtxrun wrapper
-    # ----------------------------------------------------------------------
-    
-    initEnvironment mtxrun
-
-    cat >> "$out/bin/mtxrun" <<EOF
-exec "$out/tex/texmf-linux-64/bin/mtxrun" "\$@"
-EOF
-
-    # ----------------------------------------------------------------------
-    # context wrappers
-    # ----------------------------------------------------------------------
-    
-    initEnvironment context
-
-    cat >> "$out/bin/context" <<EOF
-${lib.optionalString (localVersion != null) ''
-if [ "\$#" -eq 1 ] && [ "\$1" = "--version" ]; then
-  printf '%s\n' 'mtx-context | local build: ${version} (${patchLabel})'
-fi
-''}
-CACHE_MARKER="\$CACHE_ROOT/.context-ready-$(basename "$out")"
-
-# A directory can exist after a failed partial initialization. The marker is
-# written only by context-init-cache once all initialization steps succeed.
-if [ ! -f "\$CACHE_MARKER" ]; then
-  "$out/bin/context-init-cache" --if-needed
-fi
-
-exec "$out/tex/texmf-linux-64/bin/context" "\$@"
-EOF
-
-    chmod +x "$out/bin/context-init-cache"
-    chmod +x "$out/bin/luametatex"
-    chmod +x "$out/bin/mtxrun"
-    chmod +x "$out/bin/context"
+    # Machine-readable provenance, independent of the store directory name.
+    mkdir -p "$out/share/context"
+    cp ${builtins.toFile "context-build-info.json" (builtins.toJSON {
+      schema_version = 1;
+      context_revision = contextRevision;
+      package_version = version;
+      patch_label = patchLabel;
+    })} "$out/share/context/build-info.json"
 
     # Copy TeX trees
     echo "Copying TeX trees"
@@ -281,37 +191,8 @@ EOF
     if [ -f "$out/tex/texmf-linux-64/bin/mtxrun.lmt" ]; then
       test_names="$test_names filter vim"
     fi
-    for test_name in $test_names; do
-      # New temporary files are essential to reproduce the LMTX bug.
-      test_dir="$TMPDIR/context-smoke-doc/$test_name"
-      mkdir -p "$test_dir"
-      cp "${./tests}/$test_name.tex" "$test_dir/$test_name.tex"
-      (
-        cd "$test_dir"
-        "$out/bin/context" --once "$test_name.tex" > "$TMPDIR/ctx-$test_name.log" 2>&1 || {
-          cat "$TMPDIR/ctx-$test_name.log" >&2; exit 1;
-        }
-        test -s "$test_name.pdf" || {
-          echo "Missing or empty PDF for $test_name" >&2; exit 1;
-        }
-        if [ "$test_name" = filter ]; then
-          grep -Fq 'The external filter created its temporary files.' \
-            filter-temp-copy.tex || {
-              echo 'The external copy filter did not produce its output' >&2
-              exit 1
-            }
-        fi
-        if [ "$test_name" = vim ]; then
-          # A PDF can still be created if highlighting silently fails.
-          # Inspect Vim's intermediate TeX instead of only checking the PDF.
-          if ! grep -Fq '\SYN[' vim-temp-PYTHON-0.vimout; then
-            echo 'Vim returned no ConTeXt highlighting tokens' >&2
-            ls -la >&2
-            exit 1
-          fi
-        fi
-      )
-    done
+    bash ${./tests}/run-smoke-tests.sh "$out/bin/context" \
+      "$TMPDIR/context-smoke-doc" $test_names
     ${lib.optionalString (localVersion != null) ''
       "$out/bin/context" --version > "$TMPDIR/ctx-version.log" 2>&1
       grep -Fq 'local build: ${version} (${patchLabel})' "$TMPDIR/ctx-version.log" || {

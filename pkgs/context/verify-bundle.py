@@ -9,54 +9,15 @@ verifies the engine and the complete retained TeX assets, including filter and v
 """
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 import sys
 import tarfile
 import tempfile
 
-
-def sha_file(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), bytes()):
-            hasher.update(chunk)
-    return hasher.hexdigest()
-
-
-EXCLUDED = [
-    'texmf-context/doc',
-    'texmf-context/tex/context/**/mkii',
-    'texmf-context/tex/context/**/*.mkii',
-]
-
-
-def is_excluded(relative: str) -> bool:
-    parts = relative.split('/')
-    if parts[:2] == ['texmf-context', 'doc']:
-        return True
-    if parts[:3] == ['texmf-context', 'tex', 'context']:
-        return 'mkii' in parts[3:-1] or relative.endswith('.mkii')
-    return False
-
-
-def sha_tree(path: Path, *, prune: bool = False) -> str:
-    hasher = hashlib.sha256()
-    for child in sorted(p for p in path.rglob("*") if p.is_file()):
-        relative = child.relative_to(path).as_posix()
-        if prune and is_excluded(relative):
-            continue
-        if relative in ("texmf-linux-64/bin/luametatex",
-                        "texmf-linux-64/bin/luametatex.bin",
-                        "texmf-linux-64/bin/mtxrun",
-                        "texmf-linux-64/bin/context"):
-            continue
-        name = relative.encode()
-        hasher.update(len(name).to_bytes(8, "big"))
-        hasher.update(name)
-        hasher.update(bytes.fromhex(sha_file(child)))
-    return hasher.hexdigest()
+from manifest_common import (
+    RUNTIME_EXCLUDED as EXCLUDED, sha_file, runtime_tree as sha_tree, verify_metadata,
+)
 
 
 def verify(context_package: Path, archive: Path) -> None:
@@ -70,6 +31,7 @@ def verify(context_package: Path, archive: Path) -> None:
             source.extractall(destination, filter="data")
         bundled = destination / "context-lmtx-ready"
         manifest = json.loads((bundled / "manifest.json").read_text())
+        verify_metadata(context_package, manifest)
         assert manifest['schema_version'] == 2, 'Unexpected manifest schema'
         assert manifest['excluded'] == EXCLUDED, 'Unexpected pruning policy'
         local_engine = context_package / "tex/texmf-linux-64/bin/luametatex"
