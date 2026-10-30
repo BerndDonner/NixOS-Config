@@ -54,9 +54,8 @@ with lib; {
         StateDirectory = "nordvpn";
         StateDirectoryMode = "0750";
 
-        # Match the vendor's process lifecycle; child processes may survive a
-        # daemon restart. Do not change this to control-group without testing.
-        KillMode = "process";
+        # Stop the FHS wrapper and all daemon processes together.
+        KillMode = "control-group";
         Restart = "on-failure";
         RestartSec = 5;
         RestartKillSignal = "SIGUSR1";
