@@ -100,6 +100,7 @@ stdenvNoCC.mkDerivation {
     export CTX_SOURCE_TEX='${contextPackage}/tex'
     export CTX_REVISION='${contextPackage.contextRevision or "unknown"}'
     export CTX_VERSION='${contextPackage.version}'
+    export CTX_PATCH_LABEL='${contextPackage.patchLabel or ""}'
     ${python3}/bin/python3 - <<'PY'
 import hashlib, json, os
 from pathlib import Path
@@ -140,8 +141,19 @@ manifest = dict(
 )
 (root/'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
 (root/'context-local.sh').write_text(
-    (root/'context-local.sh').read_text().replace('@BUNDLE_HASH@', manifest['tex_tree_sha256'][:16]))
+    (root/'context-local.sh').read_text()
+    .replace('@BUNDLE_HASH@', manifest['tex_tree_sha256'][:16])
+    .replace('@LOCAL_BUILD_VERSION@', manifest['package_version'])
+    .replace('@PATCH_LABEL@', os.environ['CTX_PATCH_LABEL']))
 PY
+
+    # The portable launcher must expose the same local patch version as the
+    # native package; check the actual substituted artifact, not the template.
+    grep -Fq 'local build: ${contextPackage.version} (${contextPackage.patchLabel or ""})' \
+      "$root/context-local.sh" || {
+        echo 'Portable ConTeXt version marker missing' >&2
+        exit 1
+      }
 
     # Both portable scripts intentionally use #!/usr/bin/env bash, which is
     # absent inside an isolated Nix builder. Rewrite JUST those two shebangs

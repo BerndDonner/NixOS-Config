@@ -10,11 +10,11 @@ and the PDF comparison tools. None of those tests is run by `nix build` or
 
 | Test | File / implementation | Trigger | Purpose |
 | --- | --- | --- | --- |
-| Basic PDF | `smoke.tex` | Building `.#context` or `.#context-patched` (also sandboxes) | Bundled fonts, `\unit`, MetaPost, output PDF |
+| Basic PDF | `smoke.tex` | Building any of the three engine versions (also the patched sandbox) | Bundled fonts, `\unit`, MetaPost, output PDF |
 | External filter | `filter.tex` | Same builds for modern `.lmt` runners | External filter really writes its temporary output |
 | Vim highlighting | `vim.tex` | Same builds for modern `.lmt` runners | Generated `\SYN[` highlighting tokens, not only a PDF |
 | Native cache lock | `check-native-cache-lock.sh` | Building local ConTeXt packages | Concurrent starts, cache reuse, force rebuild, invalid cache directory |
-| Portable cache lock | `check-portable-cache-lock.sh` | Building `.#context-sandbox` variants | Locking and failure recovery using fake engine entrypoints |
+| Portable cache lock | `check-portable-cache-lock.sh` | Building `.#context-sandbox-patched` | Locking and failure recovery using fake engine entrypoints |
 | **Host Carlito** | **`check-system-carlito.sh`, `system-carlito.tex`** | **Manual; never part of a Nix build** | **Find host system fonts via the ConTeXt wrapper** |
 
 `luametatex.nix` and `sandbox.nix` run their respective tests in isolated
@@ -25,9 +25,10 @@ portable archive and must be on `PATH` if a document uses Vim highlighting at
 runtime. Merely producing a PDF does not prove that the filter/Vim tests
 succeeded: both inspect the generated intermediate files.
 
-The filter compatibility patch is `../patches/filter-lmtx-writable.patch`.
-It applies to LMTX's `t-filter.mkxl`; it must not be applied to `t-filter.mkiv`,
-whose writeability check has different semantics.
+The external filter source is pinned at `ca120d8`, which contains the
+upstream `file.canbewritten` correction in `t-filter.mkxl`. No local filter
+module patch is applied. The functional test uses newly created files and
+will fail the package build if that fix does not work.
 
 ## Host font regression: Carlito (MANUAL)
 
@@ -36,17 +37,14 @@ cannot inspect fonts installed on the running host. From the root of
 `NixOS-Config`, on `kitty` or `tracy`:
 
 ```bash
-nix build .#context-patched -o result-context-patched -L
-pkgs/context/tests/check-system-carlito.sh \
-  ./result-context-patched/bin/context
-```
-
-To test the upstream variant instead:
-
-```bash
 nix build .#context -o result-context -L
-pkgs/context/tests/check-system-carlito.sh ./result-context/bin/context
+pkgs/context/tests/check-system-carlito.sh \
+  ./result-context/bin/context
 ```
+
+To test the new upstream or historical reference instead, use
+`nix build .#context-upstream` or `nix build .#context-2024` and pass the
+corresponding `result-*/bin/context` path.
 
 Requirements and expectations:
 
@@ -80,7 +78,7 @@ The native test runs during the local package build and can be repeated with:
 
 ```bash
 bash pkgs/context/tests/check-native-cache-lock.sh \
-  ./result-context-patched/bin/context
+  ./result-context/bin/context
 ```
 
 It checks two simultaneous initializations, reuse, forced regeneration and
@@ -106,13 +104,13 @@ exporters, manifests, or a dependency between the repositories:
 
 ```bash
 # In NixOS-Config:
-nix build .#context -o result-context-unpatched -L
-nix build .#context-patched -o result-context-patched -L
+nix build .#context-upstream -o result-context-upstream -L
+nix build .#context -o result-context -L
 
 # In context-testsuite (after `nix develop` there):
 context-testsuite run \
-  --baseline ../NixOS-Config/result-context-unpatched/bin/context \
-  --context ../NixOS-Config/result-context-patched/bin/context \
+  --baseline ../NixOS-Config/result-context-upstream/bin/context \
+  --context ../NixOS-Config/result-context/bin/context \
   --suite all \
   --output results/lmtx-patch-validation
 ```

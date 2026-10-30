@@ -9,8 +9,8 @@
 , python3
 }:
 
-# Optional ConTeXt reference sources from the SAME package as .#context and
-# .#context-sandbox. No second checkout and no additional ConTeXt build.
+# Optional reference sources from the SAME patched package as .#context and
+# .#context-sandbox-patched. No second checkout or extra engine build.
 # The local NixOS package retains the complete, unmodified documentation.
 stdenvNoCC.mkDerivation {
   pname = "context-lmtx-docs";
@@ -52,7 +52,7 @@ stdenvNoCC.mkDerivation {
     export CTX_VERSION='${contextPackage.version}'
     ${python3}/bin/python3 ${./make-docs-manifest.py}
 
-    # Deterministic archive, a regular .tar.xz FILE just like .#context-sandbox.
+    # Deterministic archive, a .tar.xz FILE like .#context-sandbox-patched.
     tar --sort=name --mtime='@1' --owner=0 --group=0 --numeric-owner \
       -C "$TMPDIR" -cJf "$out" context-lmtx-docs
     tar -tJf "$out" > "$TMPDIR/docs-contents.txt"

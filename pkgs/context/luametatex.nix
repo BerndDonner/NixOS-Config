@@ -1,6 +1,5 @@
 { lib
 , stdenv
-, fetchFromGitHub
 , fetchzip
 , cmake
 , coreutils
@@ -12,29 +11,31 @@
 , util-linux
 , contextSource
 , contextRevision
+, moduleFilter
 , enginePatches ? [ ]
+, localVersion ? null
+, patchLabel ? ""
 }:
 
 stdenv.mkDerivation rec {
   pname = "luametatex";
-  # The source is pinned exclusively by the root flake.lock.
-  version = "unstable-${builtins.substring 0 12 contextRevision}";
+  # Source revisions are pinned by the root flake inputs/lock.
+  # Display a distinct Nix version for local patches without changing
+  # ConTeXt's internal contextversion, which controls format handling.
+  version = if localVersion == null
+    then "unstable-${builtins.substring 0 12 contextRevision}"
+    else localVersion;
   src = contextSource;
 
-  # Engine patches are a property of a *variant*, not of a source revision.
-  # The standard package is upstream (with the separate filter-module fix).
+  # Ordered engine patches are configurable for any pinned source revision.
+  # The root overlay enables our Math/Glue patch for the productive default.
   patches = enginePatches;
   # Fail on changed patch context rather than silently accepting fuzzy hunks
   # when moving experiments to another upstream revision.
   patchFlags = [ "-p1" "--fuzz=0" ];
 
-  # Retain the proven filter/vim release; it is used by teaching documents.
-  moduleFilter = fetchFromGitHub {
-    owner = "adityam";
-    repo  = "filter";
-    rev   = "6e4cc8206d2f70e1228f2ca52e0738979873a885";
-    hash  = "sha256-/9uvk3+RC0PGyWNfaZP0mss8UXMs+GBlXhGmHr7dQp4=";
-  };
+  # Filter and Vim are supplied through the pinned root flake input.
+  # ca120d8 already uses file.canbewritten; no local module patch needed.
 
   # ConTeXt's Git repository omits this bootstrap/font TeX tree.
   # It is intentionally retained with the original fixed-output hash.
@@ -196,6 +197,11 @@ EOF
     initEnvironment context
 
     cat >> "$out/bin/context" <<EOF
+${lib.optionalString (localVersion != null) ''
+if [ "\$#" -eq 1 ] && [ "\$1" = "--version" ]; then
+  printf '%s\n' 'mtx-context | local build: ${version} (${patchLabel})'
+fi
+''}
 CACHE_MARKER="\$CACHE_ROOT/.context-ready-$(basename "$out")"
 
 # A directory can exist after a failed partial initialization. The marker is
@@ -251,17 +257,8 @@ EOF
   # mtx-context.lua or an unusable TeX tree already in the local package.
   # Keep all caches, including format files, outside the read-only Nix store.
   postInstall = ''
-    # Temporary compatibility fix for adityam/filter (LMTX only).
-    # Keep MkIV and upstream ConTeXt untouched in the regular variant.
-    # Fail rather than silently ignore upstream changes to this module.
-    # Filter compatibility and filter/vim tests apply to modern .lmt
-    # runners. A historical .lua runner gets only the generic smoke test.
-    if [ -f "$out/tex/texmf-linux-64/bin/mtxrun.lmt" ]; then
-      filter_dir="$out/tex/texmf-context/tex/context/third/filter"
-      chmod u+w "$filter_dir/t-filter.mkxl"
-      patch --batch --fuzz=0 -d "$filter_dir" -p0 < ${./patches/filter-lmtx-writable.patch}
-    fi
-
+    # Filter/Vim compatibility is checked by the real smoke documents below.
+    # No local t-filter.mkxl patch: ca120d8 contains the upstream fix.
     export HOME="$TMPDIR/context-smoke-home"
     export TEXMFCACHE="$TMPDIR/context-smoke-cache"
     mkdir -p "$HOME" "$TMPDIR/context-smoke-doc"
@@ -312,6 +309,14 @@ EOF
         fi
       )
     done
+    ${lib.optionalString (localVersion != null) ''
+      "$out/bin/context" --version > "$TMPDIR/ctx-version.log" 2>&1
+      grep -Fq 'local build: ${version} (${patchLabel})' "$TMPDIR/ctx-version.log" || {
+        cat "$TMPDIR/ctx-version.log" >&2
+        echo 'Local ConTeXt version marker missing' >&2
+        exit 1
+      }
+    ''}
     # Exercise two simultaneous first starts and forced reinitialization.
     bash ${./tests/check-native-cache-lock.sh} "$out/bin/context"
   '';
@@ -326,7 +331,7 @@ EOF
 
   passthru = {
     # Evaluated metadata; used by the independent sandbox archive derivation.
-    inherit contextRevision;
+    inherit contextRevision patchLabel;
     tests.smoke = ''
       $out/bin/luametatex --version
     '';

@@ -2,6 +2,12 @@
 # Portable ConTeXt launcher using the official LMTX .lmt entrypoints.
 set -euo pipefail
 
+# Expose the local patch revision without modifying ConTeXt's internal
+# \contextversion or invalidating its format compatibility checks.
+if [ "$#" -eq 1 ] && [ "$1" = "--version" ]; then
+  printf '%s\n' 'mtx-context | local build: @LOCAL_BUILD_VERSION@ (@PATCH_LABEL@)'
+fi
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN="$HERE/tex/texmf-linux-64/bin"
 

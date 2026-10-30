@@ -40,83 +40,66 @@ To show more detailed build information:
 nix build .#context --show-trace
 ```
 
-ConTeXt is built **exclusively through the root flake**. There is no
-`default.nix` or separate flake under `pkgs/context/`. `.#context` is the
-unpatched variant, and `.#context-patched` includes the local Math/Glue fix.
-Neither ConTeXt variant is installed globally or by Home Manager on
-`kitty`/`tracy`; development shells select the required package explicitly.
+ConTeXt is built **exclusively through the root flake**. The productive
+`.#context` package (and `overlays.context` / `pkgs.contextLmtx`) contains our
+Math/Glue patch. Its Nix package version is `2026.10.25-p1`; the output of
+`context --version` displays that local marker without modifying ConTeXt's
+internal format version.
 
-### 🔄 Updating ConTeXt without updating NixOS
+Three engine versions can be built independently:
 
-ConTeXt is a **separately pinned flake input** named `context-src`. Its Git
-revision and NAR hash are stored in the **root** `flake.lock`, next to the
-independent `nixpkgs`, `nixpkgs-unstable` and Home Manager inputs. There is no
-separate `pkgs/context/flake.lock`.
-
-| Input | Purpose | Update only this input |
+| Output | Source | Engine patch |
 | --- | --- | --- |
-| `context-src` | ConTeXt LMTX and LuaMetaTeX source | `nix flake update context-src` |
-| `nixpkgs` | NixOS 26.05 package set / build tools | `nix flake update nixpkgs` |
-| `nixpkgs-unstable` | Selected unstable packages | `nix flake update nixpkgs-unstable` |
+| `.#context` | `5751e396` (25 Oct 2026) | Math/Glue `noautobreak` patch; **default** |
+| `.#context-2024` | `0d2ec448` (1 Nov 2024) | none |
+| `.#context-upstream` | `445076e5` (29 Oct 2026) | none |
 
-From the **NixOS-Config repository root**, try a new ConTeXt revision without
-switching the installed NixOS system:
+The only portable output is `.#context-sandbox-patched`, derived from precisely
+the same package as `.#context`. The separate `.#context-docs` output provides
+reference documentation. Old Hans/trace outputs and `context-patched` aliases
+have been deleted. The parameterized LuaMetaTeX derivation still supports
+future independent engine patch stacks.
+
+### 🔄 Updating ConTeXt independently of NixOS
+
+The source pins are independent of `nixpkgs` and Home Manager:
+`context-src` is the locked productive revision; `context-2024-src` and
+`context-upstream-src` specify immutable comparison commits. The pinned
+`filter-src` input at `ca120d8` supplies filter and Vim, including the upstream
+writability fix. No local filter patch is needed. The original `texmf.zip`
+fixed-output hash stays unchanged.
+
+After applying this patch, resolve the three **new** inputs in `flake.lock`
+(they use URLs with fixed commit IDs) and commit the lock file:
 
 ```bash
-# Update only ConTeXt's source revision.
-nix flake update context-src
-
-# Verify the intended change in the shared lock file.
+nix flake lock
 git diff -- flake.lock
 
-# Build and inspect both package variants (their build-time smoke tests run).
-nix build .#context -o result-context-unpatched -L
-nix build .#context-patched -o result-context-patched -L
-./result-context-patched/bin/context --version
+nix build .#context -o result-context -L
+nix build .#context-2024 -o result-context-2024 -L
+nix build .#context-upstream -o result-context-upstream -L
+./result-context/bin/context --version
 
-# Build and verify a matching portable archive if you need one.
 nix build .#context-sandbox-patched -o result-sandbox-patched -L
 nix develop .#context -c python3 \
-  pkgs/context/verify-bundle.py result-context-patched result-sandbox-patched
+  pkgs/context/verify-bundle.py result-context result-sandbox-patched
 
-# MANUAL host integration check on kitty/tracy; NOT part of a Nix build:
-pkgs/context/tests/check-system-carlito.sh \
-  ./result-context-patched/bin/context
+# Manual host integration test (kitty/tracy only):
+pkgs/context/tests/check-system-carlito.sh ./result-context/bin/context
 ```
 
-**Check document output before choosing an update.** A successful Nix build
-checks that ConTeXt runs but does not guarantee correct typesetting. The
-independent `context-testsuite` repository owns the migrated 12-case and
-76-case Math/Glue/Penalty tests and the PDF comparison tools. Run it
-**deliberately** against the two build outputs; there is no testsuite
-integration or automatic cross-version check in this flake. See
-[`pkgs/context/tests/README.md`](./pkgs/context/tests/README.md) for the
-commands and expected separation of tests.
+A successful package build is **not** proof of typographic correctness.
+Use the independent `context-testsuite` for Math/Glue/Penalty regression
+cases and representative teaching PDFs before accepting a new source pin.
+Do not run `nix flake update` without a target when only a ConTeXt source
+change is intended.
 
-After validation, commit the pin:
-
-```bash
-git add flake.lock
-git commit -m "build(context): update pinned ConTeXt source"
-```
-
-**A NixOS system rebuild is not needed to use this ConTeXt update:** the
-package is accessed through development shells, not installed as a host
-package. Projects such as `unterrichts-texte` update their own locked
-`nixos-config` input when they decide to adopt it. Updating `context-src`
-does **not** update the locked `nixpkgs` revision or Home Manager. Avoid plain
-`nix flake update` when you only want ConTeXt: that updates **all** inputs.
-
-For an unsuccessful, **uncommitted** update, restore the old pin with
-`git restore flake.lock` (only if you do not have other lock-file edits to
-keep). For committed changes, revert the specific update commit.
-
-`texmf.zip` and `adityam/filter` (including `vim`) are **separately fixed by
-hashes** in `pkgs/context/luametatex.nix`; they are not refreshed by this
-command. Projects with their own flake, such as `unterrichts-texte`, also
-have their own lock of the `nixos-config` input. After committing and pushing
-a successful update here, update `nixos-config` in the **consumer project's**
-lock file to use the new revision (when using a remote Git input).
+ConTeXt is used through consumer development shells rather than being
+installed globally. A consumer such as `unterrichts-texte` should now choose
+`nixos-config.packages.${system}.context` instead of the deleted
+`context-patched` output. After validating and publishing this change,
+update that consumer's own locked `nixos-config` input deliberately.
 
 For technical details and further tests, see
 [`pkgs/context/readme.md`](./pkgs/context/readme.md).

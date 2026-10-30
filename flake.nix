@@ -29,13 +29,32 @@
     };
 
     # -------------------------------------------------------------------------
-    # ConTeXt source is pinned by the main flake.lock. To update only ConTeXt:
-    #   nix flake update context-src
-    # Nix fetches the upstream repository and records its exact rev/narHash.
+    # Productive ConTeXt source is pinned by the main flake.lock.
+    # Intentionally keep revision 5751e396 until the local Math/Glue patch
+    # has been reviewed and retested against a newer upstream revision.
     # Keeping this separate from texmf.zip is intentional: the Git tree
     # does not contain the bootstrap/font texmf tree needed by ConTeXt.
     context-src = {
       url = "github:contextgarden/context";
+      flake = false;
+    };
+
+    # Two independently pinned comparison sources. These commits do not move
+    # when the productive context-src is updated.
+    context-2024-src = {
+      url = "github:contextgarden/context/0d2ec448a05c3cf7e83d79ad62eb485f48464872";
+      flake = false;
+    };
+
+    context-upstream-src = {
+      url = "github:contextgarden/context/445076e571b5d12df19bd1f0f60536563888078c";
+      flake = false;
+    };
+
+    # Both the filter and Vim modules come from this repository. Its upstream
+    # revision contains the writable-directory fix for LMTX (t-filter.mkxl).
+    filter-src = {
+      url = "github:adityam/filter/ca120d80cb455826ef97e97b32c2abf5ecc82ce2";
       flake = false;
     };
 
@@ -102,13 +121,25 @@
         };
       };
 
-      # Unpatched LuaMetaTeX derivation, used by the public .#context output.
-      # Not installed by the NixOS/Home Manager host configurations. Engine
-      # patches are selected through the named variant registry below.
+      # One parametrized package builder; independent revisions can choose
+      # their own patch stacks without changing the native/sandbox machinery.
+      # The external filter/Vim modules are fixed by a separate flake input.
+      mkContextPackage = packageSet: args:
+        packageSet.callPackage ./pkgs/context/luametatex.nix (
+          { moduleFilter = inputs.filter-src; } // args
+        );
+
+      # The productive DEFAULT, including for all consumers of the exported
+      # overlay, is our patched 2026-10-25 engine (not unpatched upstream).
       overlayContext = final: prev: {
-        contextLmtx = final.callPackage ./pkgs/context/luametatex.nix {
+        contextLmtx = mkContextPackage final {
           contextSource = inputs.context-src;
           contextRevision = inputs.context-src.rev or "unknown";
+          enginePatches = [
+            ./pkgs/context/patches/luametatex-math-glue-noautobreak.patch
+          ];
+          localVersion = "2026.10.25-p1";
+          patchLabel = "math-glue-noautobreak";
         };
       };
 
@@ -133,33 +164,19 @@
         ];
       };
 
-      # Engine variants are independent builds of the SAME pinned upstream
-      # source. Each named entry defines its own patch stack; variants are
-      # never implicitly combined. Adding another experiment requires only
-      # one entry here (and the corresponding patch file).
-      contextVariantPatches = {
-        math-glue-noautobreak = [
-          ./pkgs/context/patches/luametatex-math-glue-noautobreak.patch
-        ];
-        hans-2026-10-28 = [
-          ./pkgs/context/patches/luametatex-hans-2026-10-28.patch
-        ];
-        # Extra trace output, for diagnosis only. Not used by any devShell.
-        hans-trace-2026-10-28 = [
-          ./pkgs/context/patches/luametatex-hans-2026-10-28.patch
-          ./pkgs/context/patches/luametatex-hans-trace-2026-10-28.patch
-        ];
+      # Explicitly unpatched reference builds. No .override of the patched
+      # default: their enginePatches lists are empty by construction.
+      context2024 = mkContextPackage pkgs {
+        contextSource = inputs.context-2024-src;
+        contextRevision = inputs.context-2024-src.rev or "unknown";
+        enginePatches = [ ];
       };
 
-      contextVariants = pkgs.lib.mapAttrs
-        (_name: enginePatches: pkgs.contextLmtx.override { inherit enginePatches; })
-        contextVariantPatches;
-
-      # Export every variant as .#context-<name> without changing the normal
-      # .#context package or putting more than one engine in a devShell.
-      contextVariantPackages = pkgs.lib.mapAttrs'
-        (name: package: pkgs.lib.nameValuePair "context-${name}" package)
-        contextVariants;
+      contextUpstream = mkContextPackage pkgs {
+        contextSource = inputs.context-upstream-src;
+        contextRevision = inputs.context-upstream-src.rev or "unknown";
+        enginePatches = [ ];
+      };
 
     in
     {
@@ -284,39 +301,27 @@
       # -----------------------------------------------------------------------
       # Packages
       #
-      # Public flake API:
-      #
-      #   nixos-config.packages.x86_64-linux.bootdev-cli
-      #   nixos-config.packages.x86_64-linux.context
-      #   nixos-config.packages.x86_64-linux.context-patched (legacy alias)
-      #   nixos-config.packages.x86_64-linux.context-math-glue-noautobreak
-      #   nixos-config.packages.x86_64-linux.context-hans-2026-10-28
-      #   nixos-config.packages.x86_64-linux.context-sandbox
-      #   nixos-config.packages.x86_64-linux.context-sandbox-patched
-      #   nixos-config.packages.x86_64-linux.context-docs
-      #   nixos-config.packages.x86_64-linux.nordvpn
-      #   nixos-config.packages.x86_64-linux.scope-rs
+      # Public flake API (only three distinct ConTeXt engines):
+      #   .#context                 patched productive default, 2026.10.25-p1
+      #   .#context-2024            historical unpatched reference
+      #   .#context-upstream        unpatched 445076e5 reference
+      #   .#context-sandbox-patched portable archive of the default
+      #   .#context-docs            documentation archive of the default
       # -----------------------------------------------------------------------
       packages.${system} = {
         bootdev-cli =
           pkgs.callPackage ./pkgs/bootdev-cli/bootdev-cli.nix { };
 
-        # Default engine stays unpatched. Retain the old .#context-patched
-        # name as a compatibility alias for our existing experimental fix.
-        # Individual builds can be selected by name, without changing the
-        # single `context` installed in a consuming project's devShell.
+        # This is *also* pkgs.contextLmtx from overlays.context.
         context = pkgs.contextLmtx;
-        context-patched = contextVariants."math-glue-noautobreak";
+        context-2024 = context2024;
+        context-upstream = contextUpstream;
 
-        context-sandbox = pkgs.callPackage ./pkgs/context/sandbox.nix {
+        # Exactly one portable engine: the productive, patched default.
+        context-sandbox-patched = pkgs.callPackage ./pkgs/context/sandbox.nix {
           contextPackage = pkgs.contextLmtx;
         };
-        context-sandbox-patched = pkgs.callPackage ./pkgs/context/sandbox.nix {
-          contextPackage = contextVariants."math-glue-noautobreak";
-        };
 
-        # Optional LMTX/MkIV documentation sources, kept separate from the
-        # executable sandbox. Both use the same pinned ConTeXt package.
         context-docs = pkgs.callPackage ./pkgs/context/docs.nix {
           contextPackage = pkgs.contextLmtx;
           contextRevision = inputs.context-src.rev or "unknown";
@@ -328,7 +333,7 @@
         scope-rs = pkgs.scope-rs;
         tio-fork = pkgs.tio-fork;
         devflake-update = import ./lib/devflake-update.nix { inherit pkgs; };
-      } // contextVariantPackages;
+      };
 
       # Python is only needed for the bundle integrity verifier, not as a
       # system runtime dependency of ConTeXt.
