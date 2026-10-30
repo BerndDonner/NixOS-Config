@@ -18,7 +18,10 @@
 }:
 
 stdenv.mkDerivation rec {
+  # Export the pinned filter/Vim source to shell build phases as $moduleFilter.
+  inherit moduleFilter;
   pname = "luametatex";
+
   # Source revisions are pinned by the root flake inputs/lock.
   # Display a distinct Nix version for local patches without changing
   # ConTeXt's internal contextversion, which controls format handling.
