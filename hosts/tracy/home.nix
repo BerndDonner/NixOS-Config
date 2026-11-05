@@ -9,6 +9,7 @@
     ../../modules/home-manager/git.nix
     ../../modules/home-manager/git-desktop.nix
     ../../modules/home-manager/tmux.nix
+    ../../modules/home-manager/konsole.nix
     ../../modules/home-manager/vim.nix
     ../../modules/home-manager/helix.nix
     ../../modules/home-manager/zk.nix
