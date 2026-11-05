@@ -1,28 +1,52 @@
 { pkgs, ... }:
 
 let
-  # Preserve all key bindings from the packaged Konsole version, changing
-  # only Shift+Return from the legacy keypad-Enter sequence to CSI-u.
-  withShiftReturn = name:
-    pkgs.runCommand "konsole-${name}-shift-return.keytab" { } ''
-      src="${pkgs.kdePackages.konsole}/share/konsole/${name}.keytab"
+  konsole = pkgs.kdePackages.konsole;
 
-      ${pkgs.gnused}/bin/sed -E \
-        's@^key[[:space:]]+Return[[:space:]]*\+Shift[[:space:]]*:[[:space:]]*"\\EOM"@key Return+Shift : "\\E[13;2u"@' \
-        "$src" > "$out"
+  # Use the keytabs from the exact Konsole source version packaged by Nix.
+  # The installed package is not guaranteed to expose them in share/konsole.
+  keytabs = pkgs.stdenvNoCC.mkDerivation {
+    pname = "konsole-shift-return-keytabs";
+    inherit (konsole) version src;
 
-      # Fail explicitly if a future Konsole release changes this binding.
-      ${pkgs.gnugrep}/bin/grep -Fq 'key Return+Shift : "\E[13;2u"' "$out" || {
-        echo "Could not patch Shift+Return in ${name}.keytab" >&2
-        exit 1
-      }
+    phases = [ "unpackPhase" "installPhase" ];
+
+    installPhase = ''
+      runHook preInstall
+      mkdir -p "$out"
+
+      for name in default macos; do
+        source="data/keyboard-layouts/$name.keytab"
+        if [ ! -f "$source" ]; then
+          echo "Missing Konsole keytab: $source" >&2
+          exit 1
+        fi
+
+        # Require exactly one legacy binding; fail if upstream changes it.
+        count=$(${pkgs.gnugrep}/bin/grep -Ec \
+          '^key[[:space:]]+Return[[:space:]]*\+Shift[[:space:]]*:[[:space:]]*"\\EOM"' \
+          "$source" || true)
+        if [ "$count" -ne 1 ]; then
+          echo "Expected one Shift+Return binding in $source, found $count" >&2
+          exit 1
+        fi
+
+        ${pkgs.gnused}/bin/sed -E \
+          's@^key[[:space:]]+Return[[:space:]]*\+Shift[[:space:]]*:[[:space:]]*"\\EOM"@key Return+Shift : "\\E[13;2u"@' \
+          "$source" > "$out/$name.keytab"
+
+        ${pkgs.gnugrep}/bin/grep -Fq \
+          'key Return+Shift : "\E[13;2u"' "$out/$name.keytab" || exit 1
+      done
+
+      runHook postInstall
     '';
+  };
 in
 {
-  # Override the two stock layouts that map Shift+Return to ESC O M.
-  # This keeps existing Konsole profiles and their other settings intact.
+  # Keep the existing Konsole profiles and all other key bindings unchanged.
   xdg.dataFile = {
-    "konsole/default.keytab".source = withShiftReturn "default";
-    "konsole/macos.keytab".source = withShiftReturn "macos";
+    "konsole/default.keytab".source = "${keytabs}/default.keytab";
+    "konsole/macos.keytab".source = "${keytabs}/macos.keytab";
   };
 }
