@@ -15,13 +15,17 @@ let
 in
 {
   # Only links go through the Nix store; private key contents never do.
-  # The age key link already lives in each host's home.nix.
+  # The age key lives in the same LUKS vault on both desktop hosts.
   home.file = builtins.listToAttrs (map (name: {
     name = ".ssh/${name}";
     value.source = config.lib.file.mkOutOfStoreSymlink "/secrets/ssh/keys/${name}";
   }) sshFiles) // {
-    # Link the entire directory, not the config file.
-    # rclone must create temporary files here when refreshing OAuth tokens.
+    # SOPS expects this path; never copy the private identity into the store.
+    ".config/sops/age/keys.txt" = {
+      source = config.lib.file.mkOutOfStoreSymlink "/secrets/sops/age/keys.txt";
+    };
+    # Link the entire directory, not the config file: rclone needs to
+    # create temporary files here when refreshing OAuth tokens.
     ".config/rclone" = {
       source = config.lib.file.mkOutOfStoreSymlink "/secrets/rclone";
       recursive = false;

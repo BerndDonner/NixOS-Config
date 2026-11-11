@@ -1,56 +1,23 @@
-# Edit this configuration file to define what should be installed on
-# your system. Help is available in the configuration.nix(5) man page, on
-# https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
-
+# Desktop with NVIDIA GPU and XP-Pen tablet (tracy).
 { config, lib, pkgs, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      ./nvidia/vaapi.nix
-      ./vault.nix
+  imports = [
+    ../../modules/nixos/base.nix
+    ../../modules/nixos/desktop.nix
     ../../modules/nixos/initrd-ssh-unlock.nix
-    ];
+    ./hardware-configuration.nix
+    ./nvidia/vaapi.nix
+    ./vault.nix
+  ];
 
-  # Use the systemd-boot EFI boot loader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.systemd-boot.configurationLimit = 3;
-  boot.loader.efi.canTouchEfiVariables = true;
+  networking.hostName = "tracy";
 
-  networking.hostName = "tracy"; # Define your hostname.
-  # Pick only one of the below networking options.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-  # networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
-
-  # Set your time zone.
-  time.timeZone = "Europe/Berlin";
-
-  # Select internationalisation properties.
-  i18n.defaultLocale = "en_US.UTF-8";
-  console = {
-    font = "Lat2-Terminus16";
-    useXkbConfig = true; # use xkb.options in tty.
-  };
-
-  services.gpm.enable = true;
-
-  # Enable the X11 windowing system.
-  services.xserver.enable = true;
-
-
-  # Enable the Plasma 5 Desktop Environment.
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
-  services.desktopManager.plasma6.enable = true;
-
-  security.pam.services.sddm.kwallet.enable = true;
-  
-
-  # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "eu";
-  };
+  environment.systemPackages = with pkgs; [
+    cudatoolkit
+    libva-vdpau-driver
+    nvidia-vaapi-driver
+  ];
 
   services.xserver.inputClassSections = [ ''
     Identifier "XP-Pen 24 Pro Tablet"
@@ -60,144 +27,6 @@
     MatchDevicePath "/dev/input/event*"
     Option "TransformationMatrix" "0.57148 0 0 0 1 0 0 0 1"
   '' ];
-
-  # Link /home/bernd/.config/kwinoutputconfig.json to
-  # /var/lib/sddm/.config/kwinoutputconfig.json. And change the ownership to
-  # sddm:sddm. This is neccessary so that plamsa and sddm (display-manager)
-  # use the same monitor setup. 
-  # TODO: THIS DOES NOT WORK
-  
-  # system.activationScripts.setupPlasmaOutputConfig= lib.mkAfter ''
-  #   # Ensure the target directory exists
-  #   mkdir -p /var/lib/sddm/.config
-    
-  #   # Path to the source and target
-  #   USER_HOME="/home/bernd"
-  #   SOURCE="$USER_HOME/.config/kwinoutputconfig.json"
-  #   TARGET="/var/lib/sddm/.config/kwinoutputconfig.json"
-
-  #   # Check if the target exists
-  #   if [ -e "$TARGET" ]; then
-  #     # Backup the existing file even if it is a symlink
-  #     BACKUP="$TARGET.backup.$(date +%s)"
-  #     echo "Backing up existing file to $BACKUP"
-  #     mv "$TARGET" "$BACKUP"
-  #   fi
-
-  #   # copy the SOURCE to the TARGET
-  #   cp "$SOURCE" "$TARGET"
-
-  #   # Set the ownership to sddm:sddm
-  #   chown sddm:sddm "$TARGET"
-  # '';
-  
-
-  # services.xserver.xkb.options = "eurosign:e,caps:escape";
-
-  # Enable sound.
-  services.pulseaudio.enable = false;
-  # rtkit is optional but recommended
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
-  };
-
-  # Enable touchpad support (enabled default in most desktopManager).
-  # services.xserver.libinput.enable = true;
-
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.bernd = {
-    isNormalUser = true;
-    
-    extraGroups = [
-      "wheel"   # Enable ‘sudo’ for the user.
-      "dialout" # Enable access to ttyACM0 for arduino programming
-      "audio"   # Enable audio changes
-    ];
-
-    openssh.authorizedKeys.keys = [
-      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDD18j4MrhelwgKsBMftVpClYd1YOzVAfyUmwo33nW/dk2pJn3qv2FHyYFj2Fn/od8lBLuKqymImCUy60Q8VjCSscnzVeNaaTY7rPUeznmzSEKTULMXBhXpu0fs4RdMP+OIm00inH3aP4M5VLqP6q0OKCWxWskR4Q1QP33kMZhEyzxfGVsxNrT8rJDEnyycVFGV0itPIeWxKFp+PV9kAFLBmiIu0ymxCoTYNItYlJRyXhrUZcyfAbBpQEkbwjZbchEuFFf5Idnan0CPQeeExZWePHT+FHHrVYsSdeijELPAl7tCzPdckrCO4Iz+g6vAn5suyJM6YngnJGjvx8iYDs2kUgdh8A6W45He4ezRa6GbvD7chH3LQ3lHJ6qyw6thoTHqUnIlKuQlAi9aplJ2b7h/QLjOLhDe6wsYSKjx7cQg/bi2WEalMw/aGVVPFvou1ZScNCAI++BOhSJy7pJWTp+yjOV9+tt1KpG2W7s6ONro5jZC+hBak28JzVI5s6KvWak= levi@lenzi"
-      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCuzORt+Ta4fGIHAQajtUesaYnq0YhsAFAhsWTrKs3RmuB1q4/rmZh3p9nZQGJjxB7bC7TxSWA0tl7BTAt916hhwhzGtiBSHecC4VyfMKg/322LPAtmZycaF9WW3F+lSfbLiLWgmtvBMy6xX2Avm7zmS7cdH11U0TkxshVgijqjLFBIeC9M5dzdo9qouScsn/EdcSvj1ZgZ5Ah5+RP8Dcd6onQieA017FJSfxaj7Oxb/Wc1EkfHbY6K1GN0Jh+hq6wU2bzmvq9AHqas88l24Suzmb4Psc/lVANB+TrH2PaM7CG1TX4pPAC1mrf7xUUCEOWWRkft/hBDx9ja5H9FSFkE6TNNOd7aXVqsjGtGu/oFVf7nX1ey6oTR72DHbGEwtDO5ky6eME092dpjQnd9HmrSkSeIJhzGt9pmQHisQcJpNYKXHazN3LOfd3lTl5m5XnsHUbC06RfqtifuIe2ifgdCtuwSR1oEPCJpfjVTzEcJTZ2IcinjfAdYL2Xnv5judt0= Bernds-Desktop"
-    ];
-    packages = with pkgs; [];
-  };
-
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nixpkgs.config.allowUnfree = true;
-
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  environment.systemPackages = with pkgs; [
-    cryptsetup
-    e2fsprogs
-    wget
-    w3m
-    git
-    fd
-    bc
-    zip
-    unzip
-    exfatprogs
-    blesh
-    starship
-    unzip
-    usbutils
-    pciutils
-    imagemagick
-    ghostscript
-    mesa-demos
-    cudatoolkit
-    libva-vdpau-driver
-    nvidia-vaapi-driver
-    vulkan-tools
-    wayland-utils
-  ];
-
-  environment.sessionVariables = {
-    XDG_SESSION_TYPE = "wayland";
-    QT_QPA_PLATFORM = "wayland";
-    GDK_BACKEND = "wayland";
-    MOZ_ENABLE_WAYLAND = "1";
-    OZONE_PLATFORM_HINT = "wayland";
-  };
-
-  fonts.packages = with pkgs; [
-    nerd-fonts.jetbrains-mono
-    nerd-fonts.symbols-only
-    carlito
-  ];
-
-  fonts.enableDefaultPackages = true;
-  fonts.fontDir.enable = true;
-  
-  # started in user sessions.
-  # programs.mtr.enable = true;
-  # programs.gnupg.agent = {
-  #   enable = true;
-  #   enableSSHSupport = true;
-  # };
-
-  # List services that you want to enable:
-
-  # Enable the OpenSSH daemon.
-  services.openssh.enable = true;
-  services.openssh.settings.PermitRootLogin = "no";
-
-  services.nordvpn = {
-    enable = true;
-    allowedUsers = [ "bernd" ];
-  };
-
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
 
   # Enable OpenGL
   hardware.graphics.enable = true;
@@ -278,28 +107,6 @@
   };
 
 
-  # Copy the NixOS configuration file and link it from the resulting system
-  # (/run/current-system/configuration.nix). This is useful in case you
-  # accidentally delete configuration.nix.
-  # system.copySystemConfiguration = true;
-
-  # This option defines the first version of NixOS you have installed on this particular machine,
-  # and is used to maintain compatibility with application data (e.g. databases) created on older NixOS versions.
-  #
-  # Most users should NEVER change this value after the initial install, for any reason,
-  # even if you've upgraded your system to a new NixOS release.
-  #
-  # This value does NOT affect the Nixpkgs version your packages and OS are pulled from,
-  # so changing it will NOT upgrade your system.
-  #
-  # This value being lower than the current NixOS release does NOT mean your system is
-  # out of date, out of support, or vulnerable.
-  #
-  # Do NOT change this value unless you have manually inspected all the changes it would make to your configuration,
-  # and migrated your data accordingly.
-  #
-  # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
-  system.stateVersion = "23.11"; # Did you read the comment?
-
+  # Preserve tracy's original host-specific compatibility baseline.
+  system.stateVersion = "23.11";
 }
-

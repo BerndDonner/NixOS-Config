@@ -32,6 +32,7 @@
       bottom
       nodejs
       wl-clipboard
+      waypipe
       rclone
       age
       sops

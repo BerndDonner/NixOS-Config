@@ -1,172 +1,49 @@
-# /etc/nixos/configuration.nix  (kitty)
-
-{ config, lib, pkgs, ... }:
+# Framework 16 (kitty) – host-specific configuration.
+{ lib, pkgs, ... }:
 
 {
   imports = [
+    ../../modules/nixos/base.nix
+    ../../modules/nixos/desktop.nix
+    ../../modules/nixos/initrd-ssh-unlock.nix
     ./hardware-configuration.nix
     ./vault.nix
-    ../../modules/nixos/initrd-ssh-unlock.nix
     ./hibernate-hooks.nix
   ];
 
-  # Bootloader (eigene EFI-Partition auf der NixOS-SSD)
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.systemd-boot.configurationLimit = 3;
-  boot.loader.efi.canTouchEfiVariables = true;
+  # Separate EFI partition on the NixOS SSD.
   boot.supportedFilesystems.exfat = true;
 
-  # Hibernate (swap partition)
+  # Hibernate (swap partition).
   boot.resumeDevice = "/dev/disk/by-uuid/c4072834-5654-415d-a8af-95e8e160dc5b";
-
-  # Ensure the kernel actually attempts resume (do not override other params)
   boot.kernelParams = lib.mkAfter [
     "resume=/dev/disk/by-uuid/c4072834-5654-415d-a8af-95e8e160dc5b"
     "nvme_core.default_ps_max_latency_us=0"
   ];
 
-  # Force a reliable hibernation path: "platform" (firmware-assisted) resume can fail on some AMD/UEFI laptops
-  # with errors like "inconsistent memory map / image mismatch". Using HibernateMode=shutdown makes hibernate
-  # use the kernel-managed shutdown/resume flow, which is typically much more stable.
+  # Keep the kernel-managed shutdown/resume path on this AMD/UEFI laptop.
   systemd.sleep.settings.Sleep = {
     HibernateMode = "shutdown";
     HibernateDelaySec = "2min";
   };
-
-  # Force the kernel default hibernation mode early at boot so user space (KDE/logind) can't end up using "platform".
   systemd.tmpfiles.rules = [
     "w /sys/power/disk - - - - shutdown"
   ];
 
-  # boot.blacklistedKernelModules = [
-  #   "mt7925e"
-  #   "mt7925_common"
-  #   "mt76"
-  #   "mt76_connac_lib"
-  # ];
-
-  # Kernel
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   networking.hostName = "kitty";
-  networking.networkmanager.enable = true;
-  networking.networkmanager.settings.keyfile.path = "/secrets/nm";
-
+  networking.networkmanager = {
+    enable = true;
+    settings.keyfile.path = "/secrets/nm";
+  };
   systemd.services.NetworkManager.unitConfig.RequiresMountsFor = [
     "/secrets/nm"
   ];
 
-
   hardware.bluetooth.enable = true;
+  users.users.bernd.extraGroups = [ "networkmanager" ];
 
-  time.timeZone = "Europe/Berlin";
-
-  i18n.defaultLocale = "en_US.UTF-8";
-  console = {
-    font = "Lat2-Terminus16";
-    useXkbConfig = true;
-  };
-
-  services.gpm.enable = true;
-
-  # GUI: Plasma 6
-  hardware.graphics.enable = true;
-  services.xserver.enable = true;
-
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
-  services.desktopManager.plasma6.enable = true;
-
-  security.pam.services.sddm.kwallet.enable = true;
-
-  services.xserver.xkb = {
-    layout = "eu";
-  };
-
-  # Audio (PipeWire)
-  services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
-
-  # User
-  users.users.bernd = {
-    isNormalUser = true;
-
-    extraGroups = [
-      "wheel"
-      "dialout"
-      "audio"
-      "networkmanager"
-    ];
-
-    openssh.authorizedKeys.keys = [
-      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDD18j4MrhelwgKsBMftVpClYd1YOzVAfyUmwo33nW/dk2pJn3qv2FHyYFj2Fn/od8lBLuKqymImCUy60Q8VjCSscnzVeNaaTY7rPUeznmzSEKTULMXBhXpu0fs4RdMP+OIm00inH3aP4M5VLqP6q0OKCWxWskR4Q1QP33kMZhEyzxfGVsxNrT8rJDEnyycVFGV0itPIeWxKFp+PV9kAFLBmiIu0ymxCoTYNItYlJRyXhrUZcyfAbBpQEkbwjZbchEuFFf5Idnan0CPQeeExZWePHT+FHHrVYsSdeijELPAl7tCzPdckrCO4Iz+g6vAn5suyJM6YngnJGjvx8iYDs2kUgdh8A6W45He4ezRa6GbvD7chH3LQ3lHJ6qyw6thoTHqUnIlKuQlAi9aplJ2b7h/QLjOLhDe6wsYSKjx7cQg/bi2WEalMw/aGVVPFvou1ZScNCAI++BOhSJy7pJWTp+yjOV9+tt1KpG2W7s6ONro5jZC+hBak28JzVI5s6KvWak= levi@lenzi"
-      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCuzORt+Ta4fGIHAQajtUesaYnq0YhsAFAhsWTrKs3RmuB1q4/rmZh3p9nZQGJjxB7bC7TxSWA0tl7BTAt916hhwhzGtiBSHecC4VyfMKg/322LPAtmZycaF9WW3F+lSfbLiLWgmtvBMy6xX2Avm7zmS7cdH11U0TkxshVgijqjLFBIeC9M5dzdo9qouScsn/EdcSvj1ZgZ5Ah5+RP8Dcd6onQieA017FJSfxaj7Oxb/Wc1EkfHbY6K1GN0Jh+hq6wU2bzmvq9AHqas88l24Suzmb4Psc/lVANB+TrH2PaM7CG1TX4pPAC1mrf7xUUCEOWWRkft/hBDx9ja5H9FSFkE6TNNOd7aXVqsjGtGu/oFVf7nX1ey6oTR72DHbGEwtDO5ky6eME092dpjQnd9HmrSkSeIJhzGt9pmQHisQcJpNYKXHazN3LOfd3lTl5m5XnsHUbC06RfqtifuIe2ifgdCtuwSR1oEPCJpfjVTzEcJTZ2IcinjfAdYL2Xnv5judt0= Bernds-Desktop"
-    ];
-
-    packages = with pkgs; [ ];
-  };
-
-  # Nix + Unfree (firmware etc.)
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nixpkgs.config.allowUnfree = true;
-
-  # Packages (wie tracy, aber NVIDIA-Kram komplett entfernt)
-  environment.systemPackages = with pkgs; [
-    cryptsetup
-    e2fsprogs
-    exfatprogs
-    wget
-    w3m
-    git
-    fd
-    bc
-    zip
-    blesh
-    starship
-    unzip
-    usbutils
-    pciutils
-    imagemagick
-    ghostscript
-    mesa-demos
-    vulkan-tools
-    wayland-utils
-  ];
-
-  environment.sessionVariables = {
-    XDG_SESSION_TYPE = "wayland";
-    QT_QPA_PLATFORM = "wayland";
-    GDK_BACKEND = "wayland";
-    MOZ_ENABLE_WAYLAND = "1";
-    OZONE_PLATFORM_HINT = "wayland";
-  };
-
-  fonts.packages = with pkgs; [
-    nerd-fonts.jetbrains-mono
-    nerd-fonts.symbols-only
-    carlito
-  ];
-
-  fonts.enableDefaultPackages = true;
-  fonts.fontDir.enable = true;
-
-  # SSH
-  services.openssh.enable = true;
-  services.openssh.settings.PermitRootLogin = "no";
-
-  # NordVPN
-  services.nordvpn = {
-    enable = true;
-    allowedUsers = [ "bernd" ];
-  };
-
-  # Wichtig: auf dem neuen System so lassen (Installer-Wert nutzen)
+  # Preserve the original host-specific compatibility baseline.
   system.stateVersion = "25.11";
 }
-
