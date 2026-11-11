@@ -4,7 +4,7 @@
 
 let
   # Each machine keeps its own private host key outside the repository.
-  hostKey = "/persist/initrd-ssh/${config.networking.hostName}/ssh_host_ed25519_key";
+  hostKey = "/etc/secrets/initrd/ssh_host_ed25519_key";
 
   # The same client keys are accepted for bernd in the normal system, but
   # initrd permits only the password agent (no root shell or forwarding).
