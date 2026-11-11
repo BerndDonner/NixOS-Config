@@ -10,6 +10,7 @@
       ./hardware-configuration.nix
       ./nvidia/vaapi.nix
       ./vault.nix
+    ../../modules/nixos/initrd-ssh-unlock.nix
     ];
 
   # Use the systemd-boot EFI boot loader.

@@ -6,6 +6,7 @@
   imports = [
     ./hardware-configuration.nix
     ./vault.nix
+    ../../modules/nixos/initrd-ssh-unlock.nix
     ./hibernate-hooks.nix
   ];
 
